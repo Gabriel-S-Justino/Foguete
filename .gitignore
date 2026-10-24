@@ -9,3 +9,4 @@ __pycache__/
 .vercel/
 frontend/e2e/artifacts/
 *.log
+*.db

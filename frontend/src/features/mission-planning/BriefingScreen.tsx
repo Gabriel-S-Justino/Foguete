@@ -32,8 +32,9 @@ export function BriefingScreen() {
     let alive = true;
     api.validate(token, campaign).then((r) => {
       if (!alive) return;
-      const same = r.approved === v.approved;
-      setServer(same ? { state: 'ok', text: `Servidor confirma: ${r.approved ? 'aprovado' : 'bloqueado'} (${r.blockers.length} bloqueio(s)).` } : { state: 'mismatch', text: 'Divergência entre a validação local e a do servidor: prevalece a decisão do servidor.' });
+      // O servidor revalida as regras críticas (orçamento, massa, capacidade, Δv, requisitos); ele pode apenas bloquear
+      if (v.approved && !r.approved) setServer({ state: 'mismatch', text: `O servidor reprovou: ${r.blockers.join(', ')}. Prevalece a decisão do servidor.` });
+      else setServer({ state: 'ok', text: r.approved ? 'Servidor confirma as regras críticas (orçamento, massa, capacidade, Δv e requisitos).' : `Servidor também bloqueia: ${r.blockers.length} verificação(ões) crítica(s).` });
     }).catch(() => alive && setServer({ state: 'offline', text: 'Servidor indisponível: validação apenas local (o servidor revalida ao finalizar).' }));
     return () => { alive = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps

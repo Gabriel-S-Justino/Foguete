@@ -1,0 +1,3590 @@
+{
+  "description": "Gerado pelo motor TypeScript (vectors.test.ts). O backend deve reproduzir os mesmos resultados.",
+  "cases": [
+    {
+      "name": "leo-climate-referencia",
+      "input": {
+        "missionId": "leo-climate",
+        "vehicleId": "falcon-9",
+        "assistance": "iniciante",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-aluminum-0",
+              "componentId": "bus-aluminum"
+            },
+            {
+              "instanceId": "imager-multispectral-1",
+              "componentId": "imager-multispectral"
+            },
+            {
+              "instanceId": "sounder-ir-mw-2",
+              "componentId": "sounder-ir-mw"
+            },
+            {
+              "instanceId": "radiometer-erb-3",
+              "componentId": "radiometer-erb"
+            },
+            {
+              "instanceId": "solar-gaas-4",
+              "componentId": "solar-gaas"
+            },
+            {
+              "instanceId": "battery-liion-5",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-6",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-7",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "magnetorquers-8",
+              "componentId": "magnetorquers"
+            },
+            {
+              "instanceId": "sun-sensor-9",
+              "componentId": "sun-sensor"
+            },
+            {
+              "instanceId": "gyroscopes-10",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "hydrazine-thrusters-11",
+              "componentId": "hydrazine-thrusters"
+            },
+            {
+              "instanceId": "obc-moderate-12",
+              "componentId": "obc-moderate"
+            },
+            {
+              "instanceId": "xband-tx-13",
+              "componentId": "xband-tx"
+            },
+            {
+              "instanceId": "sband-ttc-14",
+              "componentId": "sband-ttc"
+            },
+            {
+              "instanceId": "gnss-receiver-15",
+              "componentId": "gnss-receiver"
+            },
+            {
+              "instanceId": "mli-16",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "radiators-17",
+              "componentId": "radiators"
+            },
+            {
+              "instanceId": "heaters-18",
+              "componentId": "heaters"
+            }
+          ],
+          "propellantKg": 70,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "earth-orbit",
+          "altitudeKm": 705,
+          "eccentricity": 0.001,
+          "inclinationMode": "sso",
+          "inclinationDeg": 98.21,
+          "localTimeOfNode": "10:30",
+          "missionLifeYears": 5,
+          "orbitsBeforeTrim": 5,
+          "launchDate": "2027-06-15"
+        },
+        "derived": {
+          "requiredDvMS": 205.38804949656398,
+          "totalDvMS": 195.6076661872038,
+          "launchProfile": "leo-polar"
+        }
+      },
+      "expected": {
+        "dryMassKg": 632,
+        "wetMassKg": 702,
+        "componentCostUSD": 138800000,
+        "committedUSD": 253567600,
+        "deltaVAvailableMS": 226.6285646854769,
+        "checks": {
+          "budget-total": "aprovada",
+          "vehicle-capacity": "aprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "aprovada",
+          "delta-v": "aprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-battery": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-command": "aprovada",
+          "mission-req-propulsion": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-instrument": "aprovada",
+          "mission-req-gnss": "aprovada"
+        },
+        "approved": true
+      }
+    },
+    {
+      "name": "leo-climate-avancado",
+      "input": {
+        "missionId": "leo-climate",
+        "vehicleId": "falcon-9",
+        "assistance": "avancado",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-aluminum-0",
+              "componentId": "bus-aluminum"
+            },
+            {
+              "instanceId": "imager-multispectral-1",
+              "componentId": "imager-multispectral"
+            },
+            {
+              "instanceId": "sounder-ir-mw-2",
+              "componentId": "sounder-ir-mw"
+            },
+            {
+              "instanceId": "radiometer-erb-3",
+              "componentId": "radiometer-erb"
+            },
+            {
+              "instanceId": "solar-gaas-4",
+              "componentId": "solar-gaas"
+            },
+            {
+              "instanceId": "battery-liion-5",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-6",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-7",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "magnetorquers-8",
+              "componentId": "magnetorquers"
+            },
+            {
+              "instanceId": "sun-sensor-9",
+              "componentId": "sun-sensor"
+            },
+            {
+              "instanceId": "gyroscopes-10",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "hydrazine-thrusters-11",
+              "componentId": "hydrazine-thrusters"
+            },
+            {
+              "instanceId": "obc-moderate-12",
+              "componentId": "obc-moderate"
+            },
+            {
+              "instanceId": "xband-tx-13",
+              "componentId": "xband-tx"
+            },
+            {
+              "instanceId": "sband-ttc-14",
+              "componentId": "sband-ttc"
+            },
+            {
+              "instanceId": "gnss-receiver-15",
+              "componentId": "gnss-receiver"
+            },
+            {
+              "instanceId": "mli-16",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "radiators-17",
+              "componentId": "radiators"
+            },
+            {
+              "instanceId": "heaters-18",
+              "componentId": "heaters"
+            }
+          ],
+          "propellantKg": 70,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "earth-orbit",
+          "altitudeKm": 705,
+          "eccentricity": 0.001,
+          "inclinationMode": "sso",
+          "inclinationDeg": 98.21,
+          "localTimeOfNode": "10:30",
+          "missionLifeYears": 5,
+          "orbitsBeforeTrim": 5,
+          "launchDate": "2027-06-15"
+        },
+        "derived": {
+          "requiredDvMS": 224.94881611528433,
+          "totalDvMS": 195.6076661872038,
+          "launchProfile": "leo-polar"
+        }
+      },
+      "expected": {
+        "dryMassKg": 632,
+        "wetMassKg": 702,
+        "componentCostUSD": 138800000,
+        "committedUSD": 253567600,
+        "deltaVAvailableMS": 226.6285646854769,
+        "checks": {
+          "budget-total": "aprovada",
+          "vehicle-capacity": "aprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "aprovada",
+          "delta-v": "aprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-battery": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-command": "aprovada",
+          "mission-req-propulsion": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-instrument": "aprovada",
+          "mission-req-gnss": "aprovada"
+        },
+        "approved": true
+      }
+    },
+    {
+      "name": "leo-climate-sem-propelente",
+      "input": {
+        "missionId": "leo-climate",
+        "vehicleId": "falcon-9",
+        "assistance": "intermediario",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-aluminum-0",
+              "componentId": "bus-aluminum"
+            },
+            {
+              "instanceId": "imager-multispectral-1",
+              "componentId": "imager-multispectral"
+            },
+            {
+              "instanceId": "sounder-ir-mw-2",
+              "componentId": "sounder-ir-mw"
+            },
+            {
+              "instanceId": "radiometer-erb-3",
+              "componentId": "radiometer-erb"
+            },
+            {
+              "instanceId": "solar-gaas-4",
+              "componentId": "solar-gaas"
+            },
+            {
+              "instanceId": "battery-liion-5",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-6",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-7",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "magnetorquers-8",
+              "componentId": "magnetorquers"
+            },
+            {
+              "instanceId": "sun-sensor-9",
+              "componentId": "sun-sensor"
+            },
+            {
+              "instanceId": "gyroscopes-10",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "hydrazine-thrusters-11",
+              "componentId": "hydrazine-thrusters"
+            },
+            {
+              "instanceId": "obc-moderate-12",
+              "componentId": "obc-moderate"
+            },
+            {
+              "instanceId": "xband-tx-13",
+              "componentId": "xband-tx"
+            },
+            {
+              "instanceId": "sband-ttc-14",
+              "componentId": "sband-ttc"
+            },
+            {
+              "instanceId": "gnss-receiver-15",
+              "componentId": "gnss-receiver"
+            },
+            {
+              "instanceId": "mli-16",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "radiators-17",
+              "componentId": "radiators"
+            },
+            {
+              "instanceId": "heaters-18",
+              "componentId": "heaters"
+            }
+          ],
+          "propellantKg": 0,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "earth-orbit",
+          "altitudeKm": 705,
+          "eccentricity": 0.001,
+          "inclinationMode": "sso",
+          "inclinationDeg": 98.21,
+          "localTimeOfNode": "10:30",
+          "missionLifeYears": 5,
+          "orbitsBeforeTrim": 5,
+          "launchDate": "2027-06-15"
+        },
+        "derived": {
+          "requiredDvMS": 215.1684328059242,
+          "totalDvMS": 195.6076661872038,
+          "launchProfile": "leo-polar"
+        }
+      },
+      "expected": {
+        "dryMassKg": 632,
+        "wetMassKg": 632,
+        "componentCostUSD": 138800000,
+        "committedUSD": 253567600,
+        "deltaVAvailableMS": 0,
+        "checks": {
+          "budget-total": "aprovada",
+          "vehicle-capacity": "aprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "aprovada",
+          "delta-v": "reprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-battery": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-command": "aprovada",
+          "mission-req-propulsion": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-instrument": "aprovada",
+          "mission-req-gnss": "aprovada"
+        },
+        "approved": false
+      }
+    },
+    {
+      "name": "leo-climate-tanque-excedido",
+      "input": {
+        "missionId": "leo-climate",
+        "vehicleId": "falcon-9",
+        "assistance": "iniciante",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-aluminum-0",
+              "componentId": "bus-aluminum"
+            },
+            {
+              "instanceId": "imager-multispectral-1",
+              "componentId": "imager-multispectral"
+            },
+            {
+              "instanceId": "sounder-ir-mw-2",
+              "componentId": "sounder-ir-mw"
+            },
+            {
+              "instanceId": "radiometer-erb-3",
+              "componentId": "radiometer-erb"
+            },
+            {
+              "instanceId": "solar-gaas-4",
+              "componentId": "solar-gaas"
+            },
+            {
+              "instanceId": "battery-liion-5",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-6",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-7",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "magnetorquers-8",
+              "componentId": "magnetorquers"
+            },
+            {
+              "instanceId": "sun-sensor-9",
+              "componentId": "sun-sensor"
+            },
+            {
+              "instanceId": "gyroscopes-10",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "hydrazine-thrusters-11",
+              "componentId": "hydrazine-thrusters"
+            },
+            {
+              "instanceId": "obc-moderate-12",
+              "componentId": "obc-moderate"
+            },
+            {
+              "instanceId": "xband-tx-13",
+              "componentId": "xband-tx"
+            },
+            {
+              "instanceId": "sband-ttc-14",
+              "componentId": "sband-ttc"
+            },
+            {
+              "instanceId": "gnss-receiver-15",
+              "componentId": "gnss-receiver"
+            },
+            {
+              "instanceId": "mli-16",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "radiators-17",
+              "componentId": "radiators"
+            },
+            {
+              "instanceId": "heaters-18",
+              "componentId": "heaters"
+            }
+          ],
+          "propellantKg": 100070,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "earth-orbit",
+          "altitudeKm": 705,
+          "eccentricity": 0.001,
+          "inclinationMode": "sso",
+          "inclinationDeg": 98.21,
+          "localTimeOfNode": "10:30",
+          "missionLifeYears": 5,
+          "orbitsBeforeTrim": 5,
+          "launchDate": "2027-06-15"
+        },
+        "derived": {
+          "requiredDvMS": 205.38804949656398,
+          "totalDvMS": 195.6076661872038,
+          "launchProfile": "leo-polar"
+        }
+      },
+      "expected": {
+        "dryMassKg": 632,
+        "wetMassKg": 712,
+        "componentCostUSD": 138800000,
+        "committedUSD": 253567600,
+        "deltaVAvailableMS": 257.144816024354,
+        "checks": {
+          "budget-total": "aprovada",
+          "vehicle-capacity": "aprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "reprovada",
+          "delta-v": "aprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-battery": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-command": "aprovada",
+          "mission-req-propulsion": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-instrument": "aprovada",
+          "mission-req-gnss": "aprovada"
+        },
+        "approved": false
+      }
+    },
+    {
+      "name": "leo-climate-sem-veiculo",
+      "input": {
+        "missionId": "leo-climate",
+        "vehicleId": null,
+        "assistance": "iniciante",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-aluminum-0",
+              "componentId": "bus-aluminum"
+            },
+            {
+              "instanceId": "imager-multispectral-1",
+              "componentId": "imager-multispectral"
+            },
+            {
+              "instanceId": "sounder-ir-mw-2",
+              "componentId": "sounder-ir-mw"
+            },
+            {
+              "instanceId": "radiometer-erb-3",
+              "componentId": "radiometer-erb"
+            },
+            {
+              "instanceId": "solar-gaas-4",
+              "componentId": "solar-gaas"
+            },
+            {
+              "instanceId": "battery-liion-5",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-6",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-7",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "magnetorquers-8",
+              "componentId": "magnetorquers"
+            },
+            {
+              "instanceId": "sun-sensor-9",
+              "componentId": "sun-sensor"
+            },
+            {
+              "instanceId": "gyroscopes-10",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "hydrazine-thrusters-11",
+              "componentId": "hydrazine-thrusters"
+            },
+            {
+              "instanceId": "obc-moderate-12",
+              "componentId": "obc-moderate"
+            },
+            {
+              "instanceId": "xband-tx-13",
+              "componentId": "xband-tx"
+            },
+            {
+              "instanceId": "sband-ttc-14",
+              "componentId": "sband-ttc"
+            },
+            {
+              "instanceId": "gnss-receiver-15",
+              "componentId": "gnss-receiver"
+            },
+            {
+              "instanceId": "mli-16",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "radiators-17",
+              "componentId": "radiators"
+            },
+            {
+              "instanceId": "heaters-18",
+              "componentId": "heaters"
+            }
+          ],
+          "propellantKg": 70,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "earth-orbit",
+          "altitudeKm": 705,
+          "eccentricity": 0.001,
+          "inclinationMode": "sso",
+          "inclinationDeg": 98.21,
+          "localTimeOfNode": "10:30",
+          "missionLifeYears": 5,
+          "orbitsBeforeTrim": 5,
+          "launchDate": "2027-06-15"
+        },
+        "derived": {
+          "requiredDvMS": 205.38804949656398,
+          "totalDvMS": 195.6076661872038,
+          "launchProfile": "leo-polar"
+        }
+      },
+      "expected": {
+        "dryMassKg": 632,
+        "wetMassKg": 702,
+        "componentCostUSD": 138800000,
+        "committedUSD": 179867600,
+        "deltaVAvailableMS": 226.6285646854769,
+        "checks": {
+          "budget-total": "aprovada",
+          "vehicle-selected": "reprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "aprovada",
+          "delta-v": "aprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-battery": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-command": "aprovada",
+          "mission-req-propulsion": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-instrument": "aprovada",
+          "mission-req-gnss": "aprovada"
+        },
+        "approved": false
+      }
+    },
+    {
+      "name": "leo-climate-starship-pendente",
+      "input": {
+        "missionId": "leo-climate",
+        "vehicleId": "starship",
+        "assistance": "iniciante",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-aluminum-0",
+              "componentId": "bus-aluminum"
+            },
+            {
+              "instanceId": "imager-multispectral-1",
+              "componentId": "imager-multispectral"
+            },
+            {
+              "instanceId": "sounder-ir-mw-2",
+              "componentId": "sounder-ir-mw"
+            },
+            {
+              "instanceId": "radiometer-erb-3",
+              "componentId": "radiometer-erb"
+            },
+            {
+              "instanceId": "solar-gaas-4",
+              "componentId": "solar-gaas"
+            },
+            {
+              "instanceId": "battery-liion-5",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-6",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-7",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "magnetorquers-8",
+              "componentId": "magnetorquers"
+            },
+            {
+              "instanceId": "sun-sensor-9",
+              "componentId": "sun-sensor"
+            },
+            {
+              "instanceId": "gyroscopes-10",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "hydrazine-thrusters-11",
+              "componentId": "hydrazine-thrusters"
+            },
+            {
+              "instanceId": "obc-moderate-12",
+              "componentId": "obc-moderate"
+            },
+            {
+              "instanceId": "xband-tx-13",
+              "componentId": "xband-tx"
+            },
+            {
+              "instanceId": "sband-ttc-14",
+              "componentId": "sband-ttc"
+            },
+            {
+              "instanceId": "gnss-receiver-15",
+              "componentId": "gnss-receiver"
+            },
+            {
+              "instanceId": "mli-16",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "radiators-17",
+              "componentId": "radiators"
+            },
+            {
+              "instanceId": "heaters-18",
+              "componentId": "heaters"
+            }
+          ],
+          "propellantKg": 70,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "earth-orbit",
+          "altitudeKm": 705,
+          "eccentricity": 0.001,
+          "inclinationMode": "sso",
+          "inclinationDeg": 98.21,
+          "localTimeOfNode": "10:30",
+          "missionLifeYears": 5,
+          "orbitsBeforeTrim": 5,
+          "launchDate": "2027-06-15"
+        },
+        "derived": {
+          "requiredDvMS": 205.38804949656398,
+          "totalDvMS": 195.6076661872038,
+          "launchProfile": "leo-polar"
+        }
+      },
+      "expected": {
+        "dryMassKg": 632,
+        "wetMassKg": 702,
+        "componentCostUSD": 138800000,
+        "committedUSD": 344867600,
+        "deltaVAvailableMS": 226.6285646854769,
+        "checks": {
+          "budget-total": "reprovada",
+          "vehicle-capacity": "reprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "aprovada",
+          "delta-v": "aprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-battery": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-command": "aprovada",
+          "mission-req-propulsion": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-instrument": "aprovada",
+          "mission-req-gnss": "aprovada"
+        },
+        "approved": false
+      }
+    },
+    {
+      "name": "leo-climate-sls",
+      "input": {
+        "missionId": "leo-climate",
+        "vehicleId": "sls",
+        "assistance": "iniciante",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-aluminum-0",
+              "componentId": "bus-aluminum"
+            },
+            {
+              "instanceId": "imager-multispectral-1",
+              "componentId": "imager-multispectral"
+            },
+            {
+              "instanceId": "sounder-ir-mw-2",
+              "componentId": "sounder-ir-mw"
+            },
+            {
+              "instanceId": "radiometer-erb-3",
+              "componentId": "radiometer-erb"
+            },
+            {
+              "instanceId": "solar-gaas-4",
+              "componentId": "solar-gaas"
+            },
+            {
+              "instanceId": "battery-liion-5",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-6",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-7",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "magnetorquers-8",
+              "componentId": "magnetorquers"
+            },
+            {
+              "instanceId": "sun-sensor-9",
+              "componentId": "sun-sensor"
+            },
+            {
+              "instanceId": "gyroscopes-10",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "hydrazine-thrusters-11",
+              "componentId": "hydrazine-thrusters"
+            },
+            {
+              "instanceId": "obc-moderate-12",
+              "componentId": "obc-moderate"
+            },
+            {
+              "instanceId": "xband-tx-13",
+              "componentId": "xband-tx"
+            },
+            {
+              "instanceId": "sband-ttc-14",
+              "componentId": "sband-ttc"
+            },
+            {
+              "instanceId": "gnss-receiver-15",
+              "componentId": "gnss-receiver"
+            },
+            {
+              "instanceId": "mli-16",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "radiators-17",
+              "componentId": "radiators"
+            },
+            {
+              "instanceId": "heaters-18",
+              "componentId": "heaters"
+            }
+          ],
+          "propellantKg": 70,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "earth-orbit",
+          "altitudeKm": 705,
+          "eccentricity": 0.001,
+          "inclinationMode": "sso",
+          "inclinationDeg": 98.21,
+          "localTimeOfNode": "10:30",
+          "missionLifeYears": 5,
+          "orbitsBeforeTrim": 5,
+          "launchDate": "2027-06-15"
+        },
+        "derived": {
+          "requiredDvMS": 205.38804949656398,
+          "totalDvMS": 195.6076661872038,
+          "launchProfile": "leo-polar"
+        }
+      },
+      "expected": {
+        "dryMassKg": 632,
+        "wetMassKg": 702,
+        "componentCostUSD": 138800000,
+        "committedUSD": 2599867600,
+        "deltaVAvailableMS": 226.6285646854769,
+        "checks": {
+          "budget-total": "reprovada",
+          "vehicle-capacity": "reprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "aprovada",
+          "delta-v": "aprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-battery": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-command": "aprovada",
+          "mission-req-propulsion": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-instrument": "aprovada",
+          "mission-req-gnss": "aprovada"
+        },
+        "approved": false
+      }
+    },
+    {
+      "name": "leo-climate-sem-barramento",
+      "input": {
+        "missionId": "leo-climate",
+        "vehicleId": "falcon-9",
+        "assistance": "iniciante",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "imager-multispectral-1",
+              "componentId": "imager-multispectral"
+            },
+            {
+              "instanceId": "sounder-ir-mw-2",
+              "componentId": "sounder-ir-mw"
+            },
+            {
+              "instanceId": "radiometer-erb-3",
+              "componentId": "radiometer-erb"
+            },
+            {
+              "instanceId": "solar-gaas-4",
+              "componentId": "solar-gaas"
+            },
+            {
+              "instanceId": "battery-liion-5",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-6",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-7",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "magnetorquers-8",
+              "componentId": "magnetorquers"
+            },
+            {
+              "instanceId": "sun-sensor-9",
+              "componentId": "sun-sensor"
+            },
+            {
+              "instanceId": "gyroscopes-10",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "hydrazine-thrusters-11",
+              "componentId": "hydrazine-thrusters"
+            },
+            {
+              "instanceId": "obc-moderate-12",
+              "componentId": "obc-moderate"
+            },
+            {
+              "instanceId": "xband-tx-13",
+              "componentId": "xband-tx"
+            },
+            {
+              "instanceId": "sband-ttc-14",
+              "componentId": "sband-ttc"
+            },
+            {
+              "instanceId": "gnss-receiver-15",
+              "componentId": "gnss-receiver"
+            },
+            {
+              "instanceId": "mli-16",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "radiators-17",
+              "componentId": "radiators"
+            },
+            {
+              "instanceId": "heaters-18",
+              "componentId": "heaters"
+            }
+          ],
+          "propellantKg": 70,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "earth-orbit",
+          "altitudeKm": 705,
+          "eccentricity": 0.001,
+          "inclinationMode": "sso",
+          "inclinationDeg": 98.21,
+          "localTimeOfNode": "10:30",
+          "missionLifeYears": 5,
+          "orbitsBeforeTrim": 5,
+          "launchDate": "2027-06-15"
+        },
+        "derived": {
+          "requiredDvMS": 205.38804949656398,
+          "totalDvMS": 195.6076661872038,
+          "launchProfile": "leo-polar"
+        }
+      },
+      "expected": {
+        "dryMassKg": 452,
+        "wetMassKg": 452,
+        "componentCostUSD": 113800000,
+        "committedUSD": 224142600,
+        "deltaVAvailableMS": 0,
+        "checks": {
+          "budget-total": "aprovada",
+          "vehicle-capacity": "aprovada",
+          "structure-limit": "reprovada",
+          "propellant-tank": "reprovada",
+          "delta-v": "reprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-battery": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-command": "aprovada",
+          "mission-req-propulsion": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-instrument": "aprovada",
+          "mission-req-gnss": "aprovada",
+          "dep-hydrazine-thrusters-tank": "reprovada"
+        },
+        "approved": false
+      }
+    },
+    {
+      "name": "leo-climate-testes-extensivos",
+      "input": {
+        "missionId": "leo-climate",
+        "vehicleId": "falcon-9",
+        "assistance": "iniciante",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-aluminum-0",
+              "componentId": "bus-aluminum"
+            },
+            {
+              "instanceId": "imager-multispectral-1",
+              "componentId": "imager-multispectral"
+            },
+            {
+              "instanceId": "sounder-ir-mw-2",
+              "componentId": "sounder-ir-mw"
+            },
+            {
+              "instanceId": "radiometer-erb-3",
+              "componentId": "radiometer-erb"
+            },
+            {
+              "instanceId": "solar-gaas-4",
+              "componentId": "solar-gaas"
+            },
+            {
+              "instanceId": "battery-liion-5",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-6",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-7",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "magnetorquers-8",
+              "componentId": "magnetorquers"
+            },
+            {
+              "instanceId": "sun-sensor-9",
+              "componentId": "sun-sensor"
+            },
+            {
+              "instanceId": "gyroscopes-10",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "hydrazine-thrusters-11",
+              "componentId": "hydrazine-thrusters"
+            },
+            {
+              "instanceId": "obc-moderate-12",
+              "componentId": "obc-moderate"
+            },
+            {
+              "instanceId": "xband-tx-13",
+              "componentId": "xband-tx"
+            },
+            {
+              "instanceId": "sband-ttc-14",
+              "componentId": "sband-ttc"
+            },
+            {
+              "instanceId": "gnss-receiver-15",
+              "componentId": "gnss-receiver"
+            },
+            {
+              "instanceId": "mli-16",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "radiators-17",
+              "componentId": "radiators"
+            },
+            {
+              "instanceId": "heaters-18",
+              "componentId": "heaters"
+            }
+          ],
+          "propellantKg": 70,
+          "testCampaign": "extensive"
+        },
+        "plan": {
+          "kind": "earth-orbit",
+          "altitudeKm": 705,
+          "eccentricity": 0.001,
+          "inclinationMode": "sso",
+          "inclinationDeg": 98.21,
+          "localTimeOfNode": "10:30",
+          "missionLifeYears": 5,
+          "orbitsBeforeTrim": 5,
+          "launchDate": "2027-06-15"
+        },
+        "derived": {
+          "requiredDvMS": 205.38804949656398,
+          "totalDvMS": 195.6076661872038,
+          "launchProfile": "leo-polar"
+        }
+      },
+      "expected": {
+        "dryMassKg": 632,
+        "wetMassKg": 702,
+        "componentCostUSD": 138800000,
+        "committedUSD": 261201600,
+        "deltaVAvailableMS": 226.6285646854769,
+        "checks": {
+          "budget-total": "aprovada",
+          "vehicle-capacity": "aprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "aprovada",
+          "delta-v": "aprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-battery": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-command": "aprovada",
+          "mission-req-propulsion": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-instrument": "aprovada",
+          "mission-req-gnss": "aprovada"
+        },
+        "approved": true
+      }
+    },
+    {
+      "name": "lunar-he3-referencia",
+      "input": {
+        "missionId": "lunar-he3",
+        "vehicleId": "falcon-9",
+        "assistance": "iniciante",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-large-tank-0",
+              "componentId": "bus-large-tank"
+            },
+            {
+              "instanceId": "neutron-spectrometer-1",
+              "componentId": "neutron-spectrometer"
+            },
+            {
+              "instanceId": "gamma-spectrometer-2",
+              "componentId": "gamma-spectrometer"
+            },
+            {
+              "instanceId": "sar-sl-3",
+              "componentId": "sar-sl"
+            },
+            {
+              "instanceId": "nir-spectrometer-4",
+              "componentId": "nir-spectrometer"
+            },
+            {
+              "instanceId": "hires-camera-5",
+              "componentId": "hires-camera"
+            },
+            {
+              "instanceId": "laser-altimeter-6",
+              "componentId": "laser-altimeter"
+            },
+            {
+              "instanceId": "biprop-main-7",
+              "componentId": "biprop-main"
+            },
+            {
+              "instanceId": "rcs-control-thrusters-8",
+              "componentId": "rcs-control-thrusters"
+            },
+            {
+              "instanceId": "solar-articulated-9",
+              "componentId": "solar-articulated"
+            },
+            {
+              "instanceId": "battery-liion-10",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "battery-liion-11",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-12",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-13",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "gyroscopes-14",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "hga-sx-15",
+              "componentId": "hga-sx"
+            },
+            {
+              "instanceId": "ranging-transponder-16",
+              "componentId": "ranging-transponder"
+            },
+            {
+              "instanceId": "obc-moderate-17",
+              "componentId": "obc-moderate"
+            },
+            {
+              "instanceId": "mli-18",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "radiators-19",
+              "componentId": "radiators"
+            },
+            {
+              "instanceId": "heaters-20",
+              "componentId": "heaters"
+            }
+          ],
+          "propellantKg": 650,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "lunar",
+          "parkingOrbitKm": 200,
+          "transfer": "hohmann",
+          "lunarAltitudeKm": 50,
+          "inclinationDeg": 90,
+          "tcmCount": 2,
+          "missionLifeMonths": 12,
+          "launchDate": "2027-09-10"
+        },
+        "derived": {
+          "requiredDvMS": 1091.197707614675,
+          "totalDvMS": 1039.235912013976,
+          "launchProfile": "tli"
+        }
+      },
+      "expected": {
+        "dryMassKg": 855,
+        "wetMassKg": 1505,
+        "componentCostUSD": 259800000,
+        "committedUSD": 431233900,
+        "deltaVAvailableMS": 1746.7184578481672,
+        "checks": {
+          "budget-total": "aprovada",
+          "vehicle-capacity": "aprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "aprovada",
+          "delta-v": "aprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-battery": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-command": "aprovada",
+          "mission-req-main": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-heaters": "aprovada",
+          "mission-req-instrument": "aprovada",
+          "mission-req-radionav": "aprovada"
+        },
+        "approved": true
+      }
+    },
+    {
+      "name": "lunar-he3-avancado",
+      "input": {
+        "missionId": "lunar-he3",
+        "vehicleId": "falcon-9",
+        "assistance": "avancado",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-large-tank-0",
+              "componentId": "bus-large-tank"
+            },
+            {
+              "instanceId": "neutron-spectrometer-1",
+              "componentId": "neutron-spectrometer"
+            },
+            {
+              "instanceId": "gamma-spectrometer-2",
+              "componentId": "gamma-spectrometer"
+            },
+            {
+              "instanceId": "sar-sl-3",
+              "componentId": "sar-sl"
+            },
+            {
+              "instanceId": "nir-spectrometer-4",
+              "componentId": "nir-spectrometer"
+            },
+            {
+              "instanceId": "hires-camera-5",
+              "componentId": "hires-camera"
+            },
+            {
+              "instanceId": "laser-altimeter-6",
+              "componentId": "laser-altimeter"
+            },
+            {
+              "instanceId": "biprop-main-7",
+              "componentId": "biprop-main"
+            },
+            {
+              "instanceId": "rcs-control-thrusters-8",
+              "componentId": "rcs-control-thrusters"
+            },
+            {
+              "instanceId": "solar-articulated-9",
+              "componentId": "solar-articulated"
+            },
+            {
+              "instanceId": "battery-liion-10",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "battery-liion-11",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-12",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-13",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "gyroscopes-14",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "hga-sx-15",
+              "componentId": "hga-sx"
+            },
+            {
+              "instanceId": "ranging-transponder-16",
+              "componentId": "ranging-transponder"
+            },
+            {
+              "instanceId": "obc-moderate-17",
+              "componentId": "obc-moderate"
+            },
+            {
+              "instanceId": "mli-18",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "radiators-19",
+              "componentId": "radiators"
+            },
+            {
+              "instanceId": "heaters-20",
+              "componentId": "heaters"
+            }
+          ],
+          "propellantKg": 650,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "lunar",
+          "parkingOrbitKm": 200,
+          "transfer": "hohmann",
+          "lunarAltitudeKm": 50,
+          "inclinationDeg": 90,
+          "tcmCount": 2,
+          "missionLifeMonths": 12,
+          "launchDate": "2027-09-10"
+        },
+        "derived": {
+          "requiredDvMS": 1195.1212988160723,
+          "totalDvMS": 1039.235912013976,
+          "launchProfile": "tli"
+        }
+      },
+      "expected": {
+        "dryMassKg": 855,
+        "wetMassKg": 1505,
+        "componentCostUSD": 259800000,
+        "committedUSD": 431233900,
+        "deltaVAvailableMS": 1746.7184578481672,
+        "checks": {
+          "budget-total": "aprovada",
+          "vehicle-capacity": "aprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "aprovada",
+          "delta-v": "aprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-battery": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-command": "aprovada",
+          "mission-req-main": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-heaters": "aprovada",
+          "mission-req-instrument": "aprovada",
+          "mission-req-radionav": "aprovada"
+        },
+        "approved": true
+      }
+    },
+    {
+      "name": "lunar-he3-sem-propelente",
+      "input": {
+        "missionId": "lunar-he3",
+        "vehicleId": "falcon-9",
+        "assistance": "intermediario",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-large-tank-0",
+              "componentId": "bus-large-tank"
+            },
+            {
+              "instanceId": "neutron-spectrometer-1",
+              "componentId": "neutron-spectrometer"
+            },
+            {
+              "instanceId": "gamma-spectrometer-2",
+              "componentId": "gamma-spectrometer"
+            },
+            {
+              "instanceId": "sar-sl-3",
+              "componentId": "sar-sl"
+            },
+            {
+              "instanceId": "nir-spectrometer-4",
+              "componentId": "nir-spectrometer"
+            },
+            {
+              "instanceId": "hires-camera-5",
+              "componentId": "hires-camera"
+            },
+            {
+              "instanceId": "laser-altimeter-6",
+              "componentId": "laser-altimeter"
+            },
+            {
+              "instanceId": "biprop-main-7",
+              "componentId": "biprop-main"
+            },
+            {
+              "instanceId": "rcs-control-thrusters-8",
+              "componentId": "rcs-control-thrusters"
+            },
+            {
+              "instanceId": "solar-articulated-9",
+              "componentId": "solar-articulated"
+            },
+            {
+              "instanceId": "battery-liion-10",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "battery-liion-11",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-12",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-13",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "gyroscopes-14",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "hga-sx-15",
+              "componentId": "hga-sx"
+            },
+            {
+              "instanceId": "ranging-transponder-16",
+              "componentId": "ranging-transponder"
+            },
+            {
+              "instanceId": "obc-moderate-17",
+              "componentId": "obc-moderate"
+            },
+            {
+              "instanceId": "mli-18",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "radiators-19",
+              "componentId": "radiators"
+            },
+            {
+              "instanceId": "heaters-20",
+              "componentId": "heaters"
+            }
+          ],
+          "propellantKg": 0,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "lunar",
+          "parkingOrbitKm": 200,
+          "transfer": "hohmann",
+          "lunarAltitudeKm": 50,
+          "inclinationDeg": 90,
+          "tcmCount": 2,
+          "missionLifeMonths": 12,
+          "launchDate": "2027-09-10"
+        },
+        "derived": {
+          "requiredDvMS": 1143.159503215374,
+          "totalDvMS": 1039.235912013976,
+          "launchProfile": "tli"
+        }
+      },
+      "expected": {
+        "dryMassKg": 855,
+        "wetMassKg": 855,
+        "componentCostUSD": 259800000,
+        "committedUSD": 431233900,
+        "deltaVAvailableMS": 0,
+        "checks": {
+          "budget-total": "aprovada",
+          "vehicle-capacity": "aprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "aprovada",
+          "delta-v": "reprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-battery": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-command": "aprovada",
+          "mission-req-main": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-heaters": "aprovada",
+          "mission-req-instrument": "aprovada",
+          "mission-req-radionav": "aprovada"
+        },
+        "approved": false
+      }
+    },
+    {
+      "name": "lunar-he3-tanque-excedido",
+      "input": {
+        "missionId": "lunar-he3",
+        "vehicleId": "falcon-9",
+        "assistance": "iniciante",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-large-tank-0",
+              "componentId": "bus-large-tank"
+            },
+            {
+              "instanceId": "neutron-spectrometer-1",
+              "componentId": "neutron-spectrometer"
+            },
+            {
+              "instanceId": "gamma-spectrometer-2",
+              "componentId": "gamma-spectrometer"
+            },
+            {
+              "instanceId": "sar-sl-3",
+              "componentId": "sar-sl"
+            },
+            {
+              "instanceId": "nir-spectrometer-4",
+              "componentId": "nir-spectrometer"
+            },
+            {
+              "instanceId": "hires-camera-5",
+              "componentId": "hires-camera"
+            },
+            {
+              "instanceId": "laser-altimeter-6",
+              "componentId": "laser-altimeter"
+            },
+            {
+              "instanceId": "biprop-main-7",
+              "componentId": "biprop-main"
+            },
+            {
+              "instanceId": "rcs-control-thrusters-8",
+              "componentId": "rcs-control-thrusters"
+            },
+            {
+              "instanceId": "solar-articulated-9",
+              "componentId": "solar-articulated"
+            },
+            {
+              "instanceId": "battery-liion-10",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "battery-liion-11",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-12",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-13",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "gyroscopes-14",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "hga-sx-15",
+              "componentId": "hga-sx"
+            },
+            {
+              "instanceId": "ranging-transponder-16",
+              "componentId": "ranging-transponder"
+            },
+            {
+              "instanceId": "obc-moderate-17",
+              "componentId": "obc-moderate"
+            },
+            {
+              "instanceId": "mli-18",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "radiators-19",
+              "componentId": "radiators"
+            },
+            {
+              "instanceId": "heaters-20",
+              "componentId": "heaters"
+            }
+          ],
+          "propellantKg": 100650,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "lunar",
+          "parkingOrbitKm": 200,
+          "transfer": "hohmann",
+          "lunarAltitudeKm": 50,
+          "inclinationDeg": 90,
+          "tcmCount": 2,
+          "missionLifeMonths": 12,
+          "launchDate": "2027-09-10"
+        },
+        "derived": {
+          "requiredDvMS": 1091.197707614675,
+          "totalDvMS": 1039.235912013976,
+          "launchProfile": "tli"
+        }
+      },
+      "expected": {
+        "dryMassKg": 855,
+        "wetMassKg": 3055,
+        "componentCostUSD": 259800000,
+        "committedUSD": 431233900,
+        "deltaVAvailableMS": 3933.756438659244,
+        "checks": {
+          "budget-total": "aprovada",
+          "vehicle-capacity": "aprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "reprovada",
+          "delta-v": "aprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-battery": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-command": "aprovada",
+          "mission-req-main": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-heaters": "aprovada",
+          "mission-req-instrument": "aprovada",
+          "mission-req-radionav": "aprovada"
+        },
+        "approved": false
+      }
+    },
+    {
+      "name": "lunar-he3-sem-veiculo",
+      "input": {
+        "missionId": "lunar-he3",
+        "vehicleId": null,
+        "assistance": "iniciante",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-large-tank-0",
+              "componentId": "bus-large-tank"
+            },
+            {
+              "instanceId": "neutron-spectrometer-1",
+              "componentId": "neutron-spectrometer"
+            },
+            {
+              "instanceId": "gamma-spectrometer-2",
+              "componentId": "gamma-spectrometer"
+            },
+            {
+              "instanceId": "sar-sl-3",
+              "componentId": "sar-sl"
+            },
+            {
+              "instanceId": "nir-spectrometer-4",
+              "componentId": "nir-spectrometer"
+            },
+            {
+              "instanceId": "hires-camera-5",
+              "componentId": "hires-camera"
+            },
+            {
+              "instanceId": "laser-altimeter-6",
+              "componentId": "laser-altimeter"
+            },
+            {
+              "instanceId": "biprop-main-7",
+              "componentId": "biprop-main"
+            },
+            {
+              "instanceId": "rcs-control-thrusters-8",
+              "componentId": "rcs-control-thrusters"
+            },
+            {
+              "instanceId": "solar-articulated-9",
+              "componentId": "solar-articulated"
+            },
+            {
+              "instanceId": "battery-liion-10",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "battery-liion-11",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-12",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-13",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "gyroscopes-14",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "hga-sx-15",
+              "componentId": "hga-sx"
+            },
+            {
+              "instanceId": "ranging-transponder-16",
+              "componentId": "ranging-transponder"
+            },
+            {
+              "instanceId": "obc-moderate-17",
+              "componentId": "obc-moderate"
+            },
+            {
+              "instanceId": "mli-18",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "radiators-19",
+              "componentId": "radiators"
+            },
+            {
+              "instanceId": "heaters-20",
+              "componentId": "heaters"
+            }
+          ],
+          "propellantKg": 650,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "lunar",
+          "parkingOrbitKm": 200,
+          "transfer": "hohmann",
+          "lunarAltitudeKm": 50,
+          "inclinationDeg": 90,
+          "tcmCount": 2,
+          "missionLifeMonths": 12,
+          "launchDate": "2027-09-10"
+        },
+        "derived": {
+          "requiredDvMS": 1091.197707614675,
+          "totalDvMS": 1039.235912013976,
+          "launchProfile": "tli"
+        }
+      },
+      "expected": {
+        "dryMassKg": 855,
+        "wetMassKg": 1505,
+        "componentCostUSD": 259800000,
+        "committedUSD": 354183900,
+        "deltaVAvailableMS": 1746.7184578481672,
+        "checks": {
+          "budget-total": "aprovada",
+          "vehicle-selected": "reprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "aprovada",
+          "delta-v": "aprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-battery": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-command": "aprovada",
+          "mission-req-main": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-heaters": "aprovada",
+          "mission-req-instrument": "aprovada",
+          "mission-req-radionav": "aprovada"
+        },
+        "approved": false
+      }
+    },
+    {
+      "name": "lunar-he3-starship-pendente",
+      "input": {
+        "missionId": "lunar-he3",
+        "vehicleId": "starship",
+        "assistance": "iniciante",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-large-tank-0",
+              "componentId": "bus-large-tank"
+            },
+            {
+              "instanceId": "neutron-spectrometer-1",
+              "componentId": "neutron-spectrometer"
+            },
+            {
+              "instanceId": "gamma-spectrometer-2",
+              "componentId": "gamma-spectrometer"
+            },
+            {
+              "instanceId": "sar-sl-3",
+              "componentId": "sar-sl"
+            },
+            {
+              "instanceId": "nir-spectrometer-4",
+              "componentId": "nir-spectrometer"
+            },
+            {
+              "instanceId": "hires-camera-5",
+              "componentId": "hires-camera"
+            },
+            {
+              "instanceId": "laser-altimeter-6",
+              "componentId": "laser-altimeter"
+            },
+            {
+              "instanceId": "biprop-main-7",
+              "componentId": "biprop-main"
+            },
+            {
+              "instanceId": "rcs-control-thrusters-8",
+              "componentId": "rcs-control-thrusters"
+            },
+            {
+              "instanceId": "solar-articulated-9",
+              "componentId": "solar-articulated"
+            },
+            {
+              "instanceId": "battery-liion-10",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "battery-liion-11",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-12",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-13",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "gyroscopes-14",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "hga-sx-15",
+              "componentId": "hga-sx"
+            },
+            {
+              "instanceId": "ranging-transponder-16",
+              "componentId": "ranging-transponder"
+            },
+            {
+              "instanceId": "obc-moderate-17",
+              "componentId": "obc-moderate"
+            },
+            {
+              "instanceId": "mli-18",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "radiators-19",
+              "componentId": "radiators"
+            },
+            {
+              "instanceId": "heaters-20",
+              "componentId": "heaters"
+            }
+          ],
+          "propellantKg": 650,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "lunar",
+          "parkingOrbitKm": 200,
+          "transfer": "hohmann",
+          "lunarAltitudeKm": 50,
+          "inclinationDeg": 90,
+          "tcmCount": 2,
+          "missionLifeMonths": 12,
+          "launchDate": "2027-09-10"
+        },
+        "derived": {
+          "requiredDvMS": 1091.197707614675,
+          "totalDvMS": 1039.235912013976,
+          "launchProfile": "tli"
+        }
+      },
+      "expected": {
+        "dryMassKg": 855,
+        "wetMassKg": 1505,
+        "componentCostUSD": 259800000,
+        "committedUSD": 526683900,
+        "deltaVAvailableMS": 1746.7184578481672,
+        "checks": {
+          "budget-total": "reprovada",
+          "vehicle-capacity": "reprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "aprovada",
+          "delta-v": "aprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-battery": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-command": "aprovada",
+          "mission-req-main": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-heaters": "aprovada",
+          "mission-req-instrument": "aprovada",
+          "mission-req-radionav": "aprovada"
+        },
+        "approved": false
+      }
+    },
+    {
+      "name": "lunar-he3-sls",
+      "input": {
+        "missionId": "lunar-he3",
+        "vehicleId": "sls",
+        "assistance": "iniciante",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-large-tank-0",
+              "componentId": "bus-large-tank"
+            },
+            {
+              "instanceId": "neutron-spectrometer-1",
+              "componentId": "neutron-spectrometer"
+            },
+            {
+              "instanceId": "gamma-spectrometer-2",
+              "componentId": "gamma-spectrometer"
+            },
+            {
+              "instanceId": "sar-sl-3",
+              "componentId": "sar-sl"
+            },
+            {
+              "instanceId": "nir-spectrometer-4",
+              "componentId": "nir-spectrometer"
+            },
+            {
+              "instanceId": "hires-camera-5",
+              "componentId": "hires-camera"
+            },
+            {
+              "instanceId": "laser-altimeter-6",
+              "componentId": "laser-altimeter"
+            },
+            {
+              "instanceId": "biprop-main-7",
+              "componentId": "biprop-main"
+            },
+            {
+              "instanceId": "rcs-control-thrusters-8",
+              "componentId": "rcs-control-thrusters"
+            },
+            {
+              "instanceId": "solar-articulated-9",
+              "componentId": "solar-articulated"
+            },
+            {
+              "instanceId": "battery-liion-10",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "battery-liion-11",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-12",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-13",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "gyroscopes-14",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "hga-sx-15",
+              "componentId": "hga-sx"
+            },
+            {
+              "instanceId": "ranging-transponder-16",
+              "componentId": "ranging-transponder"
+            },
+            {
+              "instanceId": "obc-moderate-17",
+              "componentId": "obc-moderate"
+            },
+            {
+              "instanceId": "mli-18",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "radiators-19",
+              "componentId": "radiators"
+            },
+            {
+              "instanceId": "heaters-20",
+              "componentId": "heaters"
+            }
+          ],
+          "propellantKg": 650,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "lunar",
+          "parkingOrbitKm": 200,
+          "transfer": "hohmann",
+          "lunarAltitudeKm": 50,
+          "inclinationDeg": 90,
+          "tcmCount": 2,
+          "missionLifeMonths": 12,
+          "launchDate": "2027-09-10"
+        },
+        "derived": {
+          "requiredDvMS": 1091.197707614675,
+          "totalDvMS": 1039.235912013976,
+          "launchProfile": "tli"
+        }
+      },
+      "expected": {
+        "dryMassKg": 855,
+        "wetMassKg": 1505,
+        "componentCostUSD": 259800000,
+        "committedUSD": 2884183900,
+        "deltaVAvailableMS": 1746.7184578481672,
+        "checks": {
+          "budget-total": "reprovada",
+          "vehicle-capacity": "aprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "aprovada",
+          "delta-v": "aprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-battery": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-command": "aprovada",
+          "mission-req-main": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-heaters": "aprovada",
+          "mission-req-instrument": "aprovada",
+          "mission-req-radionav": "aprovada"
+        },
+        "approved": false
+      }
+    },
+    {
+      "name": "lunar-he3-sem-barramento",
+      "input": {
+        "missionId": "lunar-he3",
+        "vehicleId": "falcon-9",
+        "assistance": "iniciante",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "neutron-spectrometer-1",
+              "componentId": "neutron-spectrometer"
+            },
+            {
+              "instanceId": "gamma-spectrometer-2",
+              "componentId": "gamma-spectrometer"
+            },
+            {
+              "instanceId": "sar-sl-3",
+              "componentId": "sar-sl"
+            },
+            {
+              "instanceId": "nir-spectrometer-4",
+              "componentId": "nir-spectrometer"
+            },
+            {
+              "instanceId": "hires-camera-5",
+              "componentId": "hires-camera"
+            },
+            {
+              "instanceId": "laser-altimeter-6",
+              "componentId": "laser-altimeter"
+            },
+            {
+              "instanceId": "biprop-main-7",
+              "componentId": "biprop-main"
+            },
+            {
+              "instanceId": "rcs-control-thrusters-8",
+              "componentId": "rcs-control-thrusters"
+            },
+            {
+              "instanceId": "solar-articulated-9",
+              "componentId": "solar-articulated"
+            },
+            {
+              "instanceId": "battery-liion-10",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "battery-liion-11",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-12",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-13",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "gyroscopes-14",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "hga-sx-15",
+              "componentId": "hga-sx"
+            },
+            {
+              "instanceId": "ranging-transponder-16",
+              "componentId": "ranging-transponder"
+            },
+            {
+              "instanceId": "obc-moderate-17",
+              "componentId": "obc-moderate"
+            },
+            {
+              "instanceId": "mli-18",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "radiators-19",
+              "componentId": "radiators"
+            },
+            {
+              "instanceId": "heaters-20",
+              "componentId": "heaters"
+            }
+          ],
+          "propellantKg": 650,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "lunar",
+          "parkingOrbitKm": 200,
+          "transfer": "hohmann",
+          "lunarAltitudeKm": 50,
+          "inclinationDeg": 90,
+          "tcmCount": 2,
+          "missionLifeMonths": 12,
+          "launchDate": "2027-09-10"
+        },
+        "derived": {
+          "requiredDvMS": 1091.197707614675,
+          "totalDvMS": 1039.235912013976,
+          "launchProfile": "tli"
+        }
+      },
+      "expected": {
+        "dryMassKg": 535,
+        "wetMassKg": 535,
+        "componentCostUSD": 204800000,
+        "committedUSD": 363556400,
+        "deltaVAvailableMS": 0,
+        "checks": {
+          "budget-total": "aprovada",
+          "vehicle-capacity": "aprovada",
+          "structure-limit": "reprovada",
+          "propellant-tank": "reprovada",
+          "delta-v": "reprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-battery": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-command": "aprovada",
+          "mission-req-main": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-heaters": "aprovada",
+          "mission-req-instrument": "aprovada",
+          "mission-req-radionav": "aprovada",
+          "dep-biprop-main-tank": "reprovada",
+          "dep-rcs-control-thrusters-tank": "reprovada"
+        },
+        "approved": false
+      }
+    },
+    {
+      "name": "lunar-he3-testes-extensivos",
+      "input": {
+        "missionId": "lunar-he3",
+        "vehicleId": "falcon-9",
+        "assistance": "iniciante",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-large-tank-0",
+              "componentId": "bus-large-tank"
+            },
+            {
+              "instanceId": "neutron-spectrometer-1",
+              "componentId": "neutron-spectrometer"
+            },
+            {
+              "instanceId": "gamma-spectrometer-2",
+              "componentId": "gamma-spectrometer"
+            },
+            {
+              "instanceId": "sar-sl-3",
+              "componentId": "sar-sl"
+            },
+            {
+              "instanceId": "nir-spectrometer-4",
+              "componentId": "nir-spectrometer"
+            },
+            {
+              "instanceId": "hires-camera-5",
+              "componentId": "hires-camera"
+            },
+            {
+              "instanceId": "laser-altimeter-6",
+              "componentId": "laser-altimeter"
+            },
+            {
+              "instanceId": "biprop-main-7",
+              "componentId": "biprop-main"
+            },
+            {
+              "instanceId": "rcs-control-thrusters-8",
+              "componentId": "rcs-control-thrusters"
+            },
+            {
+              "instanceId": "solar-articulated-9",
+              "componentId": "solar-articulated"
+            },
+            {
+              "instanceId": "battery-liion-10",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "battery-liion-11",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-12",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-13",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "gyroscopes-14",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "hga-sx-15",
+              "componentId": "hga-sx"
+            },
+            {
+              "instanceId": "ranging-transponder-16",
+              "componentId": "ranging-transponder"
+            },
+            {
+              "instanceId": "obc-moderate-17",
+              "componentId": "obc-moderate"
+            },
+            {
+              "instanceId": "mli-18",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "radiators-19",
+              "componentId": "radiators"
+            },
+            {
+              "instanceId": "heaters-20",
+              "componentId": "heaters"
+            }
+          ],
+          "propellantKg": 650,
+          "testCampaign": "extensive"
+        },
+        "plan": {
+          "kind": "lunar",
+          "parkingOrbitKm": 200,
+          "transfer": "hohmann",
+          "lunarAltitudeKm": 50,
+          "inclinationDeg": 90,
+          "tcmCount": 2,
+          "missionLifeMonths": 12,
+          "launchDate": "2027-09-10"
+        },
+        "derived": {
+          "requiredDvMS": 1091.197707614675,
+          "totalDvMS": 1039.235912013976,
+          "launchProfile": "tli"
+        }
+      },
+      "expected": {
+        "dryMassKg": 855,
+        "wetMassKg": 1505,
+        "componentCostUSD": 259800000,
+        "committedUSD": 446172400,
+        "deltaVAvailableMS": 1746.7184578481672,
+        "checks": {
+          "budget-total": "aviso",
+          "vehicle-capacity": "aprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "aprovada",
+          "delta-v": "aprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-battery": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-command": "aprovada",
+          "mission-req-main": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-heaters": "aprovada",
+          "mission-req-instrument": "aprovada",
+          "mission-req-radionav": "aprovada"
+        },
+        "approved": true
+      }
+    },
+    {
+      "name": "jupiter-system-referencia",
+      "input": {
+        "missionId": "jupiter-system",
+        "vehicleId": "falcon-heavy",
+        "assistance": "iniciante",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-large-tank-0",
+              "componentId": "bus-large-tank"
+            },
+            {
+              "instanceId": "magnetometer-boom-1",
+              "componentId": "magnetometer-boom"
+            },
+            {
+              "instanceId": "gravity-transponder-2",
+              "componentId": "gravity-transponder"
+            },
+            {
+              "instanceId": "microwave-radiometer-3",
+              "componentId": "microwave-radiometer"
+            },
+            {
+              "instanceId": "particles-plasma-4",
+              "componentId": "particles-plasma"
+            },
+            {
+              "instanceId": "context-camera-5",
+              "componentId": "context-camera"
+            },
+            {
+              "instanceId": "radiation-vault-6",
+              "componentId": "radiation-vault"
+            },
+            {
+              "instanceId": "main-engine-large-7",
+              "componentId": "main-engine-large"
+            },
+            {
+              "instanceId": "rcs-control-thrusters-8",
+              "componentId": "rcs-control-thrusters"
+            },
+            {
+              "instanceId": "solar-giant-9",
+              "componentId": "solar-giant"
+            },
+            {
+              "instanceId": "battery-liion-10",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-11",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-12",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "gyroscopes-13",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "obc-radhard-14",
+              "componentId": "obc-radhard"
+            },
+            {
+              "instanceId": "hga-large-15",
+              "componentId": "hga-large"
+            },
+            {
+              "instanceId": "mli-16",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "heaters-17",
+              "componentId": "heaters"
+            },
+            {
+              "instanceId": "thermal-shield-18",
+              "componentId": "thermal-shield"
+            },
+            {
+              "instanceId": "planetary-protection-19",
+              "componentId": "planetary-protection"
+            }
+          ],
+          "propellantKg": 1500,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "interplanetary",
+          "trajectory": "dveega",
+          "departureDate": "2031-07-01",
+          "perijoveAltitudeKm": 4200,
+          "orbitPeriodDays": 53,
+          "inclinationDeg": 90,
+          "tcmCount": 3,
+          "scienceOrbits": 12
+        },
+        "derived": {
+          "requiredDvMS": 1516.586600903852,
+          "totalDvMS": 1444.368191337002,
+          "launchProfile": "jupiter-ga"
+        }
+      },
+      "expected": {
+        "dryMassKg": 1232,
+        "wetMassKg": 2732,
+        "componentCostUSD": 335800000,
+        "committedUSD": 643567200,
+        "deltaVAvailableMS": 2475.7597855981307,
+        "checks": {
+          "budget-total": "aprovada",
+          "vehicle-capacity": "aprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "aprovada",
+          "delta-v": "aprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-deep": "aprovada",
+          "mission-req-main": "aprovada",
+          "mission-req-vault": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-heaters": "aprovada",
+          "mission-req-pp": "aprovada",
+          "mission-req-instrument": "aprovada"
+        },
+        "approved": true
+      }
+    },
+    {
+      "name": "jupiter-system-avancado",
+      "input": {
+        "missionId": "jupiter-system",
+        "vehicleId": "falcon-heavy",
+        "assistance": "avancado",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-large-tank-0",
+              "componentId": "bus-large-tank"
+            },
+            {
+              "instanceId": "magnetometer-boom-1",
+              "componentId": "magnetometer-boom"
+            },
+            {
+              "instanceId": "gravity-transponder-2",
+              "componentId": "gravity-transponder"
+            },
+            {
+              "instanceId": "microwave-radiometer-3",
+              "componentId": "microwave-radiometer"
+            },
+            {
+              "instanceId": "particles-plasma-4",
+              "componentId": "particles-plasma"
+            },
+            {
+              "instanceId": "context-camera-5",
+              "componentId": "context-camera"
+            },
+            {
+              "instanceId": "radiation-vault-6",
+              "componentId": "radiation-vault"
+            },
+            {
+              "instanceId": "main-engine-large-7",
+              "componentId": "main-engine-large"
+            },
+            {
+              "instanceId": "rcs-control-thrusters-8",
+              "componentId": "rcs-control-thrusters"
+            },
+            {
+              "instanceId": "solar-giant-9",
+              "componentId": "solar-giant"
+            },
+            {
+              "instanceId": "battery-liion-10",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-11",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-12",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "gyroscopes-13",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "obc-radhard-14",
+              "componentId": "obc-radhard"
+            },
+            {
+              "instanceId": "hga-large-15",
+              "componentId": "hga-large"
+            },
+            {
+              "instanceId": "mli-16",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "heaters-17",
+              "componentId": "heaters"
+            },
+            {
+              "instanceId": "thermal-shield-18",
+              "componentId": "thermal-shield"
+            },
+            {
+              "instanceId": "planetary-protection-19",
+              "componentId": "planetary-protection"
+            }
+          ],
+          "propellantKg": 1500,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "interplanetary",
+          "trajectory": "dveega",
+          "departureDate": "2031-07-01",
+          "perijoveAltitudeKm": 4200,
+          "orbitPeriodDays": 53,
+          "inclinationDeg": 90,
+          "tcmCount": 3,
+          "scienceOrbits": 12
+        },
+        "derived": {
+          "requiredDvMS": 1661.0234200375521,
+          "totalDvMS": 1444.368191337002,
+          "launchProfile": "jupiter-ga"
+        }
+      },
+      "expected": {
+        "dryMassKg": 1232,
+        "wetMassKg": 2732,
+        "componentCostUSD": 335800000,
+        "committedUSD": 643567200,
+        "deltaVAvailableMS": 2475.7597855981307,
+        "checks": {
+          "budget-total": "aprovada",
+          "vehicle-capacity": "aprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "aprovada",
+          "delta-v": "aprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-deep": "aprovada",
+          "mission-req-main": "aprovada",
+          "mission-req-vault": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-heaters": "aprovada",
+          "mission-req-pp": "aprovada",
+          "mission-req-instrument": "aprovada"
+        },
+        "approved": true
+      }
+    },
+    {
+      "name": "jupiter-system-sem-propelente",
+      "input": {
+        "missionId": "jupiter-system",
+        "vehicleId": "falcon-heavy",
+        "assistance": "intermediario",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-large-tank-0",
+              "componentId": "bus-large-tank"
+            },
+            {
+              "instanceId": "magnetometer-boom-1",
+              "componentId": "magnetometer-boom"
+            },
+            {
+              "instanceId": "gravity-transponder-2",
+              "componentId": "gravity-transponder"
+            },
+            {
+              "instanceId": "microwave-radiometer-3",
+              "componentId": "microwave-radiometer"
+            },
+            {
+              "instanceId": "particles-plasma-4",
+              "componentId": "particles-plasma"
+            },
+            {
+              "instanceId": "context-camera-5",
+              "componentId": "context-camera"
+            },
+            {
+              "instanceId": "radiation-vault-6",
+              "componentId": "radiation-vault"
+            },
+            {
+              "instanceId": "main-engine-large-7",
+              "componentId": "main-engine-large"
+            },
+            {
+              "instanceId": "rcs-control-thrusters-8",
+              "componentId": "rcs-control-thrusters"
+            },
+            {
+              "instanceId": "solar-giant-9",
+              "componentId": "solar-giant"
+            },
+            {
+              "instanceId": "battery-liion-10",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-11",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-12",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "gyroscopes-13",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "obc-radhard-14",
+              "componentId": "obc-radhard"
+            },
+            {
+              "instanceId": "hga-large-15",
+              "componentId": "hga-large"
+            },
+            {
+              "instanceId": "mli-16",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "heaters-17",
+              "componentId": "heaters"
+            },
+            {
+              "instanceId": "thermal-shield-18",
+              "componentId": "thermal-shield"
+            },
+            {
+              "instanceId": "planetary-protection-19",
+              "componentId": "planetary-protection"
+            }
+          ],
+          "propellantKg": 0,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "interplanetary",
+          "trajectory": "dveega",
+          "departureDate": "2031-07-01",
+          "perijoveAltitudeKm": 4200,
+          "orbitPeriodDays": 53,
+          "inclinationDeg": 90,
+          "tcmCount": 3,
+          "scienceOrbits": 12
+        },
+        "derived": {
+          "requiredDvMS": 1588.8050104707022,
+          "totalDvMS": 1444.368191337002,
+          "launchProfile": "jupiter-ga"
+        }
+      },
+      "expected": {
+        "dryMassKg": 1232,
+        "wetMassKg": 1232,
+        "componentCostUSD": 335800000,
+        "committedUSD": 643567200,
+        "deltaVAvailableMS": 0,
+        "checks": {
+          "budget-total": "aprovada",
+          "vehicle-capacity": "aprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "aprovada",
+          "delta-v": "reprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-deep": "aprovada",
+          "mission-req-main": "aprovada",
+          "mission-req-vault": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-heaters": "aprovada",
+          "mission-req-pp": "aprovada",
+          "mission-req-instrument": "aprovada"
+        },
+        "approved": false
+      }
+    },
+    {
+      "name": "jupiter-system-tanque-excedido",
+      "input": {
+        "missionId": "jupiter-system",
+        "vehicleId": "falcon-heavy",
+        "assistance": "iniciante",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-large-tank-0",
+              "componentId": "bus-large-tank"
+            },
+            {
+              "instanceId": "magnetometer-boom-1",
+              "componentId": "magnetometer-boom"
+            },
+            {
+              "instanceId": "gravity-transponder-2",
+              "componentId": "gravity-transponder"
+            },
+            {
+              "instanceId": "microwave-radiometer-3",
+              "componentId": "microwave-radiometer"
+            },
+            {
+              "instanceId": "particles-plasma-4",
+              "componentId": "particles-plasma"
+            },
+            {
+              "instanceId": "context-camera-5",
+              "componentId": "context-camera"
+            },
+            {
+              "instanceId": "radiation-vault-6",
+              "componentId": "radiation-vault"
+            },
+            {
+              "instanceId": "main-engine-large-7",
+              "componentId": "main-engine-large"
+            },
+            {
+              "instanceId": "rcs-control-thrusters-8",
+              "componentId": "rcs-control-thrusters"
+            },
+            {
+              "instanceId": "solar-giant-9",
+              "componentId": "solar-giant"
+            },
+            {
+              "instanceId": "battery-liion-10",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-11",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-12",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "gyroscopes-13",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "obc-radhard-14",
+              "componentId": "obc-radhard"
+            },
+            {
+              "instanceId": "hga-large-15",
+              "componentId": "hga-large"
+            },
+            {
+              "instanceId": "mli-16",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "heaters-17",
+              "componentId": "heaters"
+            },
+            {
+              "instanceId": "thermal-shield-18",
+              "componentId": "thermal-shield"
+            },
+            {
+              "instanceId": "planetary-protection-19",
+              "componentId": "planetary-protection"
+            }
+          ],
+          "propellantKg": 101500,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "interplanetary",
+          "trajectory": "dveega",
+          "departureDate": "2031-07-01",
+          "perijoveAltitudeKm": 4200,
+          "orbitPeriodDays": 53,
+          "inclinationDeg": 90,
+          "tcmCount": 3,
+          "scienceOrbits": 12
+        },
+        "derived": {
+          "requiredDvMS": 1516.586600903852,
+          "totalDvMS": 1444.368191337002,
+          "launchProfile": "jupiter-ga"
+        }
+      },
+      "expected": {
+        "dryMassKg": 1232,
+        "wetMassKg": 3432,
+        "componentCostUSD": 335800000,
+        "committedUSD": 643567200,
+        "deltaVAvailableMS": 3184.884816008025,
+        "checks": {
+          "budget-total": "aprovada",
+          "vehicle-capacity": "aprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "reprovada",
+          "delta-v": "aprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-deep": "aprovada",
+          "mission-req-main": "aprovada",
+          "mission-req-vault": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-heaters": "aprovada",
+          "mission-req-pp": "aprovada",
+          "mission-req-instrument": "aprovada"
+        },
+        "approved": false
+      }
+    },
+    {
+      "name": "jupiter-system-sem-veiculo",
+      "input": {
+        "missionId": "jupiter-system",
+        "vehicleId": null,
+        "assistance": "iniciante",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-large-tank-0",
+              "componentId": "bus-large-tank"
+            },
+            {
+              "instanceId": "magnetometer-boom-1",
+              "componentId": "magnetometer-boom"
+            },
+            {
+              "instanceId": "gravity-transponder-2",
+              "componentId": "gravity-transponder"
+            },
+            {
+              "instanceId": "microwave-radiometer-3",
+              "componentId": "microwave-radiometer"
+            },
+            {
+              "instanceId": "particles-plasma-4",
+              "componentId": "particles-plasma"
+            },
+            {
+              "instanceId": "context-camera-5",
+              "componentId": "context-camera"
+            },
+            {
+              "instanceId": "radiation-vault-6",
+              "componentId": "radiation-vault"
+            },
+            {
+              "instanceId": "main-engine-large-7",
+              "componentId": "main-engine-large"
+            },
+            {
+              "instanceId": "rcs-control-thrusters-8",
+              "componentId": "rcs-control-thrusters"
+            },
+            {
+              "instanceId": "solar-giant-9",
+              "componentId": "solar-giant"
+            },
+            {
+              "instanceId": "battery-liion-10",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-11",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-12",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "gyroscopes-13",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "obc-radhard-14",
+              "componentId": "obc-radhard"
+            },
+            {
+              "instanceId": "hga-large-15",
+              "componentId": "hga-large"
+            },
+            {
+              "instanceId": "mli-16",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "heaters-17",
+              "componentId": "heaters"
+            },
+            {
+              "instanceId": "thermal-shield-18",
+              "componentId": "thermal-shield"
+            },
+            {
+              "instanceId": "planetary-protection-19",
+              "componentId": "planetary-protection"
+            }
+          ],
+          "propellantKg": 1500,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "interplanetary",
+          "trajectory": "dveega",
+          "departureDate": "2031-07-01",
+          "perijoveAltitudeKm": 4200,
+          "orbitPeriodDays": 53,
+          "inclinationDeg": 90,
+          "tcmCount": 3,
+          "scienceOrbits": 12
+        },
+        "derived": {
+          "requiredDvMS": 1516.586600903852,
+          "totalDvMS": 1444.368191337002,
+          "launchProfile": "jupiter-ga"
+        }
+      },
+      "expected": {
+        "dryMassKg": 1232,
+        "wetMassKg": 2732,
+        "componentCostUSD": 335800000,
+        "committedUSD": 527167200,
+        "deltaVAvailableMS": 2475.7597855981307,
+        "checks": {
+          "budget-total": "aprovada",
+          "vehicle-selected": "reprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "aprovada",
+          "delta-v": "aprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-deep": "aprovada",
+          "mission-req-main": "aprovada",
+          "mission-req-vault": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-heaters": "aprovada",
+          "mission-req-pp": "aprovada",
+          "mission-req-instrument": "aprovada"
+        },
+        "approved": false
+      }
+    },
+    {
+      "name": "jupiter-system-starship-pendente",
+      "input": {
+        "missionId": "jupiter-system",
+        "vehicleId": "starship",
+        "assistance": "iniciante",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-large-tank-0",
+              "componentId": "bus-large-tank"
+            },
+            {
+              "instanceId": "magnetometer-boom-1",
+              "componentId": "magnetometer-boom"
+            },
+            {
+              "instanceId": "gravity-transponder-2",
+              "componentId": "gravity-transponder"
+            },
+            {
+              "instanceId": "microwave-radiometer-3",
+              "componentId": "microwave-radiometer"
+            },
+            {
+              "instanceId": "particles-plasma-4",
+              "componentId": "particles-plasma"
+            },
+            {
+              "instanceId": "context-camera-5",
+              "componentId": "context-camera"
+            },
+            {
+              "instanceId": "radiation-vault-6",
+              "componentId": "radiation-vault"
+            },
+            {
+              "instanceId": "main-engine-large-7",
+              "componentId": "main-engine-large"
+            },
+            {
+              "instanceId": "rcs-control-thrusters-8",
+              "componentId": "rcs-control-thrusters"
+            },
+            {
+              "instanceId": "solar-giant-9",
+              "componentId": "solar-giant"
+            },
+            {
+              "instanceId": "battery-liion-10",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-11",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-12",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "gyroscopes-13",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "obc-radhard-14",
+              "componentId": "obc-radhard"
+            },
+            {
+              "instanceId": "hga-large-15",
+              "componentId": "hga-large"
+            },
+            {
+              "instanceId": "mli-16",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "heaters-17",
+              "componentId": "heaters"
+            },
+            {
+              "instanceId": "thermal-shield-18",
+              "componentId": "thermal-shield"
+            },
+            {
+              "instanceId": "planetary-protection-19",
+              "componentId": "planetary-protection"
+            }
+          ],
+          "propellantKg": 1500,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "interplanetary",
+          "trajectory": "dveega",
+          "departureDate": "2031-07-01",
+          "perijoveAltitudeKm": 4200,
+          "orbitPeriodDays": 53,
+          "inclinationDeg": 90,
+          "tcmCount": 3,
+          "scienceOrbits": 12
+        },
+        "derived": {
+          "requiredDvMS": 1516.586600903852,
+          "totalDvMS": 1444.368191337002,
+          "launchProfile": "jupiter-ga"
+        }
+      },
+      "expected": {
+        "dryMassKg": 1232,
+        "wetMassKg": 2732,
+        "componentCostUSD": 335800000,
+        "committedUSD": 707167200,
+        "deltaVAvailableMS": 2475.7597855981307,
+        "checks": {
+          "budget-total": "aprovada",
+          "vehicle-capacity": "reprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "aprovada",
+          "delta-v": "aprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-deep": "aprovada",
+          "mission-req-main": "aprovada",
+          "mission-req-vault": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-heaters": "aprovada",
+          "mission-req-pp": "aprovada",
+          "mission-req-instrument": "aprovada"
+        },
+        "approved": false
+      }
+    },
+    {
+      "name": "jupiter-system-sls",
+      "input": {
+        "missionId": "jupiter-system",
+        "vehicleId": "sls",
+        "assistance": "iniciante",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-large-tank-0",
+              "componentId": "bus-large-tank"
+            },
+            {
+              "instanceId": "magnetometer-boom-1",
+              "componentId": "magnetometer-boom"
+            },
+            {
+              "instanceId": "gravity-transponder-2",
+              "componentId": "gravity-transponder"
+            },
+            {
+              "instanceId": "microwave-radiometer-3",
+              "componentId": "microwave-radiometer"
+            },
+            {
+              "instanceId": "particles-plasma-4",
+              "componentId": "particles-plasma"
+            },
+            {
+              "instanceId": "context-camera-5",
+              "componentId": "context-camera"
+            },
+            {
+              "instanceId": "radiation-vault-6",
+              "componentId": "radiation-vault"
+            },
+            {
+              "instanceId": "main-engine-large-7",
+              "componentId": "main-engine-large"
+            },
+            {
+              "instanceId": "rcs-control-thrusters-8",
+              "componentId": "rcs-control-thrusters"
+            },
+            {
+              "instanceId": "solar-giant-9",
+              "componentId": "solar-giant"
+            },
+            {
+              "instanceId": "battery-liion-10",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-11",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-12",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "gyroscopes-13",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "obc-radhard-14",
+              "componentId": "obc-radhard"
+            },
+            {
+              "instanceId": "hga-large-15",
+              "componentId": "hga-large"
+            },
+            {
+              "instanceId": "mli-16",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "heaters-17",
+              "componentId": "heaters"
+            },
+            {
+              "instanceId": "thermal-shield-18",
+              "componentId": "thermal-shield"
+            },
+            {
+              "instanceId": "planetary-protection-19",
+              "componentId": "planetary-protection"
+            }
+          ],
+          "propellantKg": 1500,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "interplanetary",
+          "trajectory": "dveega",
+          "departureDate": "2031-07-01",
+          "perijoveAltitudeKm": 4200,
+          "orbitPeriodDays": 53,
+          "inclinationDeg": 90,
+          "tcmCount": 3,
+          "scienceOrbits": 12
+        },
+        "derived": {
+          "requiredDvMS": 1516.586600903852,
+          "totalDvMS": 1444.368191337002,
+          "launchProfile": "jupiter-ga"
+        }
+      },
+      "expected": {
+        "dryMassKg": 1232,
+        "wetMassKg": 2732,
+        "componentCostUSD": 335800000,
+        "committedUSD": 3167167200,
+        "deltaVAvailableMS": 2475.7597855981307,
+        "checks": {
+          "budget-total": "reprovada",
+          "vehicle-capacity": "reprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "aprovada",
+          "delta-v": "aprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-deep": "aprovada",
+          "mission-req-main": "aprovada",
+          "mission-req-vault": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-heaters": "aprovada",
+          "mission-req-pp": "aprovada",
+          "mission-req-instrument": "aprovada"
+        },
+        "approved": false
+      }
+    },
+    {
+      "name": "jupiter-system-sem-barramento",
+      "input": {
+        "missionId": "jupiter-system",
+        "vehicleId": "falcon-heavy",
+        "assistance": "iniciante",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "magnetometer-boom-1",
+              "componentId": "magnetometer-boom"
+            },
+            {
+              "instanceId": "gravity-transponder-2",
+              "componentId": "gravity-transponder"
+            },
+            {
+              "instanceId": "microwave-radiometer-3",
+              "componentId": "microwave-radiometer"
+            },
+            {
+              "instanceId": "particles-plasma-4",
+              "componentId": "particles-plasma"
+            },
+            {
+              "instanceId": "context-camera-5",
+              "componentId": "context-camera"
+            },
+            {
+              "instanceId": "radiation-vault-6",
+              "componentId": "radiation-vault"
+            },
+            {
+              "instanceId": "main-engine-large-7",
+              "componentId": "main-engine-large"
+            },
+            {
+              "instanceId": "rcs-control-thrusters-8",
+              "componentId": "rcs-control-thrusters"
+            },
+            {
+              "instanceId": "solar-giant-9",
+              "componentId": "solar-giant"
+            },
+            {
+              "instanceId": "battery-liion-10",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-11",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-12",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "gyroscopes-13",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "obc-radhard-14",
+              "componentId": "obc-radhard"
+            },
+            {
+              "instanceId": "hga-large-15",
+              "componentId": "hga-large"
+            },
+            {
+              "instanceId": "mli-16",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "heaters-17",
+              "componentId": "heaters"
+            },
+            {
+              "instanceId": "thermal-shield-18",
+              "componentId": "thermal-shield"
+            },
+            {
+              "instanceId": "planetary-protection-19",
+              "componentId": "planetary-protection"
+            }
+          ],
+          "propellantKg": 1500,
+          "testCampaign": "standard"
+        },
+        "plan": {
+          "kind": "interplanetary",
+          "trajectory": "dveega",
+          "departureDate": "2031-07-01",
+          "perijoveAltitudeKm": 4200,
+          "orbitPeriodDays": 53,
+          "inclinationDeg": 90,
+          "tcmCount": 3,
+          "scienceOrbits": 12
+        },
+        "derived": {
+          "requiredDvMS": 1516.586600903852,
+          "totalDvMS": 1444.368191337002,
+          "launchProfile": "jupiter-ga"
+        }
+      },
+      "expected": {
+        "dryMassKg": 912,
+        "wetMassKg": 912,
+        "componentCostUSD": 280800000,
+        "committedUSD": 572947200,
+        "deltaVAvailableMS": 0,
+        "checks": {
+          "budget-total": "aprovada",
+          "vehicle-capacity": "aprovada",
+          "structure-limit": "reprovada",
+          "propellant-tank": "reprovada",
+          "delta-v": "reprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-deep": "aprovada",
+          "mission-req-main": "aprovada",
+          "mission-req-vault": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-heaters": "aprovada",
+          "mission-req-pp": "aprovada",
+          "mission-req-instrument": "aprovada",
+          "dep-radiation-vault-structure": "reprovada",
+          "dep-main-engine-large-tank": "reprovada",
+          "dep-rcs-control-thrusters-tank": "reprovada"
+        },
+        "approved": false
+      }
+    },
+    {
+      "name": "jupiter-system-testes-extensivos",
+      "input": {
+        "missionId": "jupiter-system",
+        "vehicleId": "falcon-heavy",
+        "assistance": "iniciante",
+        "spacecraft": {
+          "installed": [
+            {
+              "instanceId": "bus-large-tank-0",
+              "componentId": "bus-large-tank"
+            },
+            {
+              "instanceId": "magnetometer-boom-1",
+              "componentId": "magnetometer-boom"
+            },
+            {
+              "instanceId": "gravity-transponder-2",
+              "componentId": "gravity-transponder"
+            },
+            {
+              "instanceId": "microwave-radiometer-3",
+              "componentId": "microwave-radiometer"
+            },
+            {
+              "instanceId": "particles-plasma-4",
+              "componentId": "particles-plasma"
+            },
+            {
+              "instanceId": "context-camera-5",
+              "componentId": "context-camera"
+            },
+            {
+              "instanceId": "radiation-vault-6",
+              "componentId": "radiation-vault"
+            },
+            {
+              "instanceId": "main-engine-large-7",
+              "componentId": "main-engine-large"
+            },
+            {
+              "instanceId": "rcs-control-thrusters-8",
+              "componentId": "rcs-control-thrusters"
+            },
+            {
+              "instanceId": "solar-giant-9",
+              "componentId": "solar-giant"
+            },
+            {
+              "instanceId": "battery-liion-10",
+              "componentId": "battery-liion"
+            },
+            {
+              "instanceId": "star-tracker-11",
+              "componentId": "star-tracker"
+            },
+            {
+              "instanceId": "reaction-wheels-12",
+              "componentId": "reaction-wheels"
+            },
+            {
+              "instanceId": "gyroscopes-13",
+              "componentId": "gyroscopes"
+            },
+            {
+              "instanceId": "obc-radhard-14",
+              "componentId": "obc-radhard"
+            },
+            {
+              "instanceId": "hga-large-15",
+              "componentId": "hga-large"
+            },
+            {
+              "instanceId": "mli-16",
+              "componentId": "mli"
+            },
+            {
+              "instanceId": "heaters-17",
+              "componentId": "heaters"
+            },
+            {
+              "instanceId": "thermal-shield-18",
+              "componentId": "thermal-shield"
+            },
+            {
+              "instanceId": "planetary-protection-19",
+              "componentId": "planetary-protection"
+            }
+          ],
+          "propellantKg": 1500,
+          "testCampaign": "extensive"
+        },
+        "plan": {
+          "kind": "interplanetary",
+          "trajectory": "dveega",
+          "departureDate": "2031-07-01",
+          "perijoveAltitudeKm": 4200,
+          "orbitPeriodDays": 53,
+          "inclinationDeg": 90,
+          "tcmCount": 3,
+          "scienceOrbits": 12
+        },
+        "derived": {
+          "requiredDvMS": 1516.586600903852,
+          "totalDvMS": 1444.368191337002,
+          "launchProfile": "jupiter-ga"
+        }
+      },
+      "expected": {
+        "dryMassKg": 1232,
+        "wetMassKg": 2732,
+        "componentCostUSD": 335800000,
+        "committedUSD": 663715200,
+        "deltaVAvailableMS": 2475.7597855981307,
+        "checks": {
+          "budget-total": "aprovada",
+          "vehicle-capacity": "aprovada",
+          "structure-limit": "aprovada",
+          "propellant-tank": "aprovada",
+          "delta-v": "aprovada",
+          "mission-req-power": "aprovada",
+          "mission-req-computer": "aprovada",
+          "mission-req-deep": "aprovada",
+          "mission-req-main": "aprovada",
+          "mission-req-vault": "aprovada",
+          "mission-req-thermal": "aprovada",
+          "mission-req-heaters": "aprovada",
+          "mission-req-pp": "aprovada",
+          "mission-req-instrument": "aprovada"
+        },
+        "approved": true
+      }
+    }
+  ]
+}

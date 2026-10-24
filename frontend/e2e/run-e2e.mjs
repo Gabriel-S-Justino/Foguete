@@ -68,13 +68,20 @@ try {
     await page.waitForTimeout(1500);
     await shot('03-lancador');
   });
-  await step('planejamento', async () => { await page.getByTestId('to-planning').click(); await page.getByTestId('stat-dv').waitFor(); await page.waitForTimeout(800); await shot('04-trajetoria'); });
+  await step('planejamento', async () => { await page.getByTestId('to-planning').click(); await page.getByTestId('stat-dv').waitFor();
+    // Júpiter: a data padrão está fora da janela de propósito; o jogador ajusta pela janela calculada
+    if (await page.getByTestId('snap-window').isVisible().catch(() => false)) { await page.getByTestId('snap-window').click(); console.log('  data de partida ajustada para a janela calculada'); }
+    await page.waitForTimeout(800); await shot('04-trajetoria'); });
   await step('briefing aprovado', async () => {
     await page.getByTestId('to-briefing').click();
     await page.getByTestId('briefing-status').waitFor();
     const status = await page.getByTestId('briefing-status').textContent();
     await shot('05-briefing');
     if (!status?.includes('APROVADO')) throw new Error(`briefing não aprovado: ${status}`);
+    if (process.env.E2E_EXPECT_BACKEND) {
+      await page.waitForFunction(() => /Servidor confirma/.test(document.querySelector('[data-testid="server-validation"]')?.textContent ?? ''), null, { timeout: 15000 });
+      console.log('  revalidação no servidor confirmada');
+    }
   });
   await step('plataforma e verificações', async () => {
     await page.getByTestId('to-launch').click();

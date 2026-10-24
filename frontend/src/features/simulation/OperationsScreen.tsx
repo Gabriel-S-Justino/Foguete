@@ -18,6 +18,8 @@ const RESPONSE_LABEL: Record<string, string> = {
   'avoidance-maneuver': 'Executar manobra de desvio', 'accept-risk': 'Aceitar o risco', 'reduce-duty': 'Reduzir o ciclo de trabalho',
 };
 
+const INSERTION_LABEL = { captured: 'órbita de destino', 'high-orbit': 'órbita alta', flyby: 'sobrevoo', none: 'em trânsito' } as const;
+
 export function OperationsScreen() {
   const ctrl = useScene('orbit-ops', createOrbitScene);
   const campaign = useCampaign((s) => s.campaign)!;
@@ -101,7 +103,7 @@ export function OperationsScreen() {
   return (
     <>
       <aside className="side-left panel" aria-label="Operações">
-        <div className="panel-title"><h2>{phase === 'science' ? 'Operações científicas' : 'Manobras da sonda'}</h2><span className="chip info">{insertion}</span></div>
+        <div className="panel-title"><h2>{phase === 'science' ? 'Operações científicas' : 'Manobras da sonda'}</h2><span className="chip info">{INSERTION_LABEL[insertion]}</span></div>
         <div className="panel-body" style={{ flex: 1 }}>
           {phase === 'cruise' ? (
             <>

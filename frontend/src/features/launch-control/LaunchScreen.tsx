@@ -39,6 +39,11 @@ export function LaunchScreen() {
   useEffect(() => ctrl.subscribe(setSnap), [ctrl]);
   useEffect(() => () => ctrl.dispose(), [ctrl]);
   useEffect(() => { pad?.setCamera(camera); }, [pad, camera]);
+  // Na decolagem a câmera passa a acompanhar o veículo (o jogador pode trocar a qualquer momento)
+  const autoTracked = useRef(false);
+  useEffect(() => {
+    if (snap.state === 'flight' && !autoTracked.current) { autoTracked.current = true; setCamera((c) => (c === 'overview' ? 'tracking' : c)); }
+  }, [snap.state]);
   useEffect(() => { termRef.current?.scrollTo({ top: termRef.current.scrollHeight }); }, [snap.events.length]);
 
   const a = ctrl.actions;
@@ -78,13 +83,13 @@ export function LaunchScreen() {
             <dt>Estágio</dt><dd>{tel.stageName}</dd>
             <dt>Motores</dt><dd>{tel.engineState}</dd>
             <dt>Empuxo</dt><dd>{(tel.thrustN / 1000).toFixed(0)} kN</dd>
-            <dt>Temperatura do ar</dt><dd>{(tel.temperatureK - 273.15).toFixed(0)} °C</dd>
+            <dt>Temperatura de estagnação</dt><dd title="Temperatura do ar ambiente somada ao aquecimento por compressão no nariz (v²/2cp)">{(tel.temperatureK - 273.15).toFixed(0)} °C</dd>
             <dt>Vibração</dt><dd>{snap.vibrationG.toFixed(2)} g ({snap.vibrationLabel})</dd>
             <dt>Pressão dos tanques</dt><dd>{snap.tankPressureBar.toFixed(2)} bar</dd>
             <dt>Válvulas</dt><dd>{snap.valves}</dd>
             <dt>Barramento</dt><dd>{snap.busVoltage.toFixed(1)} V</dd>
             <dt>Navegação</dt><dd>{snap.navigation}</dd>
-            <dt>Periapse / apoapse</dt><dd>{tel.periapsisKm.toFixed(0)} / {tel.apoapsisKm.toFixed(0)} km</dd>
+            <dt>Periapse / apoapse</dt><dd>{tel.periapsisKm < 0 ? 'suborbital' : `${tel.periapsisKm.toFixed(0)} km`} / {tel.apoapsisKm.toFixed(0)} km</dd>
           </dl>
           <h3 style={{ marginTop: 10 }}>Sistemas</h3>
           <table className="checks"><tbody>

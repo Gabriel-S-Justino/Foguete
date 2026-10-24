@@ -1,0 +1,36 @@
+# Ambiente local: PostgreSQL + API FastAPI + frontend Vite.
+#   docker compose up --build    →  http://localhost:5173
+# As migrações rodam automaticamente apenas aqui (ambiente local descartável).
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sma
+      POSTGRES_PASSWORD: sma_local_dev
+      POSTGRES_DB: sma
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sma -d sma"]
+      interval: 3s
+      retries: 20
+
+  backend:
+    build: { context: ., dockerfile: backend/Dockerfile }
+    environment:
+      DATABASE_URL: postgresql://sma:sma_local_dev@db:5432/sma
+      CORS_ORIGINS: http://localhost:5173
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    ports: ["8000:8000"]
+    depends_on:
+      db: { condition: service_healthy }
+
+  frontend:
+    build: { context: ., dockerfile: frontend/Dockerfile }
+    environment:
+      VITE_DEV_API_PROXY: http://backend:8000
+    ports: ["5173:5173"]
+    depends_on: [backend]
+
+volumes:
+  pgdata:

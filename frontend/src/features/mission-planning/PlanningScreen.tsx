@@ -141,6 +141,9 @@ function JupiterControls({ plan, set, p, window }: { plan: JupiterPlan; set: Set
         <div className="small">Data de partida</div>
         <input className="input" type="date" min={p.departureDate!.min} max={p.departureDate!.max} value={plan.departureDate} onChange={(e) => set({ departureDate: e.target.value })} data-testid="departure" />
         {window && <div className="small" style={{ color: window.errorDays <= window.toleranceDays ? 'var(--green)' : 'var(--red)' }}>Fase Terra–Júpiter: erro de {window.errorDays.toFixed(0)} dias (janela mais próxima {window.nearest})</div>}
+        {window && window.errorDays > window.toleranceDays && window.nearest >= p.departureDate!.min && window.nearest <= p.departureDate!.max && (
+          <button className="btn small amber" style={{ marginTop: 4 }} onClick={() => set({ departureDate: window.nearest })} data-testid="snap-window">Usar a janela de {window.nearest}</button>
+        )}
         <div className="small muted">Posições médias JPL em modelo circular coplanar: aproximação didática da geometria da janela.</div>
       </label>
       <Slider label="Altitude do perijove" unit="km" range={p.perijoveAltitudeKm!} value={plan.perijoveAltitudeKm} step={500} onChange={(v) => set({ perijoveAltitudeKm: v })} hint="Perijove baixo: inserção mais barata (efeito Oberth), porém mais radiação." />

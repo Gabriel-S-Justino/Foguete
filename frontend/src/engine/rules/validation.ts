@@ -44,6 +44,9 @@ export function vehicleCapacity(vehicle: LaunchVehicle | undefined, profileId: M
   return vehicle.capacities[profileId];
 }
 
+/** Verificações críticas reimplementadas no backend (mesmos ids e status; ver data/test-vectors). */
+export const SERVER_CHECK_PREFIXES = ['budget-total', 'vehicle-selected', 'vehicle-capacity', 'structure-limit', 'propellant-tank', 'delta-v', 'mission-', 'dep-'];
+
 export function validateMission(input: ValidationInput): ValidationReport & { context: ValidationContext } {
   const ctx = buildContext(input);
   const { summary, profile, vehicle, budget } = ctx;
