@@ -1,0 +1,1839 @@
+{
+  "version": "2026.10.1",
+  "currency": "USD",
+  "provenance": "Lista de componentes extraída de reference/componentes-sondas.md (cada item cita a linha do documento em 'documentRow'). O documento não fornece custo, consumo ou massa por componente: esses atributos são PARÂMETROS DIDÁTICOS (valueStatus = 'didático') calibrados para ordens de grandeza plausíveis e para o equilíbrio do jogo.",
+  "components": [
+    {
+      "id": "bus-aluminum",
+      "name": "Barramento de alumínio/compósito",
+      "category": "estrutura",
+      "documentedFor": [
+        "leo-climate"
+      ],
+      "documentRow": "Estrutura | Barramento (bus) de alumínio/compósito",
+      "massKg": 180,
+      "costUSD": 25000000,
+      "powerW": 30,
+      "mount": "bus",
+      "maxInstances": 1,
+      "dimensionsM": [
+        1.6,
+        1.6,
+        2.0
+      ],
+      "provides": [
+        "structure",
+        "tank"
+      ],
+      "effects": {
+        "tankCapacityKg": 80,
+        "maxTotalMassKg": 1300
+      },
+      "requires": [],
+      "description": "Estrutura primária que recebe todos os equipamentos e o tanque de propelente pequeno.",
+      "limitations": "Tanque pequeno (80 kg): adequado à manutenção de órbita, não a inserções de alto delta-v.",
+      "absenceConsequence": "Sem estrutura nenhum componente pode ser montado."
+    },
+    {
+      "id": "bus-large-tank",
+      "name": "Barramento com tanque de propelente grande",
+      "category": "estrutura",
+      "documentedFor": [
+        "lunar-he3"
+      ],
+      "documentRow": "Estrutura | Barramento com tanque de propelente grande",
+      "massKg": 320,
+      "costUSD": 55000000,
+      "powerW": 40,
+      "mount": "bus",
+      "maxInstances": 1,
+      "dimensionsM": [
+        2.0,
+        2.0,
+        2.6
+      ],
+      "provides": [
+        "structure",
+        "tank"
+      ],
+      "effects": {
+        "tankCapacityKg": 2200,
+        "maxTotalMassKg": 4800
+      },
+      "requires": [],
+      "description": "Estrutura reforçada com tanques de grande volume, necessária quando a própria sonda executa inserções orbitais.",
+      "limitations": "Mais massa e custo que o barramento comercial.",
+      "absenceConsequence": "Sem estrutura nenhum componente pode ser montado."
+    },
+    {
+      "id": "imager-multispectral",
+      "name": "Imageador multiespectral (visível e infravermelho)",
+      "category": "carga-util",
+      "documentedFor": [
+        "leo-climate"
+      ],
+      "documentRow": "Carga útil | Imageador multiespectral (visível e infravermelho) | Nuvens, vegetação e temperatura da superfície",
+      "massKg": 120,
+      "costUSD": 35000000,
+      "powerW": 150,
+      "mount": "nadir",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.8,
+        0.6,
+        0.9
+      ],
+      "radiationToleranceKrad": 30,
+      "provides": [
+        "instrument"
+      ],
+      "effects": {
+        "science": {
+          "measures": [
+            "multispectral-imaging"
+          ],
+          "dataGbPerDay": 180,
+          "optimalAltitudeKm": [
+            550,
+            850
+          ],
+          "needsFinePointing": true,
+          "needsIllumination": true
+        }
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "computer"
+          ],
+          "reason": "Os dados do instrumento precisam ser processados e armazenados pelo computador de bordo."
+        },
+        {
+          "anyOf": [
+            "comm-science"
+          ],
+          "reason": "Sem enlace de dados científicos as imagens não chegam à Terra."
+        },
+        {
+          "anyOf": [
+            "attitude-fine-reference"
+          ],
+          "reason": "Imagens de alta qualidade exigem referência de atitude fina (rastreador estelar)."
+        }
+      ],
+      "description": "Mede refletância em bandas visíveis e infravermelhas para nuvens, vegetação e temperatura de superfície.",
+      "limitations": "Depende de iluminação solar nas bandas visíveis; nuvens bloqueiam a superfície.",
+      "absenceConsequence": "Sem imageador, não há mapas de nuvens e de temperatura da superfície."
+    },
+    {
+      "id": "sounder-ir-mw",
+      "name": "Sondador de infravermelho/micro-ondas",
+      "category": "carga-util",
+      "documentedFor": [
+        "leo-climate"
+      ],
+      "documentRow": "Carga útil | Sondador de infravermelho/micro-ondas | Perfis de temperatura e umidade da atmosfera",
+      "massKg": 90,
+      "costUSD": 30000000,
+      "powerW": 120,
+      "mount": "nadir",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.7,
+        0.7,
+        0.6
+      ],
+      "radiationToleranceKrad": 30,
+      "provides": [
+        "instrument"
+      ],
+      "effects": {
+        "science": {
+          "measures": [
+            "atmospheric-sounding"
+          ],
+          "dataGbPerDay": 40,
+          "optimalAltitudeKm": [
+            600,
+            850
+          ],
+          "needsFinePointing": false,
+          "needsIllumination": false
+        }
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "computer"
+          ],
+          "reason": "Os perfis precisam ser processados a bordo."
+        },
+        {
+          "anyOf": [
+            "comm-science"
+          ],
+          "reason": "Sem enlace de dados científicos os perfis não chegam à Terra."
+        }
+      ],
+      "description": "Mede perfis verticais de temperatura e umidade; as micro-ondas atravessam a maior parte das nuvens.",
+      "limitations": "Resolução horizontal mais grosseira que a do imageador.",
+      "absenceConsequence": "Sem sondador, não há perfis atmosféricos para previsão e clima."
+    },
+    {
+      "id": "radiometer-erb",
+      "name": "Radiômetro de balanço de radiação",
+      "category": "carga-util",
+      "documentedFor": [
+        "leo-climate"
+      ],
+      "documentRow": "Carga útil | Radiômetro de balanço de radiação | Energia que entra e sai da Terra",
+      "massKg": 40,
+      "costUSD": 12000000,
+      "powerW": 50,
+      "mount": "nadir",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.5,
+        0.4,
+        0.4
+      ],
+      "radiationToleranceKrad": 30,
+      "provides": [
+        "instrument"
+      ],
+      "effects": {
+        "science": {
+          "measures": [
+            "radiation-budget"
+          ],
+          "dataGbPerDay": 2,
+          "optimalAltitudeKm": [
+            500,
+            900
+          ],
+          "needsFinePointing": false,
+          "needsIllumination": false
+        }
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "computer"
+          ],
+          "reason": "Dados exigem processamento a bordo."
+        },
+        {
+          "anyOf": [
+            "comm-science",
+            "comm-command"
+          ],
+          "reason": "Volume pequeno: pode ser transmitido até pelo enlace de comando."
+        }
+      ],
+      "description": "Mede a energia solar refletida e a radiação térmica emitida pela Terra.",
+      "limitations": "Exige calibração cuidadosa ao longo da missão.",
+      "absenceConsequence": "Sem radiômetro, o balanço energético do planeta não é medido."
+    },
+    {
+      "id": "neutron-spectrometer",
+      "name": "Espectrômetro de nêutrons",
+      "category": "carga-util",
+      "documentedFor": [
+        "lunar-he3"
+      ],
+      "documentRow": "Carga útil | Espectrômetro de nêutrons | Mapeia hidrogênio e composição do regolito",
+      "massKg": 20,
+      "costUSD": 15000000,
+      "powerW": 15,
+      "mount": "nadir",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.4,
+        0.4,
+        0.4
+      ],
+      "radiationToleranceKrad": 40,
+      "provides": [
+        "instrument"
+      ],
+      "effects": {
+        "science": {
+          "measures": [
+            "neutron-spectroscopy"
+          ],
+          "dataGbPerDay": 0.5,
+          "optimalAltitudeKm": [
+            30,
+            100
+          ],
+          "needsFinePointing": false,
+          "needsIllumination": false
+        }
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "computer"
+          ],
+          "reason": "Contagens precisam ser registradas a bordo."
+        },
+        {
+          "anyOf": [
+            "comm-science",
+            "comm-command"
+          ],
+          "reason": "Volume pequeno: aceita enlace de baixa taxa."
+        }
+      ],
+      "description": "Conta nêutrons emitidos pelo regolito; indica hidrogênio e a maturidade do solo (exposição ao vento solar).",
+      "limitations": "Não detecta Hélio-3 diretamente; resolução espacial piora com a altitude.",
+      "absenceConsequence": "Perde-se o indicador de exposição ao vento solar, que governa a implantação de Hélio-3."
+    },
+    {
+      "id": "gamma-spectrometer",
+      "name": "Espectrômetro de raios gama",
+      "category": "carga-util",
+      "documentedFor": [
+        "lunar-he3"
+      ],
+      "documentRow": "Carga útil | Espectrômetro de raios gama | Elementos como Fe, Ti, Th e K",
+      "massKg": 25,
+      "costUSD": 18000000,
+      "powerW": 20,
+      "mount": "nadir",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.4,
+        0.4,
+        0.5
+      ],
+      "radiationToleranceKrad": 40,
+      "provides": [
+        "instrument"
+      ],
+      "effects": {
+        "science": {
+          "measures": [
+            "gamma-spectroscopy"
+          ],
+          "dataGbPerDay": 0.5,
+          "optimalAltitudeKm": [
+            30,
+            100
+          ],
+          "needsFinePointing": false,
+          "needsIllumination": false
+        }
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "computer"
+          ],
+          "reason": "Espectros precisam ser registrados a bordo."
+        },
+        {
+          "anyOf": [
+            "comm-science",
+            "comm-command"
+          ],
+          "reason": "Volume pequeno: aceita enlace de baixa taxa."
+        }
+      ],
+      "description": "Identifica elementos como Fe, Ti, Th e K; o titânio é um indicador indireto de ilmenita.",
+      "limitations": "Mede apenas as camadas superficiais do regolito; não mede Hélio-3.",
+      "absenceConsequence": "Sem gama, o mapa de titânio fica sem confirmação elementar."
+    },
+    {
+      "id": "sar-sl",
+      "name": "Radar de abertura sintética (SAR) em banda S/L",
+      "category": "carga-util",
+      "documentedFor": [
+        "lunar-he3"
+      ],
+      "documentRow": "Carga útil | Radar de abertura sintética (SAR) em banda S/L | Profundidade do regolito",
+      "massKg": 90,
+      "costUSD": 45000000,
+      "powerW": 350,
+      "mount": "side-panel",
+      "maxInstances": 1,
+      "dimensionsM": [
+        2.4,
+        0.1,
+        1.2
+      ],
+      "radiationToleranceKrad": 40,
+      "provides": [
+        "instrument"
+      ],
+      "effects": {
+        "science": {
+          "measures": [
+            "regolith-radar"
+          ],
+          "dataGbPerDay": 30,
+          "optimalAltitudeKm": [
+            30,
+            150
+          ],
+          "needsFinePointing": true,
+          "needsIllumination": false
+        }
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "computer"
+          ],
+          "reason": "O SAR produz grande volume de dados brutos."
+        },
+        {
+          "anyOf": [
+            "comm-science"
+          ],
+          "reason": "Volume alto exige enlace científico."
+        },
+        {
+          "anyOf": [
+            "attitude-fine-reference"
+          ],
+          "reason": "A geometria do radar exige apontamento estável."
+        }
+      ],
+      "description": "Estima a profundidade e a estrutura do regolito, onde o Hélio-3 implantado se acumula.",
+      "limitations": "Consumo elétrico alto; operação limitada em eclipse.",
+      "absenceConsequence": "Sem radar, o volume de regolito (e portanto o inventário potencial) não é estimado."
+    },
+    {
+      "id": "nir-spectrometer",
+      "name": "Espectrômetro/imageador no infravermelho próximo",
+      "category": "carga-util",
+      "documentedFor": [
+        "lunar-he3"
+      ],
+      "documentRow": "Carga útil | Espectrômetro/imageador no infravermelho próximo | Mineralogia, em especial a ilmenita (rica em titânio)",
+      "massKg": 30,
+      "costUSD": 20000000,
+      "powerW": 40,
+      "mount": "nadir",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.5,
+        0.4,
+        0.5
+      ],
+      "radiationToleranceKrad": 40,
+      "provides": [
+        "instrument"
+      ],
+      "effects": {
+        "science": {
+          "measures": [
+            "nir-mineralogy"
+          ],
+          "dataGbPerDay": 10,
+          "optimalAltitudeKm": [
+            30,
+            150
+          ],
+          "needsFinePointing": true,
+          "needsIllumination": true
+        }
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "computer"
+          ],
+          "reason": "Cubos espectrais exigem processamento."
+        },
+        {
+          "anyOf": [
+            "comm-science"
+          ],
+          "reason": "Volume moderado exige enlace científico."
+        },
+        {
+          "anyOf": [
+            "attitude-fine-reference"
+          ],
+          "reason": "Imageamento espectral exige apontamento fino."
+        }
+      ],
+      "description": "Identifica minerais, em especial a ilmenita (FeTiO₃), que retém Hélio-3 implantado.",
+      "limitations": "Exige iluminação solar; regiões polares sombreadas não são medidas.",
+      "absenceConsequence": "Sem mineralogia, não se distingue titânio em ilmenita de outros minerais."
+    },
+    {
+      "id": "hires-camera",
+      "name": "Câmera de alta resolução",
+      "category": "carga-util",
+      "documentedFor": [
+        "lunar-he3"
+      ],
+      "documentRow": "Carga útil | Câmera de alta resolução | Contexto geológico",
+      "massKg": 60,
+      "costUSD": 28000000,
+      "powerW": 80,
+      "mount": "nadir",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.5,
+        0.5,
+        1.1
+      ],
+      "radiationToleranceKrad": 40,
+      "provides": [
+        "instrument"
+      ],
+      "effects": {
+        "science": {
+          "measures": [
+            "high-res-imaging"
+          ],
+          "dataGbPerDay": 40,
+          "optimalAltitudeKm": [
+            30,
+            100
+          ],
+          "needsFinePointing": true,
+          "needsIllumination": true
+        }
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "computer"
+          ],
+          "reason": "Imagens exigem armazenamento a bordo."
+        },
+        {
+          "anyOf": [
+            "comm-science"
+          ],
+          "reason": "Volume alto exige enlace científico."
+        },
+        {
+          "anyOf": [
+            "attitude-fine-reference"
+          ],
+          "reason": "Alta resolução exige apontamento fino."
+        }
+      ],
+      "description": "Fornece contexto geológico (crateras, idade relativa) para interpretar os demais mapas.",
+      "limitations": "Não mede composição.",
+      "absenceConsequence": "Sem contexto geológico a interpretação dos mapas é mais incerta."
+    },
+    {
+      "id": "laser-altimeter",
+      "name": "Altímetro a laser",
+      "category": "carga-util",
+      "documentedFor": [
+        "lunar-he3"
+      ],
+      "documentRow": "Carga útil | Altímetro a laser | Topografia e correlação com a geologia",
+      "massKg": 15,
+      "costUSD": 12000000,
+      "powerW": 35,
+      "mount": "nadir",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.3,
+        0.3,
+        0.4
+      ],
+      "radiationToleranceKrad": 40,
+      "provides": [
+        "instrument"
+      ],
+      "effects": {
+        "science": {
+          "measures": [
+            "laser-altimetry"
+          ],
+          "dataGbPerDay": 2,
+          "optimalAltitudeKm": [
+            20,
+            150
+          ],
+          "needsFinePointing": false,
+          "needsIllumination": false
+        }
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "computer"
+          ],
+          "reason": "Medidas de tempo de voo exigem registro a bordo."
+        },
+        {
+          "anyOf": [
+            "comm-science",
+            "comm-command"
+          ],
+          "reason": "Volume pequeno."
+        }
+      ],
+      "description": "Mede a topografia, que se correlaciona com a geologia e com a iluminação de crateras.",
+      "limitations": "Cobertura em faixas estreitas.",
+      "absenceConsequence": "Sem topografia, a correlação com a geologia é limitada."
+    },
+    {
+      "id": "magnetometer-boom",
+      "name": "Magnetômetro (fluxgate) em haste longa",
+      "category": "carga-util",
+      "documentedFor": [
+        "jupiter-system"
+      ],
+      "documentRow": "Carga útil | Magnetômetro (fluxgate) em haste longa | Campo magnético",
+      "massKg": 25,
+      "costUSD": 18000000,
+      "powerW": 12,
+      "mount": "boom",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.2,
+        0.2,
+        4.0
+      ],
+      "radiationToleranceKrad": 100,
+      "provides": [
+        "instrument"
+      ],
+      "effects": {
+        "science": {
+          "measures": [
+            "magnetometry"
+          ],
+          "dataGbPerDay": 0.05,
+          "optimalAltitudeKm": [
+            1000,
+            2000000
+          ],
+          "needsFinePointing": false,
+          "needsIllumination": false
+        }
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "computer"
+          ],
+          "reason": "Medidas precisam ser registradas a bordo."
+        },
+        {
+          "anyOf": [
+            "comm-deep-space"
+          ],
+          "reason": "A 5 UA apenas uma antena de alto ganho de grande porte fecha o enlace."
+        },
+        {
+          "anyOf": [
+            "attitude-fine-reference"
+          ],
+          "reason": "A orientação do sensor precisa ser conhecida para reconstruir o vetor do campo."
+        }
+      ],
+      "description": "Mede o campo magnético de Júpiter; a haste afasta o sensor do magnetismo da própria sonda.",
+      "limitations": "Exige limpeza magnética da sonda.",
+      "absenceConsequence": "Sem magnetômetro, a estrutura do dínamo joviano não é medida."
+    },
+    {
+      "id": "gravity-transponder",
+      "name": "Experimento de gravidade (transponder Ka/X de alta estabilidade)",
+      "category": "carga-util",
+      "documentedFor": [
+        "jupiter-system"
+      ],
+      "documentRow": "Carga útil | Experimento de gravidade (transponder Ka/X de alta estabilidade, medidas Doppler) | Mapeia o campo gravitacional pelas perturbações da órbita",
+      "massKg": 12,
+      "costUSD": 20000000,
+      "powerW": 40,
+      "mount": "internal",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.3,
+        0.3,
+        0.2
+      ],
+      "radiationToleranceKrad": 50,
+      "electronics": true,
+      "provides": [
+        "instrument"
+      ],
+      "effects": {
+        "science": {
+          "measures": [
+            "gravity-science"
+          ],
+          "dataGbPerDay": 0.01,
+          "optimalAltitudeKm": [
+            1000,
+            20000
+          ],
+          "needsFinePointing": true,
+          "needsIllumination": false
+        }
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "comm-deep-space"
+          ],
+          "reason": "Medidas Doppler de gravidade são feitas pelo próprio enlace de rádio de alto ganho com a Terra."
+        },
+        {
+          "anyOf": [
+            "attitude-fine-reference"
+          ],
+          "reason": "A antena precisa permanecer apontada para a Terra durante a passagem."
+        }
+      ],
+      "description": "Mede perturbações Doppler da órbita para mapear o campo gravitacional e a estrutura interna.",
+      "limitations": "Só funciona com a antena apontada para a Terra; perde precisão perto de conjunções solares.",
+      "absenceConsequence": "Sem gravidade, a estrutura interna (núcleo) de Júpiter não é restringida."
+    },
+    {
+      "id": "microwave-radiometer",
+      "name": "Radiômetro de micro-ondas",
+      "category": "carga-util",
+      "documentedFor": [
+        "jupiter-system"
+      ],
+      "documentRow": "Carga útil | Radiômetro de micro-ondas | Estrutura profunda da atmosfera",
+      "massKg": 45,
+      "costUSD": 35000000,
+      "powerW": 40,
+      "mount": "side-panel",
+      "maxInstances": 1,
+      "dimensionsM": [
+        1.2,
+        0.2,
+        1.2
+      ],
+      "radiationToleranceKrad": 50,
+      "provides": [
+        "instrument"
+      ],
+      "effects": {
+        "science": {
+          "measures": [
+            "microwave-radiometry"
+          ],
+          "dataGbPerDay": 0.1,
+          "optimalAltitudeKm": [
+            3000,
+            10000
+          ],
+          "needsFinePointing": false,
+          "needsIllumination": false
+        }
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "computer"
+          ],
+          "reason": "Dados precisam ser registrados a bordo."
+        },
+        {
+          "anyOf": [
+            "comm-deep-space"
+          ],
+          "reason": "Enlace de espaço profundo necessário."
+        }
+      ],
+      "description": "Sonda as camadas profundas da atmosfera (água, amônia) durante passagens próximas.",
+      "limitations": "Só é útil em perijove muito baixo, onde a radiação é intensa.",
+      "absenceConsequence": "A abundância de água profunda não é medida."
+    },
+    {
+      "id": "particles-plasma",
+      "name": "Detectores de partículas e plasma",
+      "category": "carga-util",
+      "documentedFor": [
+        "jupiter-system"
+      ],
+      "documentRow": "Carga útil | Detectores de partículas e plasma | Ambiente de radiação e magnetosfera",
+      "massKg": 30,
+      "costUSD": 25000000,
+      "powerW": 30,
+      "mount": "top",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.4,
+        0.4,
+        0.4
+      ],
+      "radiationToleranceKrad": 100,
+      "provides": [
+        "instrument"
+      ],
+      "effects": {
+        "science": {
+          "measures": [
+            "particles-plasma"
+          ],
+          "dataGbPerDay": 0.2,
+          "optimalAltitudeKm": [
+            1000,
+            5000000
+          ],
+          "needsFinePointing": false,
+          "needsIllumination": false
+        }
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "computer"
+          ],
+          "reason": "Dados precisam ser registrados a bordo."
+        },
+        {
+          "anyOf": [
+            "comm-deep-space"
+          ],
+          "reason": "Enlace de espaço profundo necessário."
+        }
+      ],
+      "description": "Caracteriza o plasma e as partículas energéticas da magnetosfera.",
+      "limitations": "Os próprios sensores sofrem com o ambiente que medem.",
+      "absenceConsequence": "O ambiente de radiação não é caracterizado."
+    },
+    {
+      "id": "context-camera",
+      "name": "Câmera de contexto",
+      "category": "carga-util",
+      "documentedFor": [
+        "jupiter-system"
+      ],
+      "documentRow": "Carga útil | Câmera de contexto | Imagens",
+      "massKg": 5,
+      "costUSD": 8000000,
+      "powerW": 10,
+      "mount": "nadir",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.2,
+        0.2,
+        0.3
+      ],
+      "radiationToleranceKrad": 30,
+      "provides": [
+        "instrument"
+      ],
+      "effects": {
+        "science": {
+          "measures": [
+            "context-imaging"
+          ],
+          "dataGbPerDay": 0.3,
+          "optimalAltitudeKm": [
+            3000,
+            100000
+          ],
+          "needsFinePointing": false,
+          "needsIllumination": true
+        }
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "computer"
+          ],
+          "reason": "Imagens precisam ser armazenadas."
+        },
+        {
+          "anyOf": [
+            "comm-deep-space"
+          ],
+          "reason": "Enlace de espaço profundo necessário."
+        }
+      ],
+      "description": "Imagens de contexto da atmosfera e das auroras para divulgação e ciência.",
+      "limitations": "Degrada rapidamente sob radiação.",
+      "absenceConsequence": "Perde-se o contexto visual das demais medidas."
+    },
+    {
+      "id": "solar-gaas",
+      "name": "Painéis solares de células GaAs de tripla junção",
+      "category": "energia",
+      "documentedFor": [
+        "leo-climate"
+      ],
+      "documentRow": "Energia | Painéis solares de células GaAs de tripla junção + baterias de íon-lítio",
+      "massKg": 45,
+      "costUSD": 8000000,
+      "powerW": 0,
+      "mount": "wing",
+      "maxInstances": 1,
+      "dimensionsM": [
+        6.0,
+        0.05,
+        1.6
+      ],
+      "provides": [
+        "power-solar"
+      ],
+      "effects": {
+        "solarW1AU": 1400
+      },
+      "requires": [],
+      "description": "Gera energia elétrica a partir da luz solar; a potência cai com o quadrado da distância ao Sol.",
+      "limitations": "Não gera em eclipse; degrada com a radiação.",
+      "absenceConsequence": "Sem geração de energia, a sonda esgota as baterias em horas."
+    },
+    {
+      "id": "solar-articulated",
+      "name": "Painéis solares articulados",
+      "category": "energia",
+      "documentedFor": [
+        "lunar-he3"
+      ],
+      "documentRow": "Energia | Painéis solares articulados + bateria",
+      "massKg": 70,
+      "costUSD": 14000000,
+      "powerW": 10,
+      "mount": "wing",
+      "maxInstances": 1,
+      "dimensionsM": [
+        8.0,
+        0.05,
+        1.8
+      ],
+      "provides": [
+        "power-solar"
+      ],
+      "effects": {
+        "solarW1AU": 1900
+      },
+      "requires": [],
+      "description": "Painéis com acionamento que os mantém voltados ao Sol enquanto a sonda aponta os instrumentos para a superfície.",
+      "limitations": "Mecanismo de articulação acrescenta massa e risco.",
+      "absenceConsequence": "Sem geração de energia, a missão termina no primeiro eclipse longo."
+    },
+    {
+      "id": "solar-giant",
+      "name": "Painéis solares gigantes de alta eficiência",
+      "category": "energia",
+      "documentedFor": [
+        "jupiter-system"
+      ],
+      "documentRow": "Energia | Painéis solares gigantes de alta eficiência ou RTG | Júpiter recebe cerca de 1/25 da luz solar da Terra",
+      "massKg": 340,
+      "costUSD": 50000000,
+      "powerW": 0,
+      "mount": "wing",
+      "maxInstances": 1,
+      "dimensionsM": [
+        9.0,
+        0.05,
+        2.7
+      ],
+      "provides": [
+        "power-solar"
+      ],
+      "effects": {
+        "solarW1AU": 15000
+      },
+      "requires": [],
+      "description": "Grande área de células de alta eficiência; a ~5 UA entrega cerca de 1/25 da potência que geraria perto da Terra.",
+      "limitations": "Grande massa e inércia; sensível a eclipses e à radiação.",
+      "absenceConsequence": "Sem geração adequada, os instrumentos não operam a 5 UA."
+    },
+    {
+      "id": "rtg",
+      "name": "RTG (gerador termoelétrico de radioisótopo)",
+      "category": "energia",
+      "documentedFor": [
+        "jupiter-system"
+      ],
+      "documentRow": "Energia | Painéis solares gigantes de alta eficiência ou RTG | o RTG é a alternativa",
+      "massKg": 57,
+      "costUSD": 120000000,
+      "powerW": 0,
+      "mount": "boom",
+      "maxInstances": 3,
+      "dimensionsM": [
+        0.6,
+        0.6,
+        1.1
+      ],
+      "provides": [
+        "power-rtg"
+      ],
+      "effects": {
+        "rtgW": 300
+      },
+      "requires": [],
+      "description": "Converte o calor do decaimento radioativo em eletricidade, independentemente da distância ao Sol.",
+      "limitations": "Custo elevado, disponibilidade restrita de combustível e requisitos de segurança nuclear.",
+      "absenceConsequence": "Depende-se integralmente de painéis solares."
+    },
+    {
+      "id": "battery-liion",
+      "name": "Baterias de íon-lítio",
+      "category": "energia",
+      "documentedFor": [
+        "leo-climate",
+        "lunar-he3"
+      ],
+      "documentRow": "Energia | ... + baterias de íon-lítio | Baterias cobrem o eclipse",
+      "massKg": 30,
+      "costUSD": 3000000,
+      "powerW": 0,
+      "mount": "internal",
+      "maxInstances": 3,
+      "dimensionsM": [
+        0.4,
+        0.3,
+        0.3
+      ],
+      "electronics": true,
+      "provides": [
+        "battery"
+      ],
+      "effects": {
+        "batteryWh": 1800
+      },
+      "requires": [],
+      "description": "Armazena energia para os períodos de eclipse.",
+      "limitations": "Profundidade de descarga limitada para preservar a vida útil.",
+      "absenceConsequence": "A sonda desliga a cada eclipse."
+    },
+    {
+      "id": "star-tracker",
+      "name": "Rastreadores estelares (star trackers)",
+      "category": "atitude",
+      "documentedFor": [
+        "leo-climate",
+        "lunar-he3",
+        "jupiter-system"
+      ],
+      "documentRow": "Atitude | Rastreadores estelares (star trackers)",
+      "massKg": 4,
+      "costUSD": 2500000,
+      "powerW": 12,
+      "mount": "top",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.2,
+        0.2,
+        0.3
+      ],
+      "radiationToleranceKrad": 30,
+      "provides": [
+        "attitude-fine-reference"
+      ],
+      "effects": {},
+      "requires": [
+        {
+          "anyOf": [
+            "computer"
+          ],
+          "reason": "A solução de atitude é calculada pelo computador."
+        }
+      ],
+      "description": "Determina a orientação comparando o céu com um catálogo estelar.",
+      "limitations": "Cegado pelo Sol ou pela Lua; ruído sob radiação intensa.",
+      "absenceConsequence": "Sem referência fina, instrumentos de apontamento produzem dados degradados."
+    },
+    {
+      "id": "reaction-wheels",
+      "name": "Rodas de reação",
+      "category": "atitude",
+      "documentedFor": [
+        "leo-climate",
+        "lunar-he3",
+        "jupiter-system"
+      ],
+      "documentRow": "Atitude | rodas de reação",
+      "massKg": 32,
+      "costUSD": 4000000,
+      "powerW": 60,
+      "mount": "internal",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.5,
+        0.5,
+        0.3
+      ],
+      "provides": [
+        "attitude-fine-actuator"
+      ],
+      "effects": {},
+      "requires": [
+        {
+          "anyOf": [
+            "momentum-dump"
+          ],
+          "reason": "Rodas acumulam momento angular e precisam descarregá-lo com magnetotorquers (somente perto da Terra) ou propulsores."
+        }
+      ],
+      "description": "Giram para reorientar a sonda com precisão sem gastar propelente.",
+      "limitations": "Saturam com o tempo; precisam de descarga de momento.",
+      "absenceConsequence": "Sem atuadores finos, o apontamento depende de propulsores (menos estável)."
+    },
+    {
+      "id": "magnetorquers",
+      "name": "Magnetotorquers",
+      "category": "atitude",
+      "documentedFor": [
+        "leo-climate"
+      ],
+      "documentRow": "Atitude | magnetotorquers",
+      "massKg": 9,
+      "costUSD": 800000,
+      "powerW": 15,
+      "mount": "internal",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.6,
+        0.1,
+        0.1
+      ],
+      "provides": [
+        "momentum-dump-magnetic"
+      ],
+      "effects": {},
+      "requires": [],
+      "description": "Bobinas que interagem com o campo magnético terrestre para descarregar as rodas de reação.",
+      "limitations": "Só funcionam onde há campo magnético planetário adequado, como em órbita baixa da Terra.",
+      "absenceConsequence": "As rodas precisam ser descarregadas com propulsores."
+    },
+    {
+      "id": "sun-sensor",
+      "name": "Sensor solar",
+      "category": "atitude",
+      "documentedFor": [
+        "leo-climate"
+      ],
+      "documentRow": "Atitude | sensor solar",
+      "massKg": 1,
+      "costUSD": 300000,
+      "powerW": 1,
+      "mount": "top",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.1,
+        0.1,
+        0.05
+      ],
+      "provides": [
+        "attitude-coarse-reference"
+      ],
+      "effects": {},
+      "requires": [],
+      "description": "Detecta a direção do Sol; essencial para o modo de segurança e para apontar os painéis.",
+      "limitations": "Precisão grosseira; inútil em eclipse.",
+      "absenceConsequence": "O modo de segurança perde uma referência simples e robusta."
+    },
+    {
+      "id": "gyroscopes",
+      "name": "Giroscópios",
+      "category": "atitude",
+      "documentedFor": [
+        "leo-climate",
+        "lunar-he3",
+        "jupiter-system"
+      ],
+      "documentRow": "Atitude | giroscópios",
+      "massKg": 6,
+      "costUSD": 2000000,
+      "powerW": 20,
+      "mount": "internal",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.3,
+        0.3,
+        0.2
+      ],
+      "electronics": true,
+      "radiationToleranceKrad": 30,
+      "provides": [
+        "rate-sensing"
+      ],
+      "effects": {},
+      "requires": [],
+      "description": "Medem a velocidade angular entre as atualizações do rastreador estelar.",
+      "limitations": "Deriva acumulada exige correção externa.",
+      "absenceConsequence": "Manobras de atitude ficam menos estáveis."
+    },
+    {
+      "id": "hydrazine-thrusters",
+      "name": "Propulsores de hidrazina",
+      "category": "propulsao",
+      "documentedFor": [
+        "leo-climate"
+      ],
+      "documentRow": "Propulsão | Propulsores de hidrazina ou elétricos pequenos | Manutenção de órbita e desorbitar no fim da vida",
+      "massKg": 25,
+      "costUSD": 5000000,
+      "powerW": 20,
+      "mount": "bottom",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.5,
+        0.5,
+        0.3
+      ],
+      "provides": [
+        "propulsion",
+        "momentum-dump-thrusters"
+      ],
+      "effects": {
+        "propulsion": {
+          "ispS": 220,
+          "thrustN": 88,
+          "kind": "monopropellant"
+        }
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "tank"
+          ],
+          "reason": "Propulsores precisam de tanque e linhas de propelente."
+        }
+      ],
+      "description": "Quatro propulsores monopropelentes para ajustes de órbita, descarga de momento e desorbitar.",
+      "limitations": "Isp baixo (~220 s): pouco delta-v por kg de propelente.",
+      "absenceConsequence": "Sem propulsão, a órbita decai sem controle e não há desorbitar no fim da vida."
+    },
+    {
+      "id": "electric-thruster-small",
+      "name": "Propulsor elétrico pequeno",
+      "category": "propulsao",
+      "documentedFor": [
+        "leo-climate"
+      ],
+      "documentRow": "Propulsão | Propulsores de hidrazina ou elétricos pequenos",
+      "massKg": 20,
+      "costUSD": 6000000,
+      "powerW": 40,
+      "mount": "bottom",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.3,
+        0.3,
+        0.3
+      ],
+      "provides": [
+        "propulsion"
+      ],
+      "effects": {
+        "propulsion": {
+          "ispS": 1500,
+          "thrustN": 0.05,
+          "kind": "electric",
+          "peakPowerW": 300
+        }
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "tank"
+          ],
+          "reason": "Precisa de tanque de propelente (xenônio)."
+        }
+      ],
+      "description": "Impulso específico muito alto, empuxo minúsculo: ideal para manutenção lenta de órbita.",
+      "limitations": "Empuxo de ~0,05 N: incapaz de executar inserções orbitais rápidas.",
+      "absenceConsequence": "A manutenção de órbita consome mais propelente químico."
+    },
+    {
+      "id": "biprop-main",
+      "name": "Motor bipropelente principal (hipergólico)",
+      "category": "propulsao",
+      "documentedFor": [
+        "lunar-he3"
+      ],
+      "documentRow": "Propulsão | Motor bipropelente principal (ex.: hipergólico) + propulsores de controle | Inserção na órbita lunar e correções",
+      "massKg": 35,
+      "costUSD": 12000000,
+      "powerW": 30,
+      "mount": "bottom",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.6,
+        0.6,
+        0.9
+      ],
+      "provides": [
+        "propulsion",
+        "propulsion-main"
+      ],
+      "effects": {
+        "propulsion": {
+          "ispS": 315,
+          "thrustN": 445,
+          "kind": "bipropellant"
+        }
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "tank"
+          ],
+          "reason": "Precisa de tanques de combustível e oxidante."
+        },
+        {
+          "anyOf": [
+            "computer"
+          ],
+          "reason": "Queimas são comandadas pelo computador de bordo."
+        }
+      ],
+      "description": "Motor principal para a inserção na órbita lunar e grandes correções.",
+      "limitations": "Sem reignições ilimitadas; exige controle térmico das linhas.",
+      "absenceConsequence": "Sem motor principal, a inserção lunar é lenta ou impossível."
+    },
+    {
+      "id": "rcs-control-thrusters",
+      "name": "Propulsores de controle",
+      "category": "propulsao",
+      "documentedFor": [
+        "lunar-he3",
+        "jupiter-system"
+      ],
+      "documentRow": "Propulsão | ... + propulsores de controle",
+      "massKg": 18,
+      "costUSD": 4000000,
+      "powerW": 15,
+      "mount": "bottom",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.4,
+        0.4,
+        0.3
+      ],
+      "provides": [
+        "propulsion",
+        "momentum-dump-thrusters",
+        "attitude-thrusters"
+      ],
+      "effects": {
+        "propulsion": {
+          "ispS": 220,
+          "thrustN": 176,
+          "kind": "monopropellant"
+        }
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "tank"
+          ],
+          "reason": "Precisa de tanque de propelente."
+        }
+      ],
+      "description": "Propulsores pequenos para controle de atitude, descarga das rodas e pequenas correções.",
+      "limitations": "Isp baixo.",
+      "absenceConsequence": "Rodas de reação não podem ser descarregadas longe da Terra."
+    },
+    {
+      "id": "main-engine-large",
+      "name": "Motor principal de grande porte",
+      "category": "propulsao",
+      "documentedFor": [
+        "jupiter-system"
+      ],
+      "documentRow": "Propulsão | Motor principal de grande porte + muito propelente | Inserção na órbita de Júpiter (JOI), a manobra mais crítica",
+      "massKg": 60,
+      "costUSD": 20000000,
+      "powerW": 40,
+      "mount": "bottom",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.8,
+        0.8,
+        1.3
+      ],
+      "provides": [
+        "propulsion",
+        "propulsion-main"
+      ],
+      "effects": {
+        "propulsion": {
+          "ispS": 317,
+          "thrustN": 645,
+          "kind": "bipropellant"
+        }
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "tank"
+          ],
+          "reason": "Precisa de tanques grandes."
+        },
+        {
+          "anyOf": [
+            "computer"
+          ],
+          "reason": "A JOI é uma sequência autônoma comandada pelo computador."
+        }
+      ],
+      "description": "Motor de maior empuxo para as manobras de espaço profundo e a inserção em órbita de Júpiter.",
+      "limitations": "A JOI longa sofre perdas gravitacionais; falha na JOI significa sobrevoo sem captura.",
+      "absenceConsequence": "Sem motor principal a captura em Júpiter é inviável."
+    },
+    {
+      "id": "obc-moderate",
+      "name": "Computador de bordo com tolerância moderada a radiação",
+      "category": "computacao",
+      "documentedFor": [
+        "leo-climate"
+      ],
+      "documentRow": "Computação | Computador de bordo com tolerância moderada a radiação | Na órbita baixa a radiação é mais branda",
+      "massKg": 8,
+      "costUSD": 4000000,
+      "powerW": 25,
+      "mount": "internal",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.4,
+        0.3,
+        0.2
+      ],
+      "electronics": true,
+      "radiationToleranceKrad": 30,
+      "provides": [
+        "computer"
+      ],
+      "effects": {
+        "storageGb": 512
+      },
+      "requires": [],
+      "description": "Gerencia a sonda, processa e armazena dados (512 GB de memória de massa).",
+      "limitations": "Tolerância de ~30 krad: inadequado ao ambiente de Júpiter sem blindagem.",
+      "absenceConsequence": "Sem computador, nenhum subsistema é comandado."
+    },
+    {
+      "id": "obc-radhard",
+      "name": "Computador de bordo endurecido contra radiação",
+      "category": "computacao",
+      "documentedFor": [
+        "jupiter-system"
+      ],
+      "documentRow": "Computação | Computador de bordo endurecido contra radiação | Radiação é a maior ameaça à missão",
+      "massKg": 12,
+      "costUSD": 15000000,
+      "powerW": 30,
+      "mount": "internal",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.4,
+        0.3,
+        0.25
+      ],
+      "electronics": true,
+      "radiationToleranceKrad": 300,
+      "provides": [
+        "computer"
+      ],
+      "effects": {
+        "storageGb": 256
+      },
+      "requires": [],
+      "description": "Processador e memória projetados para suportar dose total e eventos singulares.",
+      "limitations": "Mais lento e caro que eletrônica comercial.",
+      "absenceConsequence": "Sem computador, nenhum subsistema é comandado."
+    },
+    {
+      "id": "xband-tx",
+      "name": "Transmissor banda X (dados científicos)",
+      "category": "comunicacao",
+      "documentedFor": [
+        "leo-climate"
+      ],
+      "documentRow": "Comunicação | Banda X para dados científicos, banda S para comando e telemetria | Antenas de baixo ganho",
+      "massKg": 6,
+      "costUSD": 3000000,
+      "powerW": 60,
+      "mount": "nadir",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.2,
+        0.2,
+        0.2
+      ],
+      "electronics": true,
+      "provides": [
+        "comm-science"
+      ],
+      "effects": {
+        "comm": {
+          "rateMbps": 300,
+          "refRangeKm": 2500,
+          "band": "X"
+        }
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "computer"
+          ],
+          "reason": "O transmissor recebe os dados do computador."
+        }
+      ],
+      "description": "Enlace de alta taxa para estações terrenas durante as passagens.",
+      "limitations": "Projetado para distâncias de órbita baixa; a taxa cai com o quadrado da distância.",
+      "absenceConsequence": "Dados científicos ficam presos a bordo."
+    },
+    {
+      "id": "sband-ttc",
+      "name": "Transceptor banda S (comando e telemetria)",
+      "category": "comunicacao",
+      "documentedFor": [
+        "leo-climate"
+      ],
+      "documentRow": "Comunicação | ... banda S para comando e telemetria | Antenas de baixo ganho",
+      "massKg": 4,
+      "costUSD": 1500000,
+      "powerW": 15,
+      "mount": "top",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.15,
+        0.15,
+        0.15
+      ],
+      "electronics": true,
+      "provides": [
+        "comm-command"
+      ],
+      "effects": {
+        "comm": {
+          "rateMbps": 2,
+          "refRangeKm": 2500,
+          "band": "S"
+        }
+      },
+      "requires": [],
+      "description": "Recebe comandos e envia telemetria de saúde.",
+      "limitations": "Baixa taxa de dados.",
+      "absenceConsequence": "A sonda não pode ser comandada nem monitorada."
+    },
+    {
+      "id": "hga-sx",
+      "name": "Antena de alto ganho em banda S/X",
+      "category": "comunicacao",
+      "documentedFor": [
+        "lunar-he3"
+      ],
+      "documentRow": "Comunicação | Antena de alto ganho em banda S/X, rede de espaço profundo | Visibilidade da Terra limitada na órbita polar",
+      "massKg": 25,
+      "costUSD": 10000000,
+      "powerW": 70,
+      "mount": "dish",
+      "maxInstances": 1,
+      "dimensionsM": [
+        1.0,
+        1.0,
+        0.5
+      ],
+      "electronics": true,
+      "provides": [
+        "comm-science",
+        "comm-command"
+      ],
+      "effects": {
+        "comm": {
+          "rateMbps": 30,
+          "refRangeKm": 400000,
+          "band": "S/X"
+        }
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "attitude-fine-reference"
+          ],
+          "reason": "Antena de alto ganho precisa ser apontada para a Terra."
+        }
+      ],
+      "description": "Antena direcional para comunicação a distâncias lunares com a rede de espaço profundo.",
+      "limitations": "Taxa cai com o quadrado da distância; insuficiente para Júpiter.",
+      "absenceConsequence": "Sem enlace de alta taxa, os dados lunares não chegam à Terra."
+    },
+    {
+      "id": "hga-large",
+      "name": "Antena de alto ganho grande (≈2,5 m) bandas X e Ka",
+      "category": "comunicacao",
+      "documentedFor": [
+        "jupiter-system"
+      ],
+      "documentRow": "Comunicação | Antena de alto ganho grande (cerca de 2,5 m ou mais), banda X e Ka | Grande atraso e pouca potência recebida na Terra",
+      "massKg": 40,
+      "costUSD": 25000000,
+      "powerW": 120,
+      "mount": "dish",
+      "maxInstances": 1,
+      "dimensionsM": [
+        2.5,
+        2.5,
+        0.8
+      ],
+      "electronics": true,
+      "provides": [
+        "comm-science",
+        "comm-command",
+        "comm-deep-space"
+      ],
+      "effects": {
+        "comm": {
+          "rateMbps": 0.2,
+          "refRangeKm": 900000000,
+          "band": "X/Ka"
+        }
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "attitude-fine-reference"
+          ],
+          "reason": "O feixe estreito precisa ser apontado para a Terra."
+        }
+      ],
+      "description": "Antena grande capaz de fechar o enlace a 5–6 UA com a rede de espaço profundo.",
+      "limitations": "Taxa baixa e atraso de dezenas de minutos.",
+      "absenceConsequence": "Sem ela, a missão a Júpiter fica sem retorno de dados."
+    },
+    {
+      "id": "gnss-receiver",
+      "name": "Receptor GPS",
+      "category": "navegacao",
+      "documentedFor": [
+        "leo-climate"
+      ],
+      "documentRow": "GNSS | Receptor GPS | Posição e tempo",
+      "massKg": 2,
+      "costUSD": 400000,
+      "powerW": 6,
+      "mount": "top",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.15,
+        0.15,
+        0.05
+      ],
+      "electronics": true,
+      "provides": [
+        "navigation-gnss"
+      ],
+      "effects": {},
+      "requires": [],
+      "description": "Determina posição e tempo a bordo usando a constelação GPS.",
+      "limitations": "Só funciona abaixo da altitude da constelação GNSS (útil em órbita baixa).",
+      "absenceConsequence": "Determinação de órbita depende de rastreio terrestre."
+    },
+    {
+      "id": "ranging-transponder",
+      "name": "Rádio com ranging/Doppler e relógio estável",
+      "category": "navegacao",
+      "documentedFor": [
+        "lunar-he3"
+      ],
+      "documentRow": "Navegação | Rádio com ranging/Doppler, relógio estável | Determinação precisa da órbita",
+      "massKg": 7,
+      "costUSD": 6000000,
+      "powerW": 25,
+      "mount": "internal",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.3,
+        0.2,
+        0.2
+      ],
+      "electronics": true,
+      "provides": [
+        "navigation-radio"
+      ],
+      "effects": {},
+      "requires": [],
+      "description": "Mede distância e velocidade radial a partir da Terra para determinar a órbita com precisão.",
+      "limitations": "Depende de tempo de rede de espaço profundo.",
+      "absenceConsequence": "Correções de trajetória ficam menos precisas e consomem mais propelente."
+    },
+    {
+      "id": "mli",
+      "name": "Isolamento multicamada (MLI)",
+      "category": "termico",
+      "documentedFor": [
+        "leo-climate",
+        "lunar-he3",
+        "jupiter-system"
+      ],
+      "documentRow": "Térmico | Isolamento multicamada (MLI), radiadores, aquecedores",
+      "massKg": 15,
+      "costUSD": 1000000,
+      "powerW": 0,
+      "mount": "skin",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0,
+        0,
+        0
+      ],
+      "provides": [
+        "thermal-insulation"
+      ],
+      "effects": {},
+      "requires": [],
+      "description": "Mantas reflexivas (a 'folha dourada') que reduzem trocas de calor por radiação.",
+      "limitations": "Precisa ser combinado com radiadores e aquecedores.",
+      "absenceConsequence": "Grandes oscilações térmicas danificam eletrônica e instrumentos."
+    },
+    {
+      "id": "radiators",
+      "name": "Radiadores",
+      "category": "termico",
+      "documentedFor": [
+        "leo-climate",
+        "lunar-he3"
+      ],
+      "documentRow": "Térmico | ... radiadores",
+      "massKg": 12,
+      "costUSD": 1000000,
+      "powerW": 0,
+      "mount": "side-panel",
+      "maxInstances": 1,
+      "dimensionsM": [
+        1.0,
+        0.05,
+        1.0
+      ],
+      "provides": [
+        "thermal-rejection"
+      ],
+      "effects": {},
+      "requires": [],
+      "description": "Superfícies que irradiam o calor dissipado pela eletrônica para o espaço.",
+      "limitations": "Exigem orientação longe do Sol.",
+      "absenceConsequence": "Equipamentos de alta potência superaquecem."
+    },
+    {
+      "id": "heaters",
+      "name": "Aquecedores",
+      "category": "termico",
+      "documentedFor": [
+        "leo-climate",
+        "lunar-he3",
+        "jupiter-system"
+      ],
+      "documentRow": "Térmico | ... aquecedores",
+      "massKg": 3,
+      "costUSD": 300000,
+      "powerW": 30,
+      "mount": "internal",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0.2,
+        0.2,
+        0.05
+      ],
+      "provides": [
+        "thermal-heating"
+      ],
+      "effects": {},
+      "requires": [],
+      "description": "Resistências que mantêm propelente e eletrônica acima dos limites mínimos.",
+      "limitations": "Consomem energia, especialmente longe do Sol.",
+      "absenceConsequence": "Propelente pode congelar e eletrônica pode falhar no frio."
+    },
+    {
+      "id": "thermal-shield",
+      "name": "Blindagem térmica",
+      "category": "termico",
+      "documentedFor": [
+        "jupiter-system"
+      ],
+      "documentRow": "Térmico | Aquecedores, MLI, blindagem térmica | Ambiente frio e variações extremas",
+      "massKg": 30,
+      "costUSD": 3000000,
+      "powerW": 0,
+      "mount": "skin",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0,
+        0,
+        0
+      ],
+      "provides": [
+        "thermal-insulation",
+        "thermal-rejection"
+      ],
+      "effects": {},
+      "requires": [],
+      "description": "Proteção contra as variações extremas do cruzeiro (perto do Sol na assistência gravitacional, frio em Júpiter).",
+      "limitations": "Massa adicional.",
+      "absenceConsequence": "Extremos térmicos do cruzeiro danificam a sonda."
+    },
+    {
+      "id": "radiation-vault",
+      "name": "Cofre de radiação em titânio",
+      "category": "protecao",
+      "documentedFor": [
+        "jupiter-system"
+      ],
+      "documentRow": "Estrutura | Cofre de radiação em titânio (radiation vault) | Protege os eletrônicos sensíveis, como na Juno",
+      "massKg": 200,
+      "costUSD": 30000000,
+      "powerW": 0,
+      "mount": "vault",
+      "maxInstances": 1,
+      "dimensionsM": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "provides": [
+        "radiation-vault"
+      ],
+      "effects": {
+        "vaultDoseFactor": 0.03
+      },
+      "requires": [
+        {
+          "anyOf": [
+            "structure"
+          ],
+          "reason": "O cofre é montado no barramento."
+        }
+      ],
+      "description": "Caixa de titânio que reduz a dose de radiação nos componentes eletrônicos internos.",
+      "limitations": "Massa elevada; instrumentos externos continuam expostos.",
+      "absenceConsequence": "A eletrônica recebe a dose integral do ambiente joviano."
+    },
+    {
+      "id": "planetary-protection",
+      "name": "Medidas de proteção planetária",
+      "category": "protecao",
+      "documentedFor": [
+        "jupiter-system"
+      ],
+      "documentRow": "Segurança | Medidas de proteção planetária | Evitam contaminar luas como Europa",
+      "massKg": 5,
+      "costUSD": 15000000,
+      "powerW": 0,
+      "mount": "none",
+      "maxInstances": 1,
+      "dimensionsM": [
+        0,
+        0,
+        0
+      ],
+      "provides": [
+        "planetary-protection"
+      ],
+      "effects": {},
+      "requires": [],
+      "description": "Controle de contaminação, análise de probabilidade de impacto e plano de descarte em Júpiter ao fim da missão.",
+      "limitations": "Custo de processo, não de hardware.",
+      "absenceConsequence": "Missão não atende ao requisito de proteção de luas potencialmente habitáveis."
+    }
+  ]
+}

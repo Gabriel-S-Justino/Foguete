@@ -1,0 +1,851 @@
+{
+  "version": "2026.10.1",
+  "currencyPolicy": {
+    "baseCurrency": "USD",
+    "displayAlternatives": [
+      {
+        "code": "BRL",
+        "ratePerUSD": 5.0,
+        "status": "didático",
+        "label": "Taxa ilustrativa fixa (R$ 5,00 / US$) — parâmetro do jogo, NÃO é cotação atual."
+      }
+    ]
+  },
+  "budgetNotice": "Os orçamentos das três missões são PARÂMETROS DIDÁTICOS configuráveis, não valores oficiais. Para comparação, o documento de orçamentos registra missões reais como Chandrayaan-3 (US$ 74 milhões) e SLIM (US$ 100 milhões), que não incluem os mesmos itens de custo.",
+  "testCampaigns": {
+    "minimal": {
+      "label": "Mínima",
+      "costFactor": 0.03,
+      "failureFactor": 1.8,
+      "description": "Apenas testes funcionais básicos. Barato, porém aumenta a probabilidade de falhas."
+    },
+    "standard": {
+      "label": "Padrão",
+      "costFactor": 0.07,
+      "failureFactor": 1.0,
+      "description": "Testes ambientais de vibração, térmico-vácuo e compatibilidade eletromagnética."
+    },
+    "extensive": {
+      "label": "Extensiva",
+      "costFactor": 0.12,
+      "failureFactor": 0.55,
+      "description": "Campanha completa com unidades de qualificação e testes de ponta a ponta."
+    }
+  },
+  "missions": [
+    {
+      "id": "leo-climate",
+      "code": "MISSÃO 01",
+      "name": "Observação Climática Terrestre",
+      "difficulty": "fácil",
+      "summary": "Satélite de observação em órbita baixa heliossíncrona para medir nuvens, temperatura, umidade e o balanço de radiação da Terra.",
+      "description": "Projete um satélite de 500 a 1000 kg (ordem de grandeza do documento de referência) para uma órbita heliossíncrona de cerca de 600 a 850 km. Uma órbita heliossíncrona precessiona junto com o movimento aparente do Sol, de modo que cada região é observada sempre no mesmo horário local, o que permite comparar imagens de dias diferentes sob iluminação semelhante.",
+      "scienceContext": [
+        "O desafio principal é o volume de dados e a calibração, mais do que o hardware (componentes-sondas.md).",
+        "A inclinação de uma órbita heliossíncrona não é escolhida livremente: ela decorre da altitude, pela precessão nodal causada pelo achatamento da Terra (J2).",
+        "O horário local do nodo define a iluminação: órbitas de manhã evitam nuvens convectivas da tarde."
+      ],
+      "bodies": [
+        "earth"
+      ],
+      "launchProfile": "leo-polar",
+      "budget": {
+        "availableUSD": 280000000,
+        "contingencyPct": 10,
+        "operationsCostUSD": 15000000,
+        "status": "didático"
+      },
+      "massGuidelineKg": [
+        500,
+        1000
+      ],
+      "environment": {
+        "centralBody": "earth",
+        "sunDistanceAU": 1.0,
+        "earthRangeKm": 2000,
+        "contactHoursPerDay": 2.0,
+        "radiationKradPerYear": 2,
+        "magneticMomentumDumping": true,
+        "gnssAvailable": true,
+        "atmosphericDrag": true,
+        "solarActivity": "moderada"
+      },
+      "planning": {
+        "type": "earth-orbit",
+        "altitudeKm": {
+          "min": 400,
+          "max": 1000,
+          "default": 705
+        },
+        "eccentricity": {
+          "min": 0,
+          "max": 0.02,
+          "default": 0.001
+        },
+        "inclinationMode": "sso-or-manual",
+        "localTimeOfNode": {
+          "options": [
+            "06:00",
+            "09:30",
+            "10:30",
+            "13:30",
+            "18:00"
+          ],
+          "default": "10:30"
+        },
+        "missionLifeYears": {
+          "min": 1,
+          "max": 7,
+          "default": 5
+        },
+        "orbitsBeforeTrim": {
+          "min": 1,
+          "max": 30,
+          "default": 5
+        }
+      },
+      "deltaVPolicy": {
+        "injectionTrimMS": 10,
+        "deorbitTargetPerigeeKm": 50,
+        "marginPct": {
+          "iniciante": 5,
+          "intermediario": 10,
+          "avancado": 15
+        }
+      },
+      "requirements": [
+        {
+          "id": "req-power",
+          "anyOf": [
+            "power-solar",
+            "power-rtg"
+          ],
+          "severity": "obrigatoria",
+          "reason": "A sonda precisa gerar energia."
+        },
+        {
+          "id": "req-battery",
+          "anyOf": [
+            "battery"
+          ],
+          "severity": "obrigatoria",
+          "reason": "Em órbita baixa há eclipse a cada volta (~35 min)."
+        },
+        {
+          "id": "req-computer",
+          "anyOf": [
+            "computer"
+          ],
+          "severity": "obrigatoria",
+          "reason": "Computador de bordo é indispensável."
+        },
+        {
+          "id": "req-command",
+          "anyOf": [
+            "comm-command"
+          ],
+          "severity": "obrigatoria",
+          "reason": "Sem enlace de comando a sonda não pode ser operada."
+        },
+        {
+          "id": "req-propulsion",
+          "anyOf": [
+            "propulsion"
+          ],
+          "severity": "obrigatoria",
+          "reason": "A regra de mitigação de detritos exige capacidade de desorbitar."
+        },
+        {
+          "id": "req-thermal",
+          "anyOf": [
+            "thermal-insulation"
+          ],
+          "severity": "obrigatoria",
+          "reason": "Ciclos térmicos a cada órbita exigem isolamento."
+        },
+        {
+          "id": "req-instrument",
+          "anyOf": [
+            "instrument"
+          ],
+          "severity": "obrigatoria",
+          "reason": "Sem instrumento não há missão científica."
+        },
+        {
+          "id": "req-gnss",
+          "anyOf": [
+            "navigation-gnss"
+          ],
+          "severity": "recomendada",
+          "reason": "GPS fornece posição e tempo para georreferenciar as imagens."
+        }
+      ],
+      "objectives": [
+        {
+          "id": "obj-clouds",
+          "title": "Mapear nuvens e temperatura da superfície",
+          "measures": [
+            "multispectral-imaging"
+          ],
+          "weight": 0.4,
+          "primary": true
+        },
+        {
+          "id": "obj-profiles",
+          "title": "Obter perfis de temperatura e umidade",
+          "measures": [
+            "atmospheric-sounding"
+          ],
+          "weight": 0.35,
+          "primary": true
+        },
+        {
+          "id": "obj-erb",
+          "title": "Medir o balanço de radiação",
+          "measures": [
+            "radiation-budget"
+          ],
+          "weight": 0.25,
+          "primary": false
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "cp-amazon",
+          "name": "Bacia Amazônica — umidade e queimadas",
+          "objectiveId": "obj-clouds",
+          "latitudeDeg": -3,
+          "measures": [
+            "multispectral-imaging"
+          ],
+          "needsIllumination": true
+        },
+        {
+          "id": "cp-pacific",
+          "name": "Pacífico equatorial — temperatura da superfície do mar",
+          "objectiveId": "obj-clouds",
+          "latitudeDeg": 0,
+          "measures": [
+            "multispectral-imaging"
+          ],
+          "needsIllumination": true
+        },
+        {
+          "id": "cp-hurricane",
+          "name": "Atlântico tropical — perfis de um ciclone",
+          "objectiveId": "obj-profiles",
+          "latitudeDeg": 18,
+          "measures": [
+            "atmospheric-sounding"
+          ],
+          "needsIllumination": false
+        },
+        {
+          "id": "cp-arctic",
+          "name": "Ártico — perfis polares e gelo marinho",
+          "objectiveId": "obj-profiles",
+          "latitudeDeg": 78,
+          "measures": [
+            "atmospheric-sounding"
+          ],
+          "needsIllumination": false
+        },
+        {
+          "id": "cp-sahara",
+          "name": "Saara — albedo e radiação emitida",
+          "objectiveId": "obj-erb",
+          "latitudeDeg": 23,
+          "measures": [
+            "radiation-budget"
+          ],
+          "needsIllumination": false
+        },
+        {
+          "id": "cp-antarctic",
+          "name": "Antártida — balanço de radiação polar",
+          "objectiveId": "obj-erb",
+          "latitudeDeg": -80,
+          "measures": [
+            "radiation-budget"
+          ],
+          "needsIllumination": false
+        }
+      ],
+      "scienceDays": 30,
+      "sources": [
+        "doc-componentes",
+        "doc-orcamento",
+        "jpl-astro-par"
+      ],
+      "knownLimitations": [
+        "Órbita propagada com modelo de dois corpos; J2 usado apenas para a condição heliossíncrona.",
+        "Arrasto atmosférico acima de 86 km por densidade exponencial aproximada.",
+        "Passagens sobre estações terrenas modeladas por horas médias de contato por dia."
+      ]
+    },
+    {
+      "id": "lunar-he3",
+      "code": "MISSÃO 02",
+      "name": "Mapeamento Lunar para Pesquisa de Hélio-3",
+      "difficulty": "média",
+      "summary": "Sonda em órbita polar lunar baixa para mapear indicadores indiretos associados ao Hélio-3 implantado no regolito.",
+      "description": "Envie uma sonda de 500 a 1000 kg (ordem de grandeza do documento) para uma órbita polar lunar baixa de 50 a 100 km. A missão exige uma transferência Terra–Lua, a inserção na órbita lunar executada pela própria sonda, correções de trajetória e gestão de energia e comunicação.",
+      "scienceContext": [
+        "O Hélio-3 não pode ser detectado diretamente por sensoriamento remoto orbital: ele vem do vento solar e fica implantado no regolito em concentrações de partes por bilhão (componentes-sondas.md).",
+        "A missão mede INDICADORES: titânio/ilmenita (raios gama e infravermelho), maturidade do solo (nêutrons) e profundidade do regolito (radar).",
+        "O relatório distingue medição, estimativa de abundância, potencial de exploração e viabilidade econômica. Nenhum ponto será declarado como reserva economicamente extraível."
+      ],
+      "bodies": [
+        "earth",
+        "moon"
+      ],
+      "launchProfile": "tli",
+      "budget": {
+        "availableUSD": 450000000,
+        "contingencyPct": 15,
+        "operationsCostUSD": 30000000,
+        "status": "didático"
+      },
+      "massGuidelineKg": [
+        500,
+        1000
+      ],
+      "environment": {
+        "centralBody": "moon",
+        "sunDistanceAU": 1.0,
+        "earthRangeKm": 384400,
+        "contactHoursPerDay": 8,
+        "radiationKradPerYear": 8,
+        "magneticMomentumDumping": false,
+        "gnssAvailable": false,
+        "atmosphericDrag": false,
+        "solarActivity": "moderada"
+      },
+      "planning": {
+        "type": "lunar",
+        "altitudeKm": {
+          "min": 20,
+          "max": 200,
+          "default": 50
+        },
+        "inclinationDeg": {
+          "min": 0,
+          "max": 90,
+          "default": 90
+        },
+        "parkingOrbitKm": {
+          "min": 185,
+          "max": 400,
+          "default": 200
+        },
+        "transferOptions": [
+          {
+            "id": "hohmann",
+            "label": "Transferência quase-Hohmann (~5 dias)",
+            "apogeeFactor": 1.0
+          },
+          {
+            "id": "fast",
+            "label": "Transferência rápida (~3 dias)",
+            "apogeeFactor": 1.6
+          }
+        ],
+        "tcmCount": {
+          "min": 0,
+          "max": 3,
+          "default": 2
+        },
+        "missionLifeMonths": {
+          "min": 3,
+          "max": 24,
+          "default": 12
+        }
+      },
+      "deltaVPolicy": {
+        "tcmBaseMS": 30,
+        "tcmNoRadioNavPenaltyMS": 40,
+        "stationKeepingMSPerMonthAt50km": 15,
+        "marginPct": {
+          "iniciante": 5,
+          "intermediario": 10,
+          "avancado": 15
+        }
+      },
+      "requirements": [
+        {
+          "id": "req-power",
+          "anyOf": [
+            "power-solar",
+            "power-rtg"
+          ],
+          "severity": "obrigatoria",
+          "reason": "A sonda precisa gerar energia."
+        },
+        {
+          "id": "req-battery",
+          "anyOf": [
+            "battery"
+          ],
+          "severity": "obrigatoria",
+          "reason": "Eclipses lunares em órbita baixa duram ~47 min por volta e até horas em eclipses da Terra."
+        },
+        {
+          "id": "req-computer",
+          "anyOf": [
+            "computer"
+          ],
+          "severity": "obrigatoria",
+          "reason": "Computador de bordo é indispensável."
+        },
+        {
+          "id": "req-command",
+          "anyOf": [
+            "comm-command"
+          ],
+          "severity": "obrigatoria",
+          "reason": "Sem enlace de comando a sonda não pode ser operada."
+        },
+        {
+          "id": "req-main",
+          "anyOf": [
+            "propulsion-main"
+          ],
+          "severity": "obrigatoria",
+          "reason": "A inserção na órbita lunar (centenas de m/s) exige um motor principal."
+        },
+        {
+          "id": "req-thermal",
+          "anyOf": [
+            "thermal-insulation"
+          ],
+          "severity": "obrigatoria",
+          "reason": "Ciclos térmicos mais severos que na órbita terrestre."
+        },
+        {
+          "id": "req-heaters",
+          "anyOf": [
+            "thermal-heating"
+          ],
+          "severity": "obrigatoria",
+          "reason": "Propelente e eletrônica precisam de aquecimento durante eclipses."
+        },
+        {
+          "id": "req-instrument",
+          "anyOf": [
+            "instrument"
+          ],
+          "severity": "obrigatoria",
+          "reason": "Sem instrumento não há missão científica."
+        },
+        {
+          "id": "req-radionav",
+          "anyOf": [
+            "navigation-radio"
+          ],
+          "severity": "recomendada",
+          "reason": "Ranging/Doppler reduz o erro de navegação e o custo das correções."
+        }
+      ],
+      "objectives": [
+        {
+          "id": "obj-ti",
+          "title": "Mapear titânio/ilmenita (indicador de retenção de He-3)",
+          "measures": [
+            "gamma-spectroscopy",
+            "nir-mineralogy"
+          ],
+          "weight": 0.35,
+          "primary": true
+        },
+        {
+          "id": "obj-maturity",
+          "title": "Medir a maturidade do regolito (exposição ao vento solar)",
+          "measures": [
+            "neutron-spectroscopy"
+          ],
+          "weight": 0.25,
+          "primary": true
+        },
+        {
+          "id": "obj-depth",
+          "title": "Estimar a profundidade do regolito",
+          "measures": [
+            "regolith-radar"
+          ],
+          "weight": 0.25,
+          "primary": false
+        },
+        {
+          "id": "obj-context",
+          "title": "Contexto geológico e topográfico",
+          "measures": [
+            "high-res-imaging",
+            "laser-altimetry"
+          ],
+          "weight": 0.15,
+          "primary": false
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "cp-tranquillitatis",
+          "name": "Mare Tranquillitatis — basaltos ricos em Ti",
+          "objectiveId": "obj-ti",
+          "latitudeDeg": 8.5,
+          "measures": [
+            "gamma-spectroscopy",
+            "nir-mineralogy"
+          ],
+          "needsIllumination": true
+        },
+        {
+          "id": "cp-procellarum",
+          "name": "Oceanus Procellarum — mares jovens",
+          "objectiveId": "obj-ti",
+          "latitudeDeg": 18,
+          "measures": [
+            "gamma-spectroscopy",
+            "nir-mineralogy"
+          ],
+          "needsIllumination": true
+        },
+        {
+          "id": "cp-maturity",
+          "name": "Mare Serenitatis — maturidade do solo",
+          "objectiveId": "obj-maturity",
+          "latitudeDeg": 28,
+          "measures": [
+            "neutron-spectroscopy"
+          ],
+          "needsIllumination": false
+        },
+        {
+          "id": "cp-south-pole",
+          "name": "Polo Sul — hidrogênio e regiões sombreadas",
+          "objectiveId": "obj-maturity",
+          "latitudeDeg": -88,
+          "measures": [
+            "neutron-spectroscopy"
+          ],
+          "needsIllumination": false
+        },
+        {
+          "id": "cp-imbrium",
+          "name": "Mare Imbrium — espessura do regolito",
+          "objectiveId": "obj-depth",
+          "latitudeDeg": 33,
+          "measures": [
+            "regolith-radar"
+          ],
+          "needsIllumination": false
+        },
+        {
+          "id": "cp-highlands",
+          "name": "Terras altas do lado oculto — contraste geológico",
+          "objectiveId": "obj-context",
+          "latitudeDeg": 10,
+          "measures": [
+            "high-res-imaging",
+            "laser-altimetry"
+          ],
+          "needsIllumination": true
+        }
+      ],
+      "scienceDays": 30,
+      "sources": [
+        "doc-componentes",
+        "doc-orcamento",
+        "jpl-astro-par",
+        "nssdc-factsheets"
+      ],
+      "knownLimitations": [
+        "Transferência Terra–Lua por cônicas ajustadas coplanares; não é efeméride operacional.",
+        "Manutenção de órbita lunar (mascons) modelada por taxa didática.",
+        "Concentrações de He-3 não são simuladas; apenas indicadores medidos."
+      ]
+    },
+    {
+      "id": "jupiter-system",
+      "code": "MISSÃO 03",
+      "name": "Sonda de Observação de Júpiter",
+      "difficulty": "difícil",
+      "summary": "Sonda em órbita polar muito excêntrica de Júpiter para estudar o interior, a magnetosfera e a relação do planeta com objetos menores.",
+      "description": "Envie uma sonda (3000 a 4000 kg no documento de referência) para uma órbita polar muito excêntrica ao redor de Júpiter. Radiação, energia e comunicação são os principais desafios: Júpiter recebe cerca de 1/25 da luz solar da Terra e o sinal leva dezenas de minutos para chegar.",
+      "scienceContext": [
+        "Júpiter influencia trajetórias de cometas e asteroides, mas sua gravidade NÃO é um escudo universal da Terra: pode tanto desviar quanto lançar objetos para o Sistema Solar interno (componentes-sondas.md).",
+        "A missão mede gravidade, estrutura interna e magnetosfera; esses dados alimentam modelos dinâmicos que testam hipóteses, sem 'provar' sozinhos um efeito protetor.",
+        "A inserção em órbita de Júpiter (JOI) é a manobra mais crítica."
+      ],
+      "bodies": [
+        "sun",
+        "earth",
+        "jupiter"
+      ],
+      "launchProfile": "jupiter-ga",
+      "budget": {
+        "availableUSD": 750000000,
+        "contingencyPct": 20,
+        "operationsCostUSD": 80000000,
+        "status": "didático"
+      },
+      "massGuidelineKg": [
+        3000,
+        4000
+      ],
+      "environment": {
+        "centralBody": "jupiter",
+        "sunDistanceAU": 5.2,
+        "earthRangeKm": 778000000,
+        "contactHoursPerDay": 8,
+        "radiationKradPerYear": 800,
+        "magneticMomentumDumping": false,
+        "gnssAvailable": false,
+        "atmosphericDrag": false,
+        "solarActivity": "moderada"
+      },
+      "planning": {
+        "type": "interplanetary",
+        "trajectoryOptions": [
+          {
+            "id": "dveega",
+            "label": "Assistência gravitacional da Terra (ΔV-EGA, ~2 anos + Hohmann)",
+            "launchProfile": "jupiter-ga",
+            "dsmMS": 750,
+            "dsmStatus": "aproximado",
+            "loopYears": 2.0
+          },
+          {
+            "id": "direct",
+            "label": "Transferência direta tipo Hohmann",
+            "launchProfile": "jupiter-direct",
+            "dsmMS": 0,
+            "dsmStatus": "derivado",
+            "loopYears": 0
+          }
+        ],
+        "departureDate": {
+          "min": "2027-01-01",
+          "max": "2034-12-31",
+          "default": "2031-07-01"
+        },
+        "windowToleranceDays": 30,
+        "perijoveAltitudeKm": {
+          "min": 2000,
+          "max": 50000,
+          "default": 4200
+        },
+        "orbitPeriodDays": {
+          "min": 14,
+          "max": 107,
+          "default": 53
+        },
+        "inclinationDeg": {
+          "min": 0,
+          "max": 90,
+          "default": 90
+        },
+        "tcmCount": {
+          "min": 0,
+          "max": 4,
+          "default": 3
+        },
+        "scienceOrbits": {
+          "min": 4,
+          "max": 35,
+          "default": 12
+        }
+      },
+      "deltaVPolicy": {
+        "tcmBaseMS": 50,
+        "tcmNoRadioNavPenaltyMS": 40,
+        "marginPct": {
+          "iniciante": 5,
+          "intermediario": 10,
+          "avancado": 15
+        }
+      },
+      "requirements": [
+        {
+          "id": "req-power",
+          "anyOf": [
+            "power-solar",
+            "power-rtg"
+          ],
+          "severity": "obrigatoria",
+          "reason": "A sonda precisa gerar energia a 5 UA."
+        },
+        {
+          "id": "req-computer",
+          "anyOf": [
+            "computer"
+          ],
+          "severity": "obrigatoria",
+          "reason": "Computador de bordo é indispensável."
+        },
+        {
+          "id": "req-deep",
+          "anyOf": [
+            "comm-deep-space"
+          ],
+          "severity": "obrigatoria",
+          "reason": "Somente uma antena de alto ganho grande fecha o enlace a 5–6 UA."
+        },
+        {
+          "id": "req-main",
+          "anyOf": [
+            "propulsion-main"
+          ],
+          "severity": "obrigatoria",
+          "reason": "A JOI exige um motor principal de grande porte."
+        },
+        {
+          "id": "req-vault",
+          "anyOf": [
+            "radiation-vault"
+          ],
+          "severity": "obrigatoria",
+          "reason": "Sem cofre de radiação a eletrônica sofre doses muito acima de sua tolerância."
+        },
+        {
+          "id": "req-thermal",
+          "anyOf": [
+            "thermal-insulation"
+          ],
+          "severity": "obrigatoria",
+          "reason": "Extremos térmicos do cruzeiro."
+        },
+        {
+          "id": "req-heaters",
+          "anyOf": [
+            "thermal-heating"
+          ],
+          "severity": "obrigatoria",
+          "reason": "Ambiente frio a 5 UA."
+        },
+        {
+          "id": "req-pp",
+          "anyOf": [
+            "planetary-protection"
+          ],
+          "severity": "obrigatoria",
+          "reason": "Evitar contaminar luas como Europa ao fim da missão."
+        },
+        {
+          "id": "req-instrument",
+          "anyOf": [
+            "instrument"
+          ],
+          "severity": "obrigatoria",
+          "reason": "Sem instrumento não há missão científica."
+        }
+      ],
+      "objectives": [
+        {
+          "id": "obj-interior",
+          "title": "Estrutura interna e campo gravitacional",
+          "measures": [
+            "gravity-science"
+          ],
+          "weight": 0.3,
+          "primary": true
+        },
+        {
+          "id": "obj-magnetosphere",
+          "title": "Campo magnético e magnetosfera",
+          "measures": [
+            "magnetometry",
+            "particles-plasma"
+          ],
+          "weight": 0.3,
+          "primary": true
+        },
+        {
+          "id": "obj-atmosphere",
+          "title": "Atmosfera profunda (água e amônia)",
+          "measures": [
+            "microwave-radiometry"
+          ],
+          "weight": 0.2,
+          "primary": false
+        },
+        {
+          "id": "obj-minor-bodies",
+          "title": "Dados para modelos de interação gravitacional com objetos menores",
+          "measures": [
+            "gravity-science",
+            "context-imaging"
+          ],
+          "weight": 0.2,
+          "primary": false
+        }
+      ],
+      "checkpoints": [
+        {
+          "id": "cp-pj-gravity",
+          "name": "Perijoves de gravidade (Doppler)",
+          "objectiveId": "obj-interior",
+          "latitudeDeg": 0,
+          "measures": [
+            "gravity-science"
+          ],
+          "needsIllumination": false
+        },
+        {
+          "id": "cp-polar-mag",
+          "name": "Magnetosfera polar e auroras",
+          "objectiveId": "obj-magnetosphere",
+          "latitudeDeg": 80,
+          "measures": [
+            "magnetometry",
+            "particles-plasma"
+          ],
+          "needsIllumination": false
+        },
+        {
+          "id": "cp-magnetotail",
+          "name": "Cauda magnética no apojove",
+          "objectiveId": "obj-magnetosphere",
+          "latitudeDeg": 10,
+          "measures": [
+            "particles-plasma",
+            "magnetometry"
+          ],
+          "needsIllumination": false
+        },
+        {
+          "id": "cp-deep-atm",
+          "name": "Varredura da atmosfera profunda",
+          "objectiveId": "obj-atmosphere",
+          "latitudeDeg": 20,
+          "measures": [
+            "microwave-radiometry"
+          ],
+          "needsIllumination": false
+        },
+        {
+          "id": "cp-dynamics",
+          "name": "Harmônicos gravitacionais e contexto para dinâmica de pequenos corpos",
+          "objectiveId": "obj-minor-bodies",
+          "latitudeDeg": 45,
+          "measures": [
+            "gravity-science",
+            "context-imaging"
+          ],
+          "needsIllumination": false
+        }
+      ],
+      "scienceDays": 0,
+      "sources": [
+        "doc-componentes",
+        "doc-orcamento",
+        "jpl-astro-par",
+        "jpl-approx-positions"
+      ],
+      "knownLimitations": [
+        "Janela Terra–Júpiter calculada com órbitas circulares coplanares (modelo educacional), não efemérides.",
+        "Manobra de espaço profundo do ΔV-EGA com valor aproximado inspirado em perfis publicados.",
+        "Dose de radiação anual é parâmetro didático por ordem de grandeza."
+      ]
+    }
+  ]
+}

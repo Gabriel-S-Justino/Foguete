@@ -1,0 +1,15 @@
+{
+  "version": "2026.10.1",
+  "parameters": {
+    "g0": { "value": 9.80665, "unit": "m/s^2", "appliesTo": "convenção", "sourceId": "iso-80000-g0", "status": "validado", "confidence": "alta" },
+    "AU": { "value": 149597870700, "unit": "m", "appliesTo": "Sistema Solar", "sourceId": "jpl-astro-par", "status": "validado", "confidence": "alta", "notes": "Definição IAU 2012." },
+    "c": { "value": 299792458, "unit": "m/s", "appliesTo": "física", "sourceId": "iso-80000-g0", "status": "validado", "confidence": "alta", "notes": "Definição do SI." },
+    "solarConstant1AU": { "value": 1361, "unit": "W/m^2", "appliesTo": "Sol a 1 UA", "sourceId": "nssdc-factsheets", "status": "aproximado", "confidence": "média", "notes": "Irradiância solar total média; varia ~0,1% com o ciclo solar." }
+  },
+  "bodies": {
+    "sun": { "name": "Sol", "mu": 1.32712440018e20, "radius": 695700000, "sourceId": "jpl-astro-par", "status": "validado" },
+    "earth": { "name": "Terra", "mu": 3.986004418e14, "radius": 6378137, "J2": 1.08263e-3, "rotationRate": 7.2921159e-5, "siderealYear": 31558149.8, "semiMajorAxisSun": 149598023000, "sourceId": "jpl-astro-par", "status": "validado" },
+    "moon": { "name": "Lua", "mu": 4.9028e12, "radius": 1737400, "semiMajorAxisEarth": 384400000, "soiRadius": 66100000, "sourceId": "nssdc-factsheets", "status": "validado" },
+    "jupiter": { "name": "Júpiter", "mu": 1.26686534e17, "radius": 71492000, "semiMajorAxisSun": 778570000000, "soiRadius": 48200000000, "sourceId": "nssdc-factsheets", "status": "validado", "notes": "Raio equatorial a 1 bar. Raio da SOI é derivado (a·(m/M)^(2/5))." }
+  }
+}

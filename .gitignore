@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.env
+.env.local
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+.vercel/
+frontend/e2e/artifacts/
+*.log

@@ -1,0 +1,148 @@
+{
+  "version": "2026.10.1",
+  "currency": "USD",
+  "notes": "Nomes e preços vêm da coluna 'Foguete' do arquivo orcamento_missoes_espaciais.md. Capacidades por perfil têm fonte e estado próprios; capacidade 'pendente' nunca aprova uma missão. Parâmetros de estágio servem apenas ao modelo de ascensão visual/telemetria (aproximados).",
+  "profiles": {
+    "leo-polar": { "name": "Órbita baixa polar / heliossíncrona (≈600–850 km, i≈97–99°)", "c3KmS2": null },
+    "tli": { "name": "Injeção translunar (TLI, C3 ≈ −2 km²/s²)", "c3KmS2": -2 },
+    "jupiter-ga": { "name": "Partida interplanetária com assistência gravitacional (C3 ≈ 10–31 km²/s²)", "c3KmS2": 31 },
+    "jupiter-direct": { "name": "Transferência direta Terra–Júpiter (C3 ≈ 77–85 km²/s²)", "c3KmS2": 80 }
+  },
+  "vehicles": [
+    {
+      "id": "falcon-9",
+      "name": "Falcon 9",
+      "provider": "SpaceX",
+      "typeFromDocument": "Médio / Reutilizável",
+      "reusability": "Primeiro estágio reutilizável",
+      "cost": { "reportedText": "US$ 67 milhões", "minUSD": 67000000, "maxUSD": 67000000, "usedUSD": 67000000, "classification": "preço comercial reportado", "sourceId": "doc-orcamento", "documentNote": "Preço comercial padrão para satélites civis." },
+      "heightM": 70, "diameterM": 3.7,
+      "stages": [
+        { "name": "1º estágio (9× Merlin 1D)", "dryMassKg": 25600, "propMassKg": 395700, "thrustSLkN": 7607, "thrustVackN": 8227, "ispSL": 282, "ispVac": 311, "recoverable": true },
+        { "name": "2º estágio (Merlin 1D Vac)", "dryMassKg": 4000, "propMassKg": 92670, "thrustSLkN": 0, "thrustVackN": 981, "ispSL": 200, "ispVac": 348 }
+      ],
+      "fairingMassKg": 1700,
+      "capacities": {
+        "leo-polar": { "massKg": 6890, "status": "aproximado", "sourceId": "falcon-9-iridium", "notes": "Limite inferior demonstrado: 10 satélites Iridium NEXT de 689 kg para órbita quase polar (86,4°) a partir de Vandenberg. Não é a capacidade máxima publicada para SSO." },
+        "tli": { "massKg": 4020, "status": "derivado", "sourceId": "spacex-capabilities", "notes": "Derivado: a capacidade publicada para Marte (4 020 kg, descartável) exige C3 maior que a TLI; logo é um limite inferior conservador para TLI. Requer configuração descartável." },
+        "jupiter-ga": { "massKg": null, "status": "pendente", "sourceId": null, "notes": "Sem fonte técnica para C3 ≈ 30 km²/s²." },
+        "jupiter-direct": { "massKg": null, "status": "pendente", "sourceId": null, "notes": "Sem fonte técnica para C3 ≈ 80 km²/s²." }
+      },
+      "limitations": ["Capacidade publicada para LEO (22 800 kg) é para 28,5° e não se aplica a SSO.", "Perfis de escape exigem configuração descartável."],
+      "referenceContext": "Falcon 9 Full Thrust Block 5, dados consultados em 2026-10-24."
+    },
+    {
+      "id": "falcon-heavy",
+      "name": "Falcon Heavy",
+      "provider": "SpaceX",
+      "typeFromDocument": "Pesado / Reutilizável",
+      "reusability": "Propulsores laterais e núcleo potencialmente reutilizáveis",
+      "cost": { "reportedText": "US$ 97 milhões", "minUSD": 97000000, "maxUSD": 97000000, "usedUSD": 97000000, "classification": "preço comercial reportado", "sourceId": "doc-orcamento", "documentNote": "Usado para cargas pesadas ou órbitas distantes." },
+      "heightM": 70, "diameterM": 12.2,
+      "stages": [
+        { "name": "Propulsores laterais (2× núcleo F9)", "parallel": true, "dryMassKg": 51200, "propMassKg": 791400, "thrustSLkN": 15214, "thrustVackN": 16454, "ispSL": 282, "ispVac": 311, "recoverable": true },
+        { "name": "Núcleo central", "dryMassKg": 26000, "propMassKg": 395700, "thrustSLkN": 7607, "thrustVackN": 8227, "ispSL": 282, "ispVac": 311, "recoverable": true },
+        { "name": "2º estágio (Merlin 1D Vac)", "dryMassKg": 4000, "propMassKg": 92670, "thrustSLkN": 0, "thrustVackN": 981, "ispSL": 200, "ispVac": 348 }
+      ],
+      "fairingMassKg": 1700,
+      "capacities": {
+        "leo-polar": { "massKg": 6890, "status": "derivado", "sourceId": "falcon-9-iridium", "notes": "Limite inferior conservador: não pode ser menor que o do Falcon 9, cujo núcleo é a base do veículo." },
+        "tli": { "massKg": 16800, "status": "derivado", "sourceId": "spacex-capabilities", "notes": "Derivado da capacidade publicada para Marte (16 800 kg, descartável), que exige C3 maior que a TLI." },
+        "jupiter-ga": { "massKg": 6065, "status": "aproximado", "sourceId": "falcon-heavy-history", "notes": "Demonstração histórica: Europa Clipper (6 065 kg) em configuração totalmente descartável, trajetória com sobrevoos de Marte e Terra." },
+        "jupiter-direct": { "massKg": null, "status": "pendente", "sourceId": null, "notes": "Sem fonte técnica para transferência direta a Júpiter." }
+      },
+      "limitations": ["Perfis de escape exigem configuração descartável, que historicamente teve preço contratual superior ao valor de referência do documento."],
+      "referenceContext": "Configuração Block 5; dados secundários consultados em 2026-10-24."
+    },
+    {
+      "id": "starship",
+      "name": "Starship",
+      "provider": "SpaceX",
+      "typeFromDocument": "Superpesado / Reutilizável",
+      "reusability": "Totalmente reutilizável (meta de projeto)",
+      "cost": { "reportedText": "US$ 90M - US$ 150M", "minUSD": 90000000, "maxUSD": 150000000, "usedUSD": 150000000, "classification": "estimativa operacional futura", "sourceId": "doc-orcamento", "documentNote": "Estimativa operacional futura após total maturação. O jogo usa o limite superior por conservadorismo." },
+      "heightM": 121, "diameterM": 9,
+      "stages": [
+        { "name": "Super Heavy (33× Raptor)", "dryMassKg": 200000, "propMassKg": 3400000, "thrustSLkN": 74400, "thrustVackN": 80000, "ispSL": 327, "ispVac": 350, "recoverable": true },
+        { "name": "Starship (6× Raptor)", "dryMassKg": 120000, "propMassKg": 1200000, "thrustSLkN": 0, "thrustVackN": 14700, "ispSL": 327, "ispVac": 375, "recoverable": true }
+      ],
+      "fairingMassKg": 0,
+      "capacities": {
+        "leo-polar": { "massKg": null, "status": "pendente", "sourceId": null, "notes": "Veículo em desenvolvimento; sem capacidade operacional documentada para este perfil." },
+        "tli": { "massKg": null, "status": "pendente", "sourceId": null, "notes": "Depende de reabastecimento orbital não demonstrado operacionalmente." },
+        "jupiter-ga": { "massKg": null, "status": "pendente", "sourceId": null, "notes": "Sem dados." },
+        "jupiter-direct": { "massKg": null, "status": "pendente", "sourceId": null, "notes": "Sem dados." }
+      },
+      "limitations": ["Preço e capacidades são metas futuras, não valores operacionais."],
+      "referenceContext": "Configuração em desenvolvimento; parâmetros de estágio aproximados."
+    },
+    {
+      "id": "soyuz",
+      "name": "Soyuz",
+      "provider": "Roscosmos (Rússia)",
+      "typeFromDocument": "Médio / Descartável",
+      "reusability": "Descartável",
+      "cost": { "reportedText": "US$ 80 milhões", "minUSD": 80000000, "maxUSD": 80000000, "usedUSD": 80000000, "classification": "preço reportado", "sourceId": "doc-orcamento", "documentNote": "Foguete clássico russo, muito usado para a ISS." },
+      "heightM": 46.3, "diameterM": 10.3,
+      "stages": [
+        { "name": "4 propulsores laterais (RD-107A)", "parallel": true, "dryMassKg": 15136, "propMassKg": 156640, "thrustSLkN": 3354, "thrustVackN": 4076, "ispSL": 263, "ispVac": 320 },
+        { "name": "Núcleo (RD-108A)", "dryMassKg": 6545, "propMassKg": 90100, "thrustSLkN": 792, "thrustVackN": 990, "ispSL": 257, "ispVac": 320 },
+        { "name": "3º estágio (RD-0124)", "dryMassKg": 2355, "propMassKg": 25300, "thrustSLkN": 0, "thrustVackN": 294, "ispSL": 200, "ispVac": 359 }
+      ],
+      "fairingMassKg": 1200,
+      "capacities": {
+        "leo-polar": { "massKg": 4400, "status": "validado", "sourceId": "soyuz-csg-manual-2012", "notes": "Soyuz-2/Fregat a partir do CSG, SSO 820 km (duas queimas do Fregat)." },
+        "tli": { "massKg": 2400, "status": "aproximado", "sourceId": "soyuz-csg-manual-2012", "notes": "Lido do gráfico de escape para C3 ≈ 0 km²/s²; a TLI (C3 ≈ −2) é ligeiramente mais fácil, portanto valor conservador." },
+        "jupiter-ga": { "massKg": null, "status": "pendente", "sourceId": null, "notes": "O gráfico do manual cobre apenas C3 até 25 km²/s²." },
+        "jupiter-direct": { "massKg": null, "status": "pendente", "sourceId": null, "notes": "Fora do envelope documentado." }
+      },
+      "limitations": ["Capacidades documentadas são para Soyuz-2/Fregat a partir da Guiana Francesa (CSG)."],
+      "referenceContext": "Soyuz-2.1b/Fregat; manual do usuário Arianespace, 2012."
+    },
+    {
+      "id": "new-glenn",
+      "name": "New Glenn",
+      "provider": "Blue Origin",
+      "typeFromDocument": "Pesado / Reutilizável",
+      "reusability": "Primeiro estágio reutilizável",
+      "cost": { "reportedText": "US$ 100M - US$ 120M", "minUSD": 100000000, "maxUSD": 120000000, "usedUSD": 120000000, "classification": "estimativa", "sourceId": "doc-orcamento", "documentNote": "Foguete focado em contratos comerciais e governamentais. O jogo usa o limite superior." },
+      "heightM": 98, "diameterM": 7,
+      "stages": [
+        { "name": "1º estágio (7× BE-4)", "dryMassKg": 160000, "propMassKg": 1100000, "thrustSLkN": 17150, "thrustVackN": 18900, "ispSL": 311, "ispVac": 339, "recoverable": true },
+        { "name": "2º estágio (2× BE-3U)", "dryMassKg": 25000, "propMassKg": 170000, "thrustSLkN": 0, "thrustVackN": 1420, "ispSL": 300, "ispVac": 440 }
+      ],
+      "fairingMassKg": 4000,
+      "capacities": {
+        "leo-polar": { "massKg": null, "status": "pendente", "sourceId": "new-glenn-secondary", "notes": "Somente LEO (45 000 kg) e GTO (13 000 kg) encontrados; não se deduz SSO a partir deles." },
+        "tli": { "massKg": null, "status": "pendente", "sourceId": "new-glenn-secondary", "notes": "Sem fonte para TLI." },
+        "jupiter-ga": { "massKg": null, "status": "pendente", "sourceId": null, "notes": "Sem dados." },
+        "jupiter-direct": { "massKg": null, "status": "pendente", "sourceId": null, "notes": "Sem dados." }
+      },
+      "limitations": ["Capacidades por perfil ainda não validadas."],
+      "referenceContext": "Configuração 7×2; dados secundários consultados em 2026-10-24."
+    },
+    {
+      "id": "sls",
+      "name": "SLS (Space Launch System)",
+      "provider": "NASA",
+      "typeFromDocument": "Superpesado / Descartável",
+      "reusability": "Descartável",
+      "cost": { "reportedText": "US$ 2,2 bilhões", "minUSD": 2200000000, "maxUSD": 2200000000, "usedUSD": 2200000000, "classification": "custo governamental do foguete", "sourceId": "doc-orcamento", "documentNote": "Custo apenas do foguete (sem a nave Orion). Não é preço comercial." },
+      "heightM": 98, "diameterM": 8.4,
+      "stages": [
+        { "name": "2 propulsores de combustível sólido", "parallel": true, "dryMassKg": 196000, "propMassKg": 1256000, "thrustSLkN": 28000, "thrustVackN": 32000, "ispSL": 242, "ispVac": 268 },
+        { "name": "Estágio central (4× RS-25)", "dryMassKg": 85000, "propMassKg": 987000, "thrustSLkN": 7440, "thrustVackN": 9116, "ispSL": 366, "ispVac": 452 },
+        { "name": "ICPS (RL10)", "dryMassKg": 3500, "propMassKg": 27200, "thrustSLkN": 0, "thrustVackN": 110, "ispSL": 300, "ispVac": 462 }
+      ],
+      "fairingMassKg": 4000,
+      "capacities": {
+        "leo-polar": { "massKg": null, "status": "pendente", "sourceId": null, "notes": "Veículo não documentado para este perfil." },
+        "tli": { "massKg": 27000, "status": "validado", "sourceId": "ntrs-sls-2020", "notes": "Block 1: mais de 27 t para TLI." },
+        "jupiter-ga": { "massKg": null, "status": "pendente", "sourceId": "ntrs-sls-2020", "notes": "O relatório menciona missões de alto C3 sem quantificar." },
+        "jupiter-direct": { "massKg": null, "status": "pendente", "sourceId": "ntrs-sls-2020", "notes": "Sem valor quantificado na fonte consultada." }
+      },
+      "limitations": ["Cadência de lançamento muito baixa.", "Custo governamental, não comparável a preço comercial."],
+      "referenceContext": "SLS Block 1."
+    }
+  ]
+}

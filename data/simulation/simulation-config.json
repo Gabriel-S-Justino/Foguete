@@ -1,0 +1,47 @@
+{
+  "version": "2026.10.1",
+  "status": "didático",
+  "notes": "Parâmetros de simulação (probabilidades, limites de vibração, assistência). São parâmetros do jogo, documentados em docs/physics-model.md, e não dados de confiabilidade de veículos reais.",
+  "physics": {
+    "ascentTimeStepS": 0.05,
+    "orbitTimeStepS": 10,
+    "dragCoefficient": 0.3,
+    "parkingOrbitKm": 200,
+    "batteryDepthOfDischarge": 0.6,
+    "solarArrayDegradationPerYear": 0.02,
+    "maxDynamicPressurePa": 40000
+  },
+  "vibration": {
+    "unit": "g RMS (didático)",
+    "classes": [
+      { "max": 0.5, "label": "Vibração sutil" },
+      { "max": 1.5, "label": "Pouca vibração" },
+      { "max": 3.0, "label": "Vibração moderada" },
+      { "max": 5.0, "label": "Vibração considerável" },
+      { "max": 1e9, "label": "Vibração crítica" }
+    ],
+    "phaseBaseG": { "pad": 0.02, "ignition": 2.2, "liftoff": 3.4, "maxQ": 3.0, "staging": 4.2, "upper": 0.8, "coast": 0.01 }
+  },
+  "assistance": {
+    "iniciante": { "label": "Iniciante", "showFormulas": true, "suggestComponents": true, "detailedAlerts": true, "guidedTrajectory": true, "payloadMarginPct": 0, "manualManeuvers": false },
+    "intermediario": { "label": "Intermediário", "showFormulas": false, "suggestComponents": false, "detailedAlerts": true, "guidedTrajectory": false, "payloadMarginPct": 5, "manualManeuvers": false },
+    "avancado": { "label": "Avançado", "showFormulas": false, "suggestComponents": false, "detailedAlerts": false, "guidedTrajectory": false, "payloadMarginPct": 10, "manualManeuvers": true }
+  },
+  "failures": [
+    { "id": "pad-sensor", "category": "Falha de sensores", "subsystem": "sensores", "phase": "pad", "baseProbability": 0.05, "factors": ["tests"], "severity": "aviso", "effect": "sensor-degraded", "responses": ["hold", "proceed"], "recovery": "Reciclagem da contagem (hold) recalibra o sensor.", "scienceImpact": "Nenhum, se corrigido em solo." },
+    { "id": "pad-pressurization", "category": "Falha de pressurização", "subsystem": "pressurizacao", "phase": "pad", "baseProbability": 0.03, "factors": ["tests"], "severity": "bloqueante", "effect": "tank-pressure-low", "responses": ["hold", "scrub"], "recovery": "Hold e repressurização; lançamento bloqueado enquanto a pressão estiver fora do limite.", "scienceImpact": "Nenhum, se corrigido." },
+    { "id": "pad-weather", "category": "Condições ambientais", "subsystem": "solo", "phase": "pad", "baseProbability": 0.12, "factors": [], "severity": "aviso", "effect": "high-winds", "responses": ["hold", "proceed"], "recovery": "Aguardar melhora do vento em altitude.", "scienceImpact": "Prosseguir aumenta a carga estrutural na ascensão." },
+    { "id": "ground-power", "category": "Falha elétrica", "subsystem": "eletrico", "phase": "pad", "baseProbability": 0.02, "factors": ["tests"], "severity": "bloqueante", "effect": "ground-power-loss", "responses": ["hold", "scrub"], "recovery": "Comutação para alimentação redundante durante o hold.", "scienceImpact": "Nenhum." },
+    { "id": "ignition-failure", "category": "Falha de ignição", "subsystem": "propulsao", "phase": "ignition", "baseProbability": 0.01, "factors": ["vehicle"], "severity": "aborto-automatico", "effect": "pad-abort", "responses": ["recycle"], "recovery": "Desligamento automático na plataforma; nova tentativa após inspeção.", "scienceImpact": "Atraso; sem dano à sonda." },
+    { "id": "engine-out", "category": "Desempenho insuficiente de propulsão", "subsystem": "propulsao", "phase": "ascent", "baseProbability": 0.006, "factors": ["vehicle", "weather"], "severity": "grave", "effect": "thrust-loss", "responses": ["continue", "abort"], "recovery": "Veículos com vários motores podem compensar com queima mais longa.", "scienceImpact": "Pode resultar em órbita mais baixa que a planejada." },
+    { "id": "stage-separation", "category": "Falha de separação de estágios", "subsystem": "estrutura", "phase": "staging", "baseProbability": 0.003, "factors": ["vehicle"], "severity": "catastrofica", "effect": "separation-failure", "responses": [], "recovery": "Não recuperável.", "scienceImpact": "Perda da missão." },
+    { "id": "vibration-damage", "category": "Anomalia de vibração", "subsystem": "estrutura", "phase": "ascent", "baseProbability": 0.02, "factors": ["tests", "weather", "vibration"], "severity": "grave", "effect": "component-damage", "responses": ["continue"], "recovery": "Diagnóstico em órbita; o componente pode operar degradado.", "scienceImpact": "Um instrumento pode operar com qualidade reduzida." },
+    { "id": "probe-electrical", "category": "Degradação de energia", "subsystem": "eletrico", "phase": "cruise", "baseProbability": 0.03, "factors": ["tests", "radiation"], "severity": "grave", "effect": "power-loss-20", "responses": ["load-shed", "continue"], "recovery": "Desligar cargas não essenciais (load shedding).", "scienceImpact": "Menos energia para instrumentos." },
+    { "id": "probe-comm", "category": "Perda de capacidade de transmissão", "subsystem": "comunicacao", "phase": "cruise", "baseProbability": 0.02, "factors": ["tests", "radiation"], "severity": "grave", "effect": "comm-rate-50", "responses": ["switch-redundant", "continue"], "recovery": "Comutar para transmissor redundante, se instalado.", "scienceImpact": "Menos dados retornam à Terra." },
+    { "id": "wheel-failure", "category": "Falha de atitude", "subsystem": "atitude", "phase": "science", "baseProbability": 0.02, "factors": ["tests"], "severity": "grave", "effect": "pointing-degraded", "responses": ["thruster-control", "continue"], "recovery": "Controle por propulsores, se instalados.", "scienceImpact": "Instrumentos de apontamento fino perdem qualidade." },
+    { "id": "radiation-upset", "category": "Falha de software", "subsystem": "computacao", "phase": "science", "baseProbability": 0.02, "factors": ["radiation"], "severity": "aviso", "effect": "safe-mode", "responses": ["reboot"], "recovery": "Reinicialização do computador; perda de um ciclo de observação.", "scienceImpact": "Perda de um checkpoint se não houver margem de tempo." },
+    { "id": "solar-event", "category": "Atividade solar", "subsystem": "ambiente", "phase": "cruise", "baseProbability": 0.08, "factors": ["solar"], "severity": "aviso", "effect": "solar-storm", "responses": ["protect-instruments", "continue"], "recovery": "Colocar instrumentos em modo de proteção durante a tempestade.", "scienceImpact": "Interferência temporária em sensores e comunicação; não destrói sistemas por si só." },
+    { "id": "debris-conjunction", "category": "Detritos espaciais (modelo educacional)", "subsystem": "ambiente", "phase": "science", "baseProbability": 0.15, "factors": ["leo"], "severity": "aviso", "effect": "conjunction-alert", "responses": ["avoidance-maneuver", "accept-risk"], "recovery": "Manobra de desvio de ~0,5 m/s.", "scienceImpact": "Encontro probabilístico simplificado; não é previsão real." },
+    { "id": "overheating", "category": "Superaquecimento", "subsystem": "termico", "phase": "science", "baseProbability": 0.0, "factors": ["thermal"], "severity": "grave", "effect": "overheat", "responses": ["reduce-duty"], "recovery": "Reduzir ciclo de trabalho dos instrumentos.", "scienceImpact": "Menos observações." }
+  ]
+}
