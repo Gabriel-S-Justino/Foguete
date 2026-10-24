@@ -39,6 +39,10 @@ export function StartScreen() {
       {existing && existing.stage !== 'identification' && (
         <button className="btn" style={{ marginTop: 10 }} onClick={() => goTo(existing.stage)}>Continuar campanha de {existing.playerName}</button>
       )}
+      <p className="small muted" style={{ marginTop: 14, opacity: 0.7, fontSize: 11 }}>
+        Imagens planetárias: NASA (Blue Marble, Black Marble, SVS CGI Moon Kit) e Solar System Scope (
+        <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>CC BY 4.0</a>).
+      </p>
     </div>
   );
 }

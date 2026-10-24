@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:e2e": "node e2e/run-e2e.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e:cameras": "node e2e/launch-cameras.mjs"
   },
   "dependencies": {
     "@babylonjs/core": "^7.54.3",

@@ -4,7 +4,7 @@ import { useScene } from '../../components/useScene';
 import { fmtKg } from '../../components/ui';
 import { findVehicle, getMission } from '../../engine/catalog';
 import { validateMission } from '../../engine/rules/validation';
-import { createLaunchPadScene, type PadCamera } from '../../engine/scenes/launchPadScene';
+import { createLaunchPadScene, PAD_CAMERAS, type PadCamera } from '../../engine/scenes/launchPadScene';
 import { LaunchController, type LaunchSnapshot } from '../../engine/simulation/launchController';
 import { useCampaign } from '../../store/campaignStore';
 
@@ -12,6 +12,15 @@ const FINAL = new Set(['orbit', 'aborted', 'failed', 'scrubbed']);
 const STATE_LABEL: Record<LaunchSnapshot['state'], string> = {
   checks: 'VERIFICAÇÕES', ready: 'PRONTO — AGUARDANDO GO', hold: 'HOLD', countdown: 'CONTAGEM FINAL', ignition: 'IGNIÇÃO',
   flight: 'EM VOO', orbit: 'ÓRBITA ATINGIDA', aborted: 'ABORTADO', failed: 'FALHA DE LANÇAMENTO', scrubbed: 'CANCELADO (SCRUB)',
+};
+
+const CAMERA_LABEL: Record<PadCamera, string> = { overview: 'Geral', tracking: 'Rastreio', cinematic: 'Cinemática', externalDown: 'Externa ↓', externalUp: 'Externa ↑' };
+const CAMERA_HINT: Record<PadCamera, string> = {
+  overview: 'Câmera de rastreio fixa no solo, com zoom óptico que acompanha a distância',
+  tracking: 'Acompanha o veículo; arraste para girar em volta',
+  cinematic: 'Gira lentamente em volta do veículo',
+  externalDown: 'Câmera presa ao último estágio, olhando para baixo (motores, separação, Terra)',
+  externalUp: 'Câmera presa ao último estágio, olhando para cima (corpo e coifa)',
 };
 
 export function LaunchScreen() {
@@ -39,11 +48,12 @@ export function LaunchScreen() {
   useEffect(() => ctrl.subscribe(setSnap), [ctrl]);
   useEffect(() => () => ctrl.dispose(), [ctrl]);
   useEffect(() => { pad?.setCamera(camera); }, [pad, camera]);
-  // Na decolagem a câmera passa a acompanhar o veículo (o jogador pode trocar a qualquer momento)
-  const autoTracked = useRef(false);
+  // Exposto para os testes ponta a ponta (estado das câmeras e do zoom)
   useEffect(() => {
-    if (snap.state === 'flight' && !autoTracked.current) { autoTracked.current = true; setCamera((c) => (c === 'overview' ? 'tracking' : c)); }
-  }, [snap.state]);
+    if (!pad || !navigator.webdriver) return;
+    (globalThis as { __launchPad?: unknown }).__launchPad = pad;
+    return () => { delete (globalThis as { __launchPad?: unknown }).__launchPad; };
+  }, [pad]);
   useEffect(() => { termRef.current?.scrollTo({ top: termRef.current.scrollHeight }); }, [snap.events.length]);
 
   const a = ctrl.actions;
@@ -118,13 +128,15 @@ export function LaunchScreen() {
           <button className="btn amber" disabled={!a.hold} onClick={() => ctrl.hold()} data-testid="hold">Hold</button>
           <button className="btn primary" disabled={!a.confirmLaunch} onClick={() => ctrl.confirmLaunch()} data-testid="confirm-launch" title={a.blocking ? 'Condição bloqueante ativa' : ''}>Confirmar lançamento</button>
           <button className="btn danger" disabled={!a.abort} onClick={() => ctrl.abort()} data-testid="abort">Abortar</button>
-          {snap.state === 'flight' && <button className="btn danger small" onClick={() => ctrl.abort('flight-termination')}>Terminação de voo</button>}
+          {snap.state === 'flight' && <button className="btn danger small" onClick={() => ctrl.abort('flight-termination')} data-testid="terminate">Terminação de voo</button>}
           <button className="btn" disabled={!a.scrub} onClick={() => ctrl.scrub()} data-testid="scrub">Scrub</button>
           <button className="btn" disabled={!a.pause} onClick={() => { ctrl.togglePause(); setPaused((p) => !p); }}>{paused ? 'Retomar' : 'Pausar'}</button>
           <span className="small muted" style={{ marginLeft: 8 }}>Tempo:</span>
           {[1, 5, 10, 20].map((w) => <button key={w} className={`btn small ${snap.timeWarp === w ? 'amber' : ''}`} onClick={() => ctrl.setTimeWarp(w)} data-testid={`warp-${w}`}>{w}×</button>)}
           <span className="small muted" style={{ marginLeft: 8 }}>Câmera:</span>
-          {(['overview', 'cinematic', 'tracking', 'onboard'] as PadCamera[]).map((c) => <button key={c} className={`btn small ${camera === c ? 'amber' : ''}`} onClick={() => setCamera(c)}>{{ overview: 'Geral', cinematic: 'Cinemática', tracking: 'Rastreio', onboard: 'A bordo' }[c]}</button>)}
+          {PAD_CAMERAS.map((c) => <button key={c} className={`btn small ${camera === c ? 'amber' : ''}`} onClick={() => setCamera(c)} data-testid={`camera-${c}`} title={CAMERA_HINT[c]}>{CAMERA_LABEL[c]}</button>)}
+          <button className="btn small" onClick={() => pad?.zoom(1.4)} data-testid="zoom-in" title="Aproximar (também pela roda do mouse)" aria-label="Aproximar">+</button>
+          <button className="btn small" onClick={() => pad?.zoom(1 / 1.4)} data-testid="zoom-out" title="Afastar (também pela roda do mouse)" aria-label="Afastar">−</button>
           <span className="spacer" />
           {snap.state === 'scrubbed' && <button className="btn amber" onClick={newWindow} data-testid="new-window">Nova janela</button>}
           {final && snap.state !== 'scrubbed' && <button className="btn primary" onClick={finish} data-testid="launch-continue">{snap.state === 'orbit' ? 'Separação: operar a sonda →' : 'Ver relatório →'}</button>}

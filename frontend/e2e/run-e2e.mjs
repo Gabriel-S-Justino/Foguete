@@ -21,7 +21,7 @@ let server = null;
 let base = process.env.E2E_URL;
 if (!base) {
   base = 'http://127.0.0.1:4173';
-  server = spawn('npx', ['vite', 'preview', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { cwd: join(here, '..'), stdio: 'pipe' });
+  server = spawn('npx', ['vite', 'preview', '--host', '127.0.0.1', '--port', '4173', '--strictPort'], { cwd: join(here, '..'), stdio: 'pipe', detached: true });
   await new Promise((resolve, reject) => {
     const t = setTimeout(() => reject(new Error('vite preview não iniciou')), 30000);
     server.stdout.on('data', (d) => { if (String(d).includes('4173')) { clearTimeout(t); resolve(); } });
@@ -150,5 +150,6 @@ try {
   console.log('E2E concluído sem erros.');
 } finally {
   await browser.close();
-  server?.kill();
+  // encerra o grupo inteiro (npx + vite), senão a porta fica ocupada
+  if (server) { try { process.kill(-server.pid); } catch { server.kill(); } }
 }
