@@ -68,6 +68,7 @@ Os vetores `data/test-vectors/validation-vectors.json` são gerados pelo motor T
 
 1. Crie um projeto no Neon e copie a connection string (com `sslmode=require`). Para funções serverless prefira a URL *pooled* (host com `-pooler`).
 2. Aplique as migrações a partir da sua máquina: `DATABASE_URL=<url do Neon> alembic upgrade head` (em `backend/`).
+   Alternativa sem instalar nada: cole `docs/sql/0001_esquema_inicial.sql` no **SQL Editor** do Neon e execute (gerado por `alembic upgrade head --sql`; também grava a versão `0001` em `alembic_version`, então migrações futuras continuam pelo Alembic).
 3. Importe o repositório na Vercel com *Root Directory* `./` e *Application Preset* **Other** (não use o preset “Services” nem “Import single project” de `backend`, `frontend` ou `app`: o projeto é um só, e o `vercel.json` — com `"framework": null` — controla build e rotas). O `vercel.json` já define:
    - instalação e build do frontend (`frontend/dist` como saída);
    - a função Python `api/index.py` (FastAPI), incluindo `backend/app` e `data/`;
