@@ -149,6 +149,8 @@ export interface Campaign {
   propellantRemainingKg: number | null;
   checkpointResults: CheckpointResult[];
   activeEffects: string[];
+  insertionState: 'captured' | 'high-orbit' | 'flyby' | 'none';
+  finalCostUSD: number | null;
   report: MissionReport | null;
   seed: number;
   attempt: number;

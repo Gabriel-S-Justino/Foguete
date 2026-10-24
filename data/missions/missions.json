@@ -83,6 +83,11 @@
           "default": 0.001
         },
         "inclinationMode": "sso-or-manual",
+        "inclinationDeg": {
+          "min": 0,
+          "max": 110,
+          "default": 98.2
+        },
         "localTimeOfNode": {
           "options": [
             "06:00",
