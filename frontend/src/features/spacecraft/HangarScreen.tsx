@@ -3,6 +3,7 @@ import { useScene } from '../../components/useScene';
 import { fmtKg, fmtW, SourceRef, Stat, StatusChip } from '../../components/ui';
 import { getComponent, getMission, missions, simulationConfig } from '../../engine/catalog';
 import { allComponents, analyzeSpacecraft, canInstall, componentRelevance } from '../../engine/entities/spacecraft';
+import { NASA_MODELS, REFERENCE_SPACECRAFT } from '../../engine/entities/nasaModels';
 import { formatUSD } from '../../engine/rules/budget';
 import { REFERENCE_ARCHITECTURES } from '../../engine/rules/presets';
 import { validateMission } from '../../engine/rules/validation';
@@ -35,6 +36,9 @@ export function HangarScreen() {
   const [sort, setSort] = useState<SortKey>('relevancia');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [arms, setArms] = useState<string[]>([]);
+  const [refView, setRefView] = useState(false);
+  const reference = NASA_MODELS[REFERENCE_SPACECRAFT[campaign.missionId!]];
+  const view = (v: 'overview' | 'inspect' | 'reference') => { setRefView(v === 'reference'); ctrl?.setView(v); };
 
   const summary = useMemo(() => analyzeSpacecraft(campaign.spacecraft, mission, campaign.plan), [campaign.spacecraft, mission, campaign.plan]);
   const validation = useMemo(() => (campaign.plan
@@ -43,6 +47,11 @@ export function HangarScreen() {
 
   // Sincroniza o modelo 3D com a configuração lógica (fonte única: campaign.spacecraft)
   useEffect(() => { ctrl?.sync(campaign.spacecraft.installed); }, [ctrl, campaign.spacecraft.installed]);
+  // Nave real equivalente à missão, exposta no hangar (modelo do NASA 3D Resources)
+  useEffect(() => {
+    ctrl?.showReference(campaign.missionId!);
+    if (ctrl && navigator.webdriver) (globalThis as Record<string, unknown>).__probeHangar = ctrl;
+  }, [ctrl, campaign.missionId]);
   useEffect(() => { ctrl?.highlight(selectedId); }, [ctrl, selectedId]);
   useEffect(() => { ctrl?.onPick((componentId) => setSelectedId(componentId)); }, [ctrl]);
   useEffect(() => {
@@ -118,11 +127,18 @@ export function HangarScreen() {
         <div className="panel-title">
           <h2>{selected ? 'Componente' : 'Sonda'}</h2>
           <div className="row">
-            <button className="btn small" onClick={() => ctrl?.setView('overview')}>Visão geral</button>
-            <button className="btn small" onClick={() => ctrl?.setView('inspect')}>Inspecionar</button>
+            <button className="btn small" onClick={() => view('overview')}>Visão geral</button>
+            <button className="btn small" onClick={() => view('inspect')}>Inspecionar</button>
+            <button className={`btn small ${refView ? 'amber' : ''}`} onClick={() => view('reference')} data-testid="view-reference" title="Nave real da NASA equivalente a esta missão, exposta no hangar">Nave real</button>
           </div>
         </div>
         <div className="panel-body" style={{ flex: 1 }}>
+          {refView && (
+            <div className="small" style={{ marginBottom: 10, lineHeight: 1.5 }} data-testid="reference-info">
+              <h3>Referência real: {reference.title}</h3>
+              <p className="muted">{reference.note} Modelo 3D do <a href={reference.source} target="_blank" rel="noreferrer">NASA 3D Resources</a>, exposto em escala de exposição (não é a sua sonda).</p>
+            </div>
+          )}
           {selected ? (
             <>
               <h3>{selected.name}</h3>

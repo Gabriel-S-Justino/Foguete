@@ -2,7 +2,7 @@
  * Modelos procedurais dos veículos de lançamento, com proporções aproximadas de cada foguete
  * e grupos separáveis por estágio (para a separação visual sincronizada com a simulação).
  */
-import { Mesh, MeshBuilder, type Scene, TransformNode, Vector3 } from '@babylonjs/core';
+import { Matrix, Mesh, MeshBuilder, type Scene, TransformNode, Vector3 } from '@babylonjs/core';
 import type { LaunchVehicle } from '../../types/catalog';
 import type { PlumeKind } from '../effects/exhaust';
 import type { MaterialKey, MaterialLibrary } from './materials';
@@ -44,6 +44,8 @@ export interface RocketModel {
   fairing: TransformNode | null;
   /** Metades da coifa, articuladas na base (abrem para fora na separação). */
   fairingHalves: TransformNode[];
+  /** Envoltória da coifa no referencial do foguete (base, comprimento e diâmetro externo, m). */
+  fairingEnvelope: { baseY: number; len: number; dia: number } | null;
   enginePoints: EnginePoint[];
   /** Suportes das câmeras externas, presos ao último estágio (permanecem até a órbita). */
   cameraMounts: { down: TransformNode; up: TransformNode };
@@ -119,8 +121,10 @@ export function buildRocket(scene: Scene, mats: MaterialLibrary, vehicle: Launch
   payload.position.y = y + 0.5;
   let fairing: TransformNode | null = null;
   const fairingHalves: TransformNode[] = [];
+  let fairingEnvelope: RocketModel['fairingEnvelope'] = null;
   if (spec.fairing) {
     const f = spec.fairing;
+    fairingEnvelope = { baseY: y, len: f.len, dia: f.dia };
     fairing = new TransformNode('fairing', scene);
     fairing.parent = root;
     const cylLen = f.len * 0.45;
@@ -214,9 +218,43 @@ export function buildRocket(scene: Scene, mats: MaterialLibrary, vehicle: Launch
   };
 
   return {
-    root, groups, payload, fairing, fairingHalves, enginePoints, cameraMounts, height: y, diameter: Math.max(...spec.segments.map((s) => s.dia)) + (spec.boosters ? spec.boosters.offset * 2 : 0),
+    root, groups, payload, fairing, fairingHalves, fairingEnvelope, enginePoints, cameraMounts, height: y, diameter: Math.max(...spec.segments.map((s) => s.dia)) + (spec.boosters ? spec.boosters.offset * 2 : 0),
     dispose() { root.dispose(false, false); },
   };
+}
+
+/**
+ * Garante que a carga útil (sonda recolhida) caiba dentro da coifa: mede as malhas visíveis no referencial do
+ * foguete e reduz a escala da sonda, se preciso, até sobrar a folga pedida entre ela e a parede interna (parede
+ * de ~8 cm; trecho cilíndrico em 45% do comprimento, depois ogiva). Devolve a escala aplicada.
+ */
+export function fitPayload(rocket: RocketModel, payload: TransformNode, margin = 0.2): number {
+  const env = rocket.fairingEnvelope;
+  if (!env) return payload.scaling.x;
+  const cyl = env.len * 0.45;
+  const rOut = env.dia / 2;
+  const inner = (h: number) => (h < cyl ? rOut : rOut + (0.3 - rOut) * ((h - cyl) / (env.len - cyl))) - 0.08 - margin;
+  const excess = () => {
+    rocket.root.computeWorldMatrix(true);
+    const inv = Matrix.Invert(rocket.root.getWorldMatrix());
+    let worst = -Infinity;
+    for (const m of payload.getChildMeshes()) {
+      if (!m.isVisible || !m.isEnabled()) continue;
+      m.computeWorldMatrix(true);
+      for (const c of m.getBoundingInfo().boundingBox.vectorsWorld) {
+        const l = Vector3.TransformCoordinates(c, inv);
+        const h = l.y - env.baseY;
+        worst = Math.max(worst, Math.hypot(l.x, l.z) - inner(h), h - (env.len - 0.4));
+      }
+    }
+    return worst;
+  };
+  let s = payload.scaling.x;
+  for (let i = 0; i < 30 && excess() > 0 && s > 0.4; i++) {
+    s *= 0.97;
+    payload.scaling.setAll(s);
+  }
+  return s;
 }
 
 /** Cria as tubeiras e devolve a altura da maior (saída das tubeiras abaixo do nó). */

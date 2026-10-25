@@ -1,6 +1,6 @@
 # Estado da implementação
 
-Última atualização: 2026-10-25 (rodada 2: trajetória real do lançamento, sonda funcional, acompanhamento até o destino, texturas) · branch `claude/launch-trajectory-probe`
+Última atualização: 2026-10-25 (rodada 3: verificação dos bugs relatados, encaixe da sonda na coifa e modelos 3D da NASA) · branch `claude/nasa-3d-models`
 
 ## Funcionalidades implementadas
 
@@ -57,6 +57,15 @@
 - [x] **Sistema solar sem brilho estourado.** Brilho de Terra, Lua, Júpiter e atmosfera reduzidos, bloom só acima de 97% de luminância, exposição revista e iluminação vinda do Sol no cruzeiro.
 - [x] **Cena que não terminava de carregar (Falcon Heavy/Júpiter) corrigida.** Materiais clonados duplicavam texturas procedurais vazias, que nunca ficavam prontas; agora os clones compartilham as texturas, e a troca de cena tem um limite de 20 s.
 
+### Rodada 3 (2026-10-25)
+- [x] **Bugs relatados após o merge da rodada 2 (decolagem para a lateral e painéis fora da coifa).** A Vercel publicou o commit da rodada 2 às 04:57 UTC (status do GitHub). O site não é acessível deste ambiente. Na versão atual, a posição do foguete foi registrada quadro a quadro: x = 0,0 m até 340 m de altitude, e depois a inclinação começa. Os painéis aparecem dentro da coifa nas câmeras da plataforma. Não reproduzido; pedido print ao Kali.
+- [x] **Encaixe da sonda na coifa de qualquer lançador.** O teste anterior supunha a coifa do Falcon 9 e escala 0,9; o novo teste monta o foguete real com a sonda no suporte de carga e mede contra as malhas da coifa. Ele encontrou propulsores e o para-sol do imageador encostando na parede (até 0,6 m na Soyuz). Agora `fitPayload` reduz a escala da sonda só o necessário para deixar 20 cm de folga. Testado: 3 missões × 5 lançadores com coifa.
+- [x] **Tela inicial sem 3D corrigida.** O efeito da tela pedia a cena antes de o App criar o Engine e o pedido era descartado; agora fica na fila até o canvas existir.
+- [x] **Modelos 3D da NASA (NASA 3D Resources).** Landsat 8, Lunar Reconnaissance Orbiter e Juno, otimizados (sem Draco, simplificados e quantizados, 0,9 a 1,5 MB cada), carregados sob demanda:
+  - Hangar da sonda: botão **Nave real** mostra a nave real equivalente à missão num expositor, com texto e link da fonte.
+  - Tela inicial: a Juno da NASA substitui a sonda decorativa procedural.
+  - A sonda montável e os lançadores continuam procedurais (montagem, animações e separação de estágios). Detalhes, licença e modelos não usados em `docs/model-sources.md`.
+
 ### Backend (FastAPI)
 - [x] Rotas versionadas em `/api/v1`: health, sessões, campanhas com revisão, validação, eventos, finalização e relatórios.
 - [x] Sessão por token. Só o hash SHA-256 fica no banco, e cada sessão vê apenas as próprias campanhas.
@@ -69,6 +78,23 @@
 - [x] `vercel.json` (frontend estático e função Python `api/index.py`), `requirements.txt` na raiz para a função.
 
 ## Testes executados
+
+### 2026-10-25, rodada 3 (contêiner de desenvolvimento)
+
+| Suíte | Comando | Resultado |
+|---|---|---|
+| Typecheck | `npm run typecheck` | sem erros |
+| Lint | `npm run lint` | sem erros |
+| Unitários | `npm test` (Vitest) | **80/80** (novo: sonda recolhida dentro da coifa real em 15 combinações missão × lançador) |
+| Build de produção | `npm run build` | ok; pacote principal 473 KB (152 KB gzip), carregador glTF em pacote separado de 220 KB (50 KB gzip) |
+| Backend, SQLite | `pytest` | **39/39** (backend não mudou) |
+| E2E LEO, sem backend | `npm run test:e2e` | ok, **sucesso** (ciência 100) |
+| E2E Júpiter, sem backend | `E2E_MISSION=jupiter-system npm run test:e2e` | ok, Falcon Heavy, painéis abertos até 100%, **sucesso** (ciência 88) |
+| E2E de câmeras, Falcon 9 | `npm run test:e2e:cameras` | ok, decolagem vertical, inclinação crescente, fumaça, órbita |
+| Modelos da NASA | script Playwright temporário | os três modelos carregam no hangar (Landsat 8, LRO, Juno), sem erros no console; capturas conferidas; tela inicial mostra a Terra e a Juno |
+| Decolagem quadro a quadro | script Playwright temporário | x = 0,0 m até 340 m de altitude; inclinação começa depois |
+
+O E2E da missão lunar não foi repetido nesta rodada (a missão lunar usa o Falcon 9, coberto pelo E2E LEO e pelo de câmeras). Impacto no desempenho: os modelos só existem no hangar e na tela inicial (18 a 30 mil triângulos cada); no SwiftShader o hangar rodou a 1–2 FPS com o modelo exposto (sem medição comparável de antes). Em GPU real não foi medido.
 
 ### 2026-10-25, rodada 2 (contêiner de desenvolvimento)
 

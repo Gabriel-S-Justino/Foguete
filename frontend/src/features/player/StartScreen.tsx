@@ -42,6 +42,7 @@ export function StartScreen() {
       <p className="small muted" style={{ marginTop: 14, opacity: 0.7, fontSize: 11 }}>
         Imagens planetárias: NASA (Blue Marble, Black Marble, SVS CGI Moon Kit) e Solar System Scope (
         <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>CC BY 4.0</a>).
+        {' '}Modelo da sonda Juno: <a href="https://github.com/nasa/NASA-3D-Resources" target="_blank" rel="noreferrer" style={{ color: 'inherit' }}>NASA 3D Resources</a>.
       </p>
     </div>
   );
