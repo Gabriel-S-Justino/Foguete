@@ -92,6 +92,22 @@ Cada item abaixo teve a causa encontrada antes da correção. Detalhes da físic
 
 ## Testes executados
 
+### 2026-10-25, rodada 4 (contêiner de desenvolvimento)
+
+| Suíte | Comando | Resultado |
+|---|---|---|
+| Typecheck | `npm run typecheck` | sem erros |
+| Lint | `npm run lint` | sem erros |
+| Unitários | `npm test` (Vitest) | **107/107**. Novos: 20 de trajetória (Kepler/Lambert, efemérides contra a NASA, atitude, volta completa, partida só depois da volta e do comando, Lua, Júpiter direta e ΔV-EGA, continuidade nos remendos) e 7 de separação (estado inicial exato, sem salto por quadro, gravidade, arrasto, órbita estável, queda suborbital) |
+| Build de produção | `npm run build` | ok |
+| Backend, SQLite | `pytest` | **39/39** (backend não mudou) |
+| E2E Lua, sem backend | `E2E_MISSION=lunar-he3 npm run test:e2e` | ok: sem malha marcadora, vista da sonda a 22 m com o estágio acoplado, volta completa em 88 min (360°), partida bloqueada antes, TLI, separação, painéis, escalas, TCM e LOI no instante calculado (LOI com atitude retrógrada, 50 km sobre a Lua), **sucesso** (ciência 95) |
+| E2E Júpiter, sem backend | `E2E_MISSION=jupiter-system npm run test:e2e` | ok: Falcon Heavy, volta completa, partida, DSM (347 dias), TCM (809 dias) e JOI (2.048 dias, 4.200 km, retrógrada), **sucesso** (ciência 88) |
+| E2E LEO, sem backend | `npm run test:e2e` | ok: volta completa antes do ajuste de órbita, órbita de ~700 km, **sucesso** (ciência 100) |
+| E2E de câmeras, Falcon 9 | `npm run test:e2e:cameras` | ok: Terra no grupo de renderização 1; peça do primeiro estágio a 12 m do veículo na separação, afastando-se de forma contínua (13 → 17 m) a 3,1 km/s |
+
+Os E2E rodam no SwiftShader (1–5 FPS). O E2E de câmeras com Falcon Heavy e os E2E com API + PostgreSQL não foram repetidos (o backend não mudou). Não houve teste em GPU real nem no site publicado.
+
 ### 2026-10-25, rodada 3 (contêiner de desenvolvimento)
 
 | Suíte | Comando | Resultado |
@@ -169,6 +185,7 @@ O E2E roda no Chromium com renderização por software (SwiftShader), a cerca de
 - O bundle do Babylon.js tem cerca de 5 MB (1,1 MB gzip), porque é importado pelo pacote raiz `@babylonjs/core`. Imports profundos reduziriam o tamanho.
 - Sem testes de componentes React isolados; a interface é coberta pelo E2E.
 - A Lua segue uma órbita circular desenhada para a janela (não a efeméride real); as TCMs são orçamento de Δv (a trajetória desenhada já é a corrigida); sem precessão J2 na órbita de estacionamento.
+- O Δv calculado pela trajetória aparece ao lado de cada manobra, mas o jogo cobra o valor do orçamento do planejamento (ex.: JOI 654 m/s calculado × 544 m/s orçado na data padrão, porque o orçamento usa Hohmann).
 - A DSM calculada no ΔV-EGA (~0,9 km/s na data padrão) é maior que o orçamento de 750 m/s do perfil; o jogo continua cobrando o valor do orçamento.
 - As texturas da plataforma, do hangar e da sonda são procedurais (geradas no navegador), inspiradas em fotos de referência; não são fotografias.
 - A pluma e a fumaça são efeitos visuais calibrados a olho a partir de fotos e vídeos de lançamentos, não uma simulação de escoamento.

@@ -139,12 +139,15 @@ try {
       const i0 = await orbit();
       if (i0.markerMeshes !== 0) throw new Error(`há ${i0.markerMeshes} malhas marcadoras na cena (a esfera da sonda foi removida)`);
       if (i0.segmentId !== 'parking') throw new Error(`a missão começou fora da órbita de estacionamento (${i0.segmentId})`);
-      if (Math.abs(i0.distanceM - i0.altitudeM - 6371000) > 1000) throw new Error(`distância ao centro e altitude incoerentes: ${i0.distanceM} / ${i0.altitudeM}`);
+      // Altitude orbital sobre o raio equatorial da Terra (6.378,137 km, JPL)
+      if (Math.abs(i0.distanceM - i0.altitudeM - 6378137) > 1) throw new Error(`distância ao centro e altitude incoerentes: ${i0.distanceM} / ${i0.altitudeM}`);
       const hasDeparture = await page.getByTestId('command-departure').isVisible().catch(() => false);
       if (hasDeparture && await page.getByTestId('command-departure').isEnabled()) throw new Error('partida liberada antes da primeira volta');
       if (hasDeparture && !i0.stackAttached) throw new Error('a sonda deveria estar acoplada ao estágio superior na órbita de estacionamento');
       await page.getByTestId('view-probe').click();
-      await page.waitForTimeout(2500);
+      // A transição dura 1,4 s, mas no SwiftShader (1–3 FPS) só termina alguns quadros depois
+      await page.waitForFunction(() => globalThis.__orbitView.info().cameraDistanceM < 200, null, { timeout: 20000 }).catch(() => {});
+      await page.waitForTimeout(1000);
       const ip = await orbit();
       if (ip.cameraDistanceM > 200) throw new Error(`vista da sonda longe demais (${ip.cameraDistanceM.toFixed(0)} m)`);
       if (!ip.probeModelVisible) throw new Error('modelo 3D da sonda não está visível na vista da sonda');
@@ -189,6 +192,8 @@ try {
       }
     });
     await step('vistas e escalas', async () => {
+      // Relógio pausado: a troca de escala não pode mudar nada da simulação
+      await page.getByTestId('clock-run').click();
       await page.getByTestId('view-system').click();
       await page.waitForTimeout(2500);
       const sys = await orbit();
@@ -199,7 +204,7 @@ try {
       const did = await orbit();
       const note = await page.getByTestId('scale-note').textContent();
       if (!/didática/.test(note ?? '') || did.enlarged.length < 8) throw new Error(`visualização didática sem aviso ou sem corpos ampliados: ${note}`);
-      if (Math.abs(did.distanceM - sys.distanceM) > Math.max(1e3, sys.speedMS * (did.t - sys.t) * 1.5)) throw new Error('o modo de escala alterou a posição simulada');
+      if (did.t !== sys.t || did.distanceM !== sys.distanceM || did.segmentId !== sys.segmentId) throw new Error(`o modo de escala alterou a simulação (t ${sys.t} → ${did.t}, distância ${sys.distanceM} → ${did.distanceM})`);
       const labels = await page.evaluate(() => [...document.querySelectorAll('.orbit-label')].filter((e) => e.style.display !== 'none').map((e) => e.textContent));
       if (labels.length < 8) throw new Error(`poucos rótulos visíveis na vista do sistema: ${labels.join(', ')}`);
       console.log(`  didática: ${did.enlarged.map((e) => `${e.name} ×${Math.round(e.factor)}`).join(', ')}`);
@@ -209,11 +214,11 @@ try {
       await page.waitForTimeout(2500);
       await shot('09g-destino');
       await page.getByTestId('view-trajectory').click();
+      await page.getByTestId('clock-run').click();
     });
     await step('manobras no instante calculado', async () => {
       let n = 0;
       for (let k = 0; k < 6; k++) {
-        if (await page.getByTestId('to-science').isEnabled().catch(() => false)) break;
         const remaining = await page.locator('[data-testid^="mnv-"]').count();
         if (!remaining) break;
         // O relógio para no instante da manobra e o botão é liberado

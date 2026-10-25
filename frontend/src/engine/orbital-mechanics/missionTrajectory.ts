@@ -539,8 +539,8 @@ function arrivalSegments(
 ): Segment[] {
   const mu = MU[body];
   const tPeri = tIn + hyp.dtEntryToPeri;
-  const name = body === 'moon' ? 'Lua' : 'Júpiter';
-  const segs: Segment[] = [{ id: 'approach', label: `Aproximação de ${name}`, center: body, t0: tIn, t1: tPeri, s0: hyp.entry, phase: 'approach', attitude: 'sun' }];
+  const deName = body === 'moon' ? 'da Lua' : 'de Júpiter';
+  const segs: Segment[] = [{ id: 'approach', label: `Aproximação ${deName}`, center: body, t0: tIn, t1: tPeri, s0: hyp.entry, phase: 'approach', attitude: 'sun' }];
   const vp = norm(hyp.peri.v), rp = hyp.rp;
   const vEsc = Math.sqrt((2 * mu) / rp);
   // Órbita planejada: circular (Lua) ou elipse com o período escolhido (Júpiter)
@@ -552,7 +552,7 @@ function arrivalSegments(
   milestones.push({ id: maneuverId, t: tPeri, label, kind: 'burn', maneuverId: executable ? maneuverId : undefined, dvMS: vp - vPlan, center: body });
   const finalState: State = { r: hyp.peri.r, v: scale(dir, vAfter) };
   segs.push({
-    id: outcome === 'flyby' ? 'flyby' : 'final', label: outcome === 'flyby' ? `Sobrevoo de ${name} (captura falhou)` : outcome === 'high-orbit' ? `Órbita de ${name} mais alta que a planejada` : `Órbita de ${name}`,
+    id: outcome === 'flyby' ? 'flyby' : 'final', label: outcome === 'flyby' ? `Sobrevoo ${deName} (captura falhou)` : outcome === 'high-orbit' ? `Órbita ${deName} mais alta que a planejada` : `Órbita ${deName}`,
     center: body, t0: tPeri, t1: Infinity, s0: finalState, phase: outcome === 'flyby' ? 'flyby' : 'final', attitude,
   });
   return segs;

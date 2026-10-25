@@ -129,9 +129,12 @@ void main() {
 
 #ifdef MOON
   // Regolito: mistura de Lommel-Seeliger (pouco escurecimento de borda) e Lambert
+  // Perto do limbo (ndv → 0) o termo de Lommel-Seeliger vira "tudo ou nada" com o relevo do mapa de normais
+  // e o terminador aparecia em blocos; ndv mínimo de 0,2 e o terminador geométrico (normal da esfera) suavizam.
   float mu0 = max(ndl, 0.0);
-  float ls = mu0 / max(mu0 + ndv, 1e-3) * 2.0;
-  color = albedo * mix(mu0, ls, 0.7) * 1.1 * sunIntensity + albedo * ambient;
+  float ls = mu0 / (mu0 + max(ndv, 0.2)) * 2.0;
+  float geo = smoothstep(-0.04, 0.12, dot(normalize(vN), L));
+  color = albedo * mix(mu0, ls, 0.7) * geo * 1.1 * sunIntensity + albedo * ambient;
 #endif
 
 #ifdef ROCKY
