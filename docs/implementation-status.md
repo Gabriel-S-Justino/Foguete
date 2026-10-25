@@ -79,6 +79,9 @@ Cada item abaixo teve a causa encontrada antes da correção. Detalhes da físic
 - [x] **Manobras no instante calculado.** O relógio para no instante de cada manobra da trajetória, e só então o botão é liberado, mostrando o Δv calculado. A ordem segue a trajetória: no ΔV-EGA a DSM vem antes da TCM. Antes, a ordem da tabela travava a missão.
 - [x] **Texturas e modelos.** Marte e Vênus usam texturas do NASA-3D-Resources, e Mercúrio, Saturno (com anéis), Urano, Netuno e o Sol usam a Solar System Scope (CC BY 4.0). A cena orbital não usa modelos da NASA, porque a sonda é a do jogador. Detalhes em `docs/model-sources.md` e `docs/texture-sources.md`.
 
+### Rodada 5 (2026-10-25)
+- [x] **Δv cobrado = Δv calculado pela trajetória** (decisão do Kali). Cada manobra com cálculo na linha do tempo física (TCM de Júpiter, DSM, JOI, LOI) cobra o Δv calculado; o orçado no planejamento aparece ao lado como referência. Sem cálculo (TCM lunar, ajuste em LEO), vale o orçamento. Teste unitário novo e verificação no E2E (Δv executado = calculado). Testado: unitários 109/109, typecheck, lint, build; E2E Júpiter (DSM 936, TCM 97, JOI 654 m/s executados, sucesso, ciência 88) e Lua (LOI 823 m/s, sucesso, ciência 95).
+
 ### Backend (FastAPI)
 - [x] Rotas versionadas em `/api/v1`: health, sessões, campanhas com revisão, validação, eventos, finalização e relatórios.
 - [x] Sessão por token. Só o hash SHA-256 fica no banco, e cada sessão vê apenas as próprias campanhas.
@@ -185,8 +188,7 @@ O E2E roda no Chromium com renderização por software (SwiftShader), a cerca de
 - O bundle do Babylon.js tem cerca de 5 MB (1,1 MB gzip), porque é importado pelo pacote raiz `@babylonjs/core`. Imports profundos reduziriam o tamanho.
 - Sem testes de componentes React isolados; a interface é coberta pelo E2E.
 - A Lua segue uma órbita circular desenhada para a janela (não a efeméride real); as TCMs são orçamento de Δv (a trajetória desenhada já é a corrigida); sem precessão J2 na órbita de estacionamento.
-- O Δv calculado pela trajetória aparece ao lado de cada manobra, mas o jogo cobra o valor do orçamento do planejamento (ex.: JOI 654 m/s calculado × 544 m/s orçado na data padrão, porque o orçamento usa Hohmann).
-- A DSM calculada no ΔV-EGA (~0,9 km/s na data padrão) é maior que o orçamento de 750 m/s do perfil; o jogo continua cobrando o valor do orçamento.
+- A aprovação do briefing usa o Δv orçado no planejamento (fórmulas analíticas), mas a manobra cobra o calculado pela trajetória, que pode ser maior (JOI 654 × 544 m/s, DSM ~936 × 750 m/s na data padrão): uma sonda aprovada no limite pode ficar sem propelente.
 - As texturas da plataforma, do hangar e da sonda são procedurais (geradas no navegador), inspiradas em fotos de referência; não são fotografias.
 - A pluma e a fumaça são efeitos visuais calibrados a olho a partir de fotos e vídeos de lançamentos, não uma simulação de escoamento.
 - No SwiftShader (renderização por software usada nos testes) a cena de lançamento roda a cerca de 2–8 FPS; em GPU real não foi medido nesta sessão.
