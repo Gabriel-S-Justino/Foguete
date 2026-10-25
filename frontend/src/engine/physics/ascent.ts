@@ -81,6 +81,12 @@ export class AscentSimulator {
   private accelNow = 0;
   private pitchNow = 90;
   private engineOutApplied = false;
+  private liftoffT: number | null = null;
+  /** Órbitas altas: SECO-1 na transferência, voo balístico até a apoapse e reignição para circularizar. */
+  private coastToApoapsis = false;
+  private circularizing = false;
+  /** Velocidade angular da plataforma no plano orbital (a Terra gira sob o referencial inercial). */
+  private readonly padRate: number;
   readonly rTarget: number;
   private readonly R = BODIES.earth.radius;
   private readonly mu = BODIES.earth.mu;
@@ -91,6 +97,7 @@ export class AscentSimulator {
     this.x = this.R;
     // Componente da rotação terrestre no plano orbital (≈ ωR·cos i; negativa para órbitas retrógradas)
     this.vy = this.omega * this.R * Math.cos((opts.inclinationDeg * Math.PI) / 180);
+    this.padRate = this.vy / this.R;
     this.stages = opts.vehicle.stages.map((s) => ({ spec: s, prop: s.propMassKg, attached: true, burning: false }));
     this.fairingAttached = opts.vehicle.fairingMassKg > 0;
     this.rTarget = this.R + opts.targetAltitudeKm * 1000;
@@ -174,7 +181,7 @@ export class AscentSimulator {
   }
 
   /** Lei de guiamento: retorna o ângulo de arfagem (rad, a partir da horizontal local). */
-  private guidance(r: number, vr: number, vt: number, thrustAccel: number, airVx: number, airVy: number): number {
+  private guidance(r: number, vr: number, vt: number, thrustAccel: number, mdot: number, airVx: number, airVy: number): number {
     const alt = r - this.R;
     const speed = Math.hypot(this.vx, this.vy);
     if (alt < 300 || speed < 60) return Math.PI / 2;
@@ -188,15 +195,22 @@ export class AscentSimulator {
       const program = (Math.PI / 2) - ((70 * Math.PI) / 180) * Math.pow(Math.min(1, alt / 60000), 0.55);
       return Math.max(program, Math.min(gamma, Math.PI / 2) - (8 * Math.PI) / 180);
     }
-    // Guiamento em malha fechada: leva (r, vr) a (r alvo, 0) no tempo restante de queima estimado
+    // Guiamento em malha fechada: leva (r, vr) a (r alvo, 0) no tempo restante de queima. O tempo vem da
+    // equação do foguete (a aceleração cresce conforme o propelente é consumido); com a aceleração atual
+    // constante o tempo era superestimado e o veículo passava do ponto (apoapse de milhares de km).
     const g = this.mu / (r * r);
     const vCirc = circularVelocity(this.mu, this.rTarget);
-    const timeToGo = Math.max(8, (vCirc - vt) / Math.max(0.5, thrustAccel));
+    const dv = Math.max(0, vCirc - vt);
+    const ve = mdot > 0 ? (thrustAccel * this.mass) / mdot : 3000;
+    const tau = mdot > 0 ? this.mass / mdot : 600;
+    const lastStage = this.active >= this.stages.length - 1;
+    const timeToGo = Math.max(8, lastStage ? tau * (1 - Math.exp(-dv / Math.max(500, ve))) : dv / Math.max(0.5, thrustAccel));
     const dr = this.rTarget - r;
     const aRadialCmd = (6 * dr) / (timeToGo * timeToGo) - (4 * vr) / timeToGo;
     const aRadialNeeded = g - (vt * vt) / r + aRadialCmd;
     const s = Math.max(-0.7, Math.min(0.9, aRadialNeeded / Math.max(0.1, thrustAccel)));
-    return Math.asin(s);
+    // Primeiro estágio acima de 60 km: sem "empinar" de volta perto do MECO (o estágio superior corrige)
+    return firstStage ? Math.min(Math.asin(s), (35 * Math.PI) / 180) : Math.asin(s);
   }
 
   /** Avança a simulação por um passo fixo dt. */
@@ -213,9 +227,10 @@ export class AscentSimulator {
     const r = Math.hypot(this.x, this.y);
     const alt = r - this.R;
     const atm = atmosphere(alt);
-    // Velocidade relativa à atmosfera (que gira com a Terra)
-    const airVx = this.vx + this.omega * this.y;
-    const airVy = this.vy - this.omega * this.x;
+    // Velocidade relativa à atmosfera, que gira junto com a plataforma (componente da rotação no plano
+    // orbital, ω·cos i). Usar ω inteiro criava um "vento" de até ~500 m/s em órbitas polares/retrógradas.
+    const airVx = this.vx + this.padRate * this.y;
+    const airVy = this.vy - this.padRate * this.x;
     const airSpeed = Math.hypot(airVx, airVy);
     const q = 0.5 * atm.densityKgM3 * airSpeed * airSpeed;
 
@@ -227,6 +242,7 @@ export class AscentSimulator {
     if (this.phase === 'ignition') {
       if (thrust > mass * G0 * 1.02 && this.t - this.ignitionTime >= STARTUP_RAMP_S) {
         this.phase = 'liftoff';
+        this.liftoffT = this.t;
         this.log('liftoff', 'Liberação das estruturas de sustentação — decolagem');
       } else {
         this.consume(mdot * dt);
@@ -240,7 +256,13 @@ export class AscentSimulator {
     const vr = this.vx * ux + this.vy * uy;
     const vt = -this.vx * uy + this.vy * ux;
     const thrustAccel = thrust / mass;
-    const pitch = this.guidance(r, vr, vt, thrustAccel, airVx, airVy);
+    // Taxa de arfagem limitada (≈ 2,5°/s, como num veículo real): sem "trancos" na troca de lei de
+    // guiamento (fim do programa do primeiro estágio, ignição do estágio superior, circularização)
+    // Em voo balístico (separação, costeio até a apoapse) o eixo acompanha o vetor velocidade (prógrado)
+    const cmd = thrust > 0 ? this.guidance(r, vr, vt, thrustAccel, mdot, airVx, airVy) : Math.atan2(vr, Math.max(1, vt));
+    const prev = (this.pitchNow * Math.PI) / 180;
+    const maxStep = ((2.5 * Math.PI) / 180) * dt;
+    const pitch = Math.max(prev - maxStep, Math.min(prev + maxStep, cmd));
     this.pitchNow = (pitch * 180) / Math.PI;
     const tx = Math.sin(pitch) * ux - Math.cos(pitch) * uy;
     const ty = Math.sin(pitch) * uy + Math.cos(pitch) * ux;
@@ -339,7 +361,31 @@ export class AscentSimulator {
     }
     const el = elementsFromState(this.mu, this.x, this.y, this.vx, this.vy);
     const targetAlt = this.rTarget - this.R;
-    if (alt > 100000 && el.rp - this.R >= Math.max(150000, targetAlt - 30000)) {
+    const lastStage = this.active >= this.stages.length - 1;
+    // Órbitas acima de 300 km: como nos lançamentos reais, o estágio superior corta ao atingir a apoapse
+    // alvo, segue balístico até ela e reacende para circularizar (inserção direta "passava do ponto")
+    if (lastStage && targetAlt > 300000 && !this.coastToApoapsis && !this.circularizing && this.phase === 'upper'
+      && el.ra - this.R >= targetAlt - 5000 && el.rp - this.R < targetAlt - 30000) {
+      this.coastToApoapsis = true;
+      this.coastUntil = Infinity;
+      this.thrustNow = 0;
+      this.log('seco-1', `Primeiro corte do estágio superior (SECO-1): voo balístico até a apoapse de ${((el.ra - this.R) / 1000).toFixed(0)} km`);
+      return;
+    }
+    if (this.coastToApoapsis) {
+      const vr = (this.vx * this.x + this.vy * this.y) / Math.hypot(this.x, this.y);
+      if (vr <= 0) {
+        this.coastToApoapsis = false;
+        this.circularizing = true;
+        this.coastUntil = this.t;
+        this.log('reignition', 'Reignição do estágio superior na apoapse: queima de circularização');
+      }
+      return;
+    }
+    // Corte ao atingir o perigeu alvo ou, para não passar do ponto, quando a apoapse já ultrapassa o alvo
+    // com perigeu orbital
+    const overshoot = el.ra - this.R > targetAlt + 40000 && el.rp - this.R >= 150000;
+    if (alt > 100000 && (el.rp - this.R >= Math.max(150000, targetAlt - 30000) || overshoot)) {
       this.burningStages().forEach((s) => (s.burning = false));
       this.thrustNow = 0;
       const periKm = (el.rp - this.R) / 1000;
@@ -357,8 +403,8 @@ export class AscentSimulator {
     const r = Math.hypot(this.x, this.y);
     const alt = r - this.R;
     const atm = atmosphere(alt);
-    const airVx = this.vx + this.omega * this.y;
-    const airVy = this.vy - this.omega * this.x;
+    const airVx = this.vx + this.padRate * this.y;
+    const airVy = this.vy - this.padRate * this.x;
     const airSpeed = Math.hypot(airVx, airVy);
     const ux = this.x / r, uy = this.y / r;
     const el = elementsFromState(this.mu, this.x, this.y, this.vx, this.vy);
@@ -370,7 +416,7 @@ export class AscentSimulator {
     return {
       t: this.t,
       altitudeM: alt,
-      downrangeM: Math.atan2(this.y, this.x) * this.R,
+      downrangeM: this.surfaceDownrange(),
       speedMS: Math.hypot(this.vx, this.vy),
       surfaceSpeedMS: airSpeed,
       verticalSpeedMS: this.vx * ux + this.vy * uy,
@@ -392,6 +438,18 @@ export class AscentSimulator {
       x: this.x,
       y: this.y,
     };
+  }
+
+  /**
+   * Alcance sobre a superfície, medido a partir da plataforma (que se move com a rotação da Terra).
+   * O ângulo inercial puro incluía o deslocamento da própria plataforma: em órbitas para leste o foguete
+   * "andava de lado" logo após a decolagem e em órbitas retrógradas o alcance ficava negativo.
+   */
+  private surfaceDownrange(): number {
+    if (this.liftoffT === null) return 0;
+    let a = Math.atan2(this.y, this.x) - this.padRate * (this.t - this.liftoffT);
+    a = Math.atan2(Math.sin(a), Math.cos(a));
+    return a * this.R;
   }
 
   /** Executa a ascensão completa (testes / validação), com limite de tempo. */

@@ -1,6 +1,6 @@
 import { Vector3 } from '@babylonjs/core';
 import { describe, expect, it } from 'vitest';
-import { siteOrientation } from '../scenes/planets';
+import { launchAzimuthDeg, siteOrientation } from '../scenes/planets';
 
 /** Mesma convenção do shader: lat/lon → vetor no referencial do planeta (y = norte). */
 const surface = (latDeg: number, lonDeg: number) => {
@@ -23,6 +23,25 @@ describe('orientação da textura da Terra na base de lançamento', () => {
   });
   // Matrix do Babylon guarda Float32: tolerância de 1e-6
   it('é uma rotação própria (ortonormal, determinante +1)', () => {
+    expect(m.determinant()).toBeCloseTo(1, 6);
+  });
+});
+
+describe('azimute de lançamento', () => {
+  it('inclinação igual à latitude sai para leste; ISS (51,6°) sai para nordeste; heliossíncrona sai para o sul', () => {
+    expect(launchAzimuthDeg(28.5, 28.5)).toBeCloseTo(90, 3);
+    expect(launchAzimuthDeg(51.6, 28.5)).toBeCloseTo(45, 0);
+    const sso = launchAzimuthDeg(98.2, 34.7);
+    expect(sso).toBeGreaterThan(180);
+    expect(sso).toBeLessThan(200);
+  });
+  it('com azimute 45° o eixo +X do objeto aponta para nordeste e a rotação continua própria', () => {
+    const m = siteOrientation(28.5, -80.6, 45);
+    const base = siteOrientation(28.5, -80.6);
+    const east = Vector3.TransformNormal(new Vector3(1, 0, 0), base);
+    const north = Vector3.TransformNormal(new Vector3(0, 0, 1), base);
+    const x = Vector3.TransformNormal(new Vector3(1, 0, 0), m);
+    expect(Vector3.Distance(x, east.add(north).normalize())).toBeLessThan(1e-6);
     expect(m.determinant()).toBeCloseTo(1, 6);
   });
 });

@@ -32,12 +32,13 @@ const errors = [];
 const browser = await chromium.launch({ headless: !process.env.E2E_HEADED, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const page = await browser.newPage({ viewport: { width: 1600, height: 900 } });
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
+page.on('console', (m) => { if (process.env.E2E_DEBUG && m.type() !== 'error') console.log(`  [${m.type()}] ${m.text()}`); });
 page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|\/api\//.test(m.text())) errors.push(`console: ${m.text()}`); });
 
 const step = async (name, fn) => {
   const t0 = Date.now();
   try { await fn(); console.log(`✓ ${name} (${Date.now() - t0} ms)`); }
-  catch (e) { await page.screenshot({ path: join(artifacts, `fail-${name.replace(/\W+/g, '-')}.png`) }); throw new Error(`${name}: ${e.message}`); }
+  catch (e) { await page.screenshot({ path: join(artifacts, `fail-${name.replace(/\W+/g, '-')}.png`) }); if (errors.length) console.error(errors.join('\n')); throw new Error(`${name}: ${e.message}`); }
 };
 const shot = (n) => page.screenshot({ path: join(artifacts, `${n}.png`) });
 
@@ -86,7 +87,7 @@ try {
   await step('plataforma e verificações', async () => {
     await page.getByTestId('to-launch').click();
     await page.getByTestId('start-procedures').click();
-    await page.waitForFunction(() => /PRONTO|HOLD/.test(document.querySelector('[data-testid="launch-state"]')?.textContent ?? ''), null, { timeout: 20000 });
+    await page.waitForFunction(() => /PRONTO|HOLD/.test(document.querySelector('[data-testid="launch-state"]')?.textContent ?? ''), null, { timeout: 90000 });
     await shot('06-plataforma');
   });
   await step('lançamento até a órbita', async () => {
@@ -96,14 +97,21 @@ try {
       await page.waitForTimeout(7000);
     }
     await page.getByTestId('confirm-launch').click();
-    await page.waitForFunction(() => /EM VOO/.test(document.querySelector('[data-testid="launch-state"]')?.textContent ?? ''), null, { timeout: 30000 });
+    await page.waitForFunction(() => /EM VOO/.test(document.querySelector('[data-testid="launch-state"]')?.textContent ?? ''), null, { timeout: 90000 });
     await page.getByTestId('warp-20').click();
     await page.waitForTimeout(3000);
     await shot('07-voo');
-    await page.waitForFunction(() => /ÓRBITA|FALHA|ABORT/.test(document.querySelector('[data-testid="launch-state"]')?.textContent ?? ''), null, { timeout: 180000 });
+    await page.waitForFunction(() => /ÓRBITA|FALHA|ABORT/.test(document.querySelector('[data-testid="launch-state"]')?.textContent ?? ''), null, { timeout: 300000 });
     await shot('08-orbita');
     const st = await page.getByTestId('launch-state').textContent();
     console.log(`  estado final do lançamento: ${st}`);
+    // Na missão de órbita terrestre os painéis são estendidos ainda na tela de lançamento (o rastreio enquadra a sonda)
+    if (mission === 'leo-climate' && await page.getByTestId('deploy-arrays').isVisible().catch(() => false)) {
+      await page.getByTestId('deploy-arrays').click();
+      await page.waitForTimeout(9000);
+      await shot('08b-paineis-lancamento');
+      if (await page.getByTestId('deploy-arrays').isVisible().catch(() => false)) throw new Error('botão de estender painéis continuou visível');
+    }
     await page.getByTestId('launch-continue').click();
   });
   const reachedOrbit = await page.getByTestId('ops-log').isVisible().catch(() => false);
@@ -112,13 +120,49 @@ try {
       const btn = page.locator('[data-testid^="resp-"]').first();
       if (await btn.isVisible().catch(() => false)) await btn.click();
     };
+    const orbit = () => page.evaluate(() => globalThis.__orbitView.info());
+    await step('painéis solares em órbita', async () => {
+      await page.waitForFunction(() => Boolean(globalThis.__orbitView), null, { timeout: 30000 });
+      if (await page.getByTestId('arrays-notice').isVisible().catch(() => false)) {
+        // Painéis dobrados: manobras bloqueadas até estender
+        const enabled = await page.locator('[data-testid^="mnv-"]:not([disabled])').count();
+        if (enabled > 0) throw new Error('manobra liberada com os painéis solares dobrados');
+        await page.getByTestId('deploy-arrays').click();
+        await page.waitForTimeout(4000);
+        const mid = await orbit();
+        await page.waitForTimeout(8000);
+        const end = await orbit();
+        console.log(`  abertura dos painéis: ${mid.deployment.toFixed(2)} → ${end.deployment.toFixed(2)} (vista ${end.view})`);
+        if (!(mid.deployment > 0 && mid.deployment < 1)) throw new Error(`abertura não foi animada (${mid.deployment})`);
+        if (end.deployment < 0.99) throw new Error('painéis não terminaram de abrir');
+        await shot('09a-sonda-paineis-abertos');
+        await page.getByTestId('view-system').click();
+      } else {
+        const i = await orbit();
+        console.log(`  painéis já estendidos (abertura ${i.deployment.toFixed(2)}, painéis: ${i.hasArrays})`);
+      }
+    });
     await step('manobras', async () => {
+      let shotN = 0;
       for (let i = 0; i < 8; i++) {
         await answer();
         const b = page.locator('[data-testid^="mnv-"]:not([disabled])').first();
         if (!(await b.isVisible().catch(() => false))) break;
+        const before = await orbit();
         await b.click();
-        await page.waitForTimeout(300);
+        // A sonda viaja até a nova posição (sem teleporte) e a câmera a acompanha
+        await page.waitForTimeout(1200);
+        const a = await orbit();
+        if (a.target - before.travel > 0.2 && a.travel >= a.target - 1e-3) throw new Error('sonda saltou para o destino em vez de viajar');
+        for (let k = 0; k < 60; k++) {
+          const s = await orbit();
+          if (Math.abs(s.target - s.travel) < 1e-3) break;
+          await page.waitForTimeout(1000);
+        }
+        const z = await orbit();
+        const camGap = Math.hypot(z.cameraTarget[0] - z.marker[0], z.cameraTarget[1] - z.marker[1], z.cameraTarget[2] - z.marker[2]);
+        console.log(`  manobra ${i + 1}: trecho "${z.legLabel}", viagem ${before.travel.toFixed(2)} → ${a.travel.toFixed(2)} (1,2 s) → ${z.travel.toFixed(2)} (alvo ${z.target.toFixed(2)}), câmera a ${camGap.toFixed(2)} u da sonda`);
+        await shot(`09-manobra-${++shotN}`);
       }
       await answer();
       await shot('09-manobras');

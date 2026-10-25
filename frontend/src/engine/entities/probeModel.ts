@@ -19,6 +19,12 @@ export interface PartNode {
 
 const DEFAULT_BUS: [number, number, number] = [1.6, 1.6, 2.0];
 
+/** Asa de painel solar: cadeia de dobradiças (0 = raiz do braço, 1..n = painéis). */
+interface SolarWing { side: number; hinges: TransformNode[] }
+
+/** Espaço entre camadas da sanfona recolhida (m). */
+const STOW_GAP = 0.07;
+
 function tag(mesh: Mesh, instanceId: string, componentId: string): Mesh {
   mesh.metadata = { instanceId, componentId };
   mesh.isPickable = true;
@@ -32,6 +38,9 @@ export class ProbeModel {
   private busMeshes: Mesh[] = [];
   private bus: [number, number, number] = DEFAULT_BUS;
   private skin: 'none' | 'gold' | 'silver' = 'none';
+  private arrays = new Map<string, SolarWing[]>();
+  private booms = new Map<string, { len: number; truss: Mesh; sensor: Mesh; sensor2: Mesh }>();
+  private deployment = 1;
 
   constructor(private scene: Scene, private mats: MaterialLibrary, parent?: TransformNode) {
     this.root = new TransformNode('probe-root', scene);
@@ -42,6 +51,48 @@ export class ProbeModel {
   get height(): number { return this.bus[2]; }
   getPart(instanceId: string): PartNode | undefined { return this.parts.get(instanceId); }
   get partNodes(): PartNode[] { return [...this.parts.values()]; }
+  /** Há painéis solares instalados (que precisam ser estendidos em órbita)? */
+  get hasSolarArrays(): boolean { return this.arrays.size > 0; }
+  /** Há apêndices dobráveis (painéis ou mastro)? */
+  get hasDeployables(): boolean { return this.arrays.size > 0 || this.booms.size > 0; }
+  get deploymentFraction(): number { return this.deployment; }
+
+  /**
+   * Abre (1) ou recolhe (0) os painéis solares. Recolhida, cada asa desce pelo braço junto à lateral e os
+   * painéis ficam empilhados em sanfona (dobras alternadas de 180°); a abertura acontece em sequência, do
+   * braço para a ponta, como no desdobramento real.
+   */
+  setDeployment(fraction: number): void {
+    this.deployment = Math.max(0, Math.min(1, fraction));
+    // Mastro do magnetômetro: estende depois dos painéis (último terço da sequência)
+    const b = Math.max(0, Math.min(1, (this.deployment - 0.6) / 0.4));
+    const k = 0.06 + 0.94 * b * b * (3 - 2 * b);
+    for (const boom of this.booms.values()) {
+      boom.truss.scaling.y = k;
+      boom.truss.position.z = -boom.len * k / 2;
+      boom.sensor.position.z = -Math.max(0.3, boom.len * k);
+      boom.sensor2.position.z = -Math.max(0.25, boom.len * 0.7 * k);
+    }
+    for (const wings of this.arrays.values()) {
+      for (const { side, hinges } of wings) {
+        const n = hinges.length;
+        hinges.forEach((h, k) => {
+          // Cada dobradiça abre numa janela do intervalo total (sequencial com sobreposição)
+          const start = (k / n) * 0.6, end = start + 0.4;
+          const local = Math.max(0, Math.min(1, (this.deployment - start) / (end - start)));
+          const e = local * local * (3 - 2 * local);
+          const closed = 1 - e;
+          if (k === 0) {
+            h.rotation.z = -side * (Math.PI / 2) * closed;
+          } else {
+            h.rotation.z = side * (k % 2 === 1 ? Math.PI : -Math.PI) * closed;
+            // Afastamento entre as camadas da pilha (no referencial do segmento anterior)
+            h.position.y = (k % 2 === 1 ? STOW_GAP : -STOW_GAP) * closed;
+          }
+        });
+      }
+    }
+  }
 
   /** Calcula a posição de montagem de cada componente instalado (determinística). */
   layout(installed: InstalledComponent[]): Map<string, { mount: Vector3; normal: Vector3 }> {
@@ -122,25 +173,50 @@ export class ProbeModel {
       }
       case 'radiators': box('panel', 0.05, 1.0, 1.0, 'radiatorWhite', new Vector3(0.05, 0, 0)); break;
       case 'solar-gaas': case 'solar-articulated': case 'solar-giant': {
+        // Asas em sanfona: braço (yoke) + painéis ligados por dobradiças. Recolhidas, as asas ficam dobradas
+        // contra a lateral do barramento (cabem na coifa); estendidas, abrem em linha reta para fora.
         const span = dx, width = dz;
         const panels = spec.id === 'solar-giant' ? 4 : 3;
+        const pw = span / panels;
+        const yokeLen = 0.9;
+        const wings: SolarWing[] = [];
         for (const side of [1, -1]) {
           const wing = new TransformNode(`${instanceId}-wing${side}`, s);
           wing.parent = node;
           // Mesma geometria espelhada: o ponto de montagem é o lado +x; o lado −x fica no outro lado do barramento
           wing.position.x = side === 1 ? 0 : -this.bus[0];
-          cyl(`yoke${side}`, 0.06, 0.9, 'aluminum', new Vector3(wing.position.x + side * 0.45, 0, 0), 0).rotation.z = Math.PI / 2;
-          if (spec.id === 'solar-articulated') cyl(`drive${side}`, 0.22, 0.2, 'darkSteel', new Vector3(wing.position.x + side * 0.1, 0, 0)).rotation.z = Math.PI / 2;
+          const hinges: TransformNode[] = [];
+          const root = new TransformNode(`${instanceId}-hinge${side}-0`, s);
+          root.parent = wing;
+          hinges.push(root);
+          const yoke = cyl(`yoke${side}`, 0.06, yokeLen, 'aluminum', new Vector3(side * yokeLen / 2, 0, 0), 0);
+          yoke.rotation.z = Math.PI / 2;
+          yoke.parent = root;
+          if (spec.id === 'solar-articulated') {
+            const drive = cyl(`drive${side}`, 0.22, 0.2, 'darkSteel', new Vector3(side * 0.1, 0, 0));
+            drive.rotation.z = Math.PI / 2;
+            drive.parent = wing;
+          }
+          let prev = root, prevLen = yokeLen;
           for (let p = 0; p < panels; p++) {
-            const pw = span / panels;
+            const hinge = new TransformNode(`${instanceId}-hinge${side}-${p + 1}`, s);
+            hinge.parent = prev;
+            hinge.position.x = side * prevLen;
             const panel = add(MeshBuilder.CreateBox(`${instanceId}-p${side}${p}`, { width: pw - 0.05, height: 0.04, depth: width }, s));
             panel.material = m.get('solarCell');
-            panel.position = new Vector3(wing.position.x + side * (0.9 + pw * p + pw / 2), 0, 0);
+            panel.parent = hinge;
+            panel.position = new Vector3(side * pw / 2, 0, 0);
             const frame = add(MeshBuilder.CreateBox(`${instanceId}-f${side}${p}`, { width: pw, height: 0.03, depth: width + 0.04 }, s));
-            frame.material = m.get('aluminum');
-            frame.position = panel.position.add(new Vector3(0, -0.025, 0));
+            frame.material = m.get('carbon');
+            frame.parent = hinge;
+            frame.position = new Vector3(side * pw / 2, -0.025, 0);
+            hinges.push(hinge);
+            prev = hinge;
+            prevLen = pw;
           }
+          wings.push({ side, hinges });
         }
+        this.arrays.set(instanceId, wings);
         break;
       }
       case 'rtg': {
@@ -196,7 +272,7 @@ export class ProbeModel {
       case 'electric-thruster-small': {
         cyl('body', 0.25, 0.2, 'darkSteel', new Vector3(0, -0.1, 0));
         const ring = add(MeshBuilder.CreateTorus(`${instanceId}-ring`, { diameter: 0.2, thickness: 0.03, tessellation: 24 }, s));
-        const glow = m.get('lampEmissive').clone(`${instanceId}-glow`);
+        const glow = m.variant('lampEmissive', `${instanceId}-glow`);
         glow.emissiveColor = new Color3(0.4, 0.6, 1);
         ring.material = glow;
         ring.position.y = -0.21;
@@ -224,11 +300,14 @@ export class ProbeModel {
         break;
       }
       case 'magnetometer-boom': {
+        // Mastro extensível (tipo "coilable"): recolhido dentro do cilindro da base durante o lançamento,
+        // estende-se em órbita levando os magnetômetros para longe do campo da própria sonda
         const len = dz;
+        cyl('canister', 0.22, 0.45, 'paintedWhite', new Vector3(0, 0, -0.2), Math.PI / 2);
         const truss = cyl('truss', 0.08, len, 'carbon', new Vector3(0, 0, -len / 2), Math.PI / 2);
-        truss.rotation.y = 0;
-        box('sensor', 0.2, 0.2, 0.2, 'paintedWhite', new Vector3(0, 0, -len));
-        box('sensor2', 0.16, 0.16, 0.16, 'paintedWhite', new Vector3(0, 0, -len * 0.7));
+        const sensor = box('sensor', 0.2, 0.2, 0.2, 'paintedWhite', new Vector3(0, 0, -len));
+        const sensor2 = box('sensor2', 0.16, 0.16, 0.16, 'paintedWhite', new Vector3(0, 0, -len * 0.7));
+        this.booms.set(instanceId, { len, truss, sensor, sensor2 });
         break;
       }
       case 'particles-plasma': {
@@ -244,7 +323,7 @@ export class ProbeModel {
         // Mantas e processos não têm geometria própria: alteram o revestimento do barramento ou exibem um selo.
         if (spec.id === 'planetary-protection') {
           const plate = box('seal', 0.3, 0.12, 0.01, 'lampEmissive', new Vector3(0.55, -0.6, 0.01));
-          const mat = m.get('paintedWhite').clone(`${instanceId}-seal`);
+          const mat = m.variant('paintedWhite', `${instanceId}-seal`);
           mat.emissiveColor = new Color3(0.2, 0.7, 0.4);
           plate.material = mat;
         } else {
@@ -325,6 +404,8 @@ export class ProbeModel {
     const part = this.parts.get(instanceId);
     if (!part) return;
     if (part.node === this.busNode) { this.busNode = null; this.busMeshes = []; }
+    this.arrays.delete(instanceId);
+    this.booms.delete(instanceId);
     part.node.dispose(false, false);
     this.parts.delete(instanceId);
   }
@@ -351,6 +432,7 @@ export class ProbeModel {
       this.place(inst, l.mount, l.normal);
     }
     this.updateSkin(installed);
+    this.setDeployment(this.deployment);
   }
 
   updateSkin(installed: InstalledComponent[]): void {
@@ -361,5 +443,7 @@ export class ProbeModel {
   dispose(): void {
     this.root.dispose(false, false);
     this.parts.clear();
+    this.arrays.clear();
+    this.booms.clear();
   }
 }

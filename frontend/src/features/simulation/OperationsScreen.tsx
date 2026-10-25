@@ -1,12 +1,13 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useScene } from '../../components/useScene';
 import { fmtKg, fmtMs, Panel, Stat } from '../../components/ui';
 import { getMission } from '../../engine/catalog';
 import { createRng, hashSeed } from '../../engine/core/rng';
+import { ARRAYS_EVENT, powerState } from '../../engine/entities/power';
 import { analyzeSpacecraft } from '../../engine/entities/spacecraft';
 import { rollPhase, type FailureProbability } from '../../engine/failures/failures';
 import { validateMission } from '../../engine/rules/validation';
-import { createOrbitScene } from '../../engine/scenes/otherScenes';
+import { createOrbitScene, type OrbitView } from '../../engine/scenes/otherScenes';
 import { evaluateCheckpoint, executeManeuver, plannedManeuvers, type PlannedManeuver } from '../../engine/science/operations';
 import { useCampaign } from '../../store/campaignStore';
 import type { FlightEventRecord } from '../../types/campaign';
@@ -51,11 +52,39 @@ export function OperationsScreen() {
   const pendingEvent = trigger ? rolled.find((f) => !handled.has(f.spec.id)) ?? null : null;
 
   const insertion = campaign.insertionState;
-  useEffect(() => { if (ctrl) configureOrbitView(ctrl, plan, ctx.profile, insertion === 'none' ? 'captured' : insertion); }, [ctrl, plan, ctx.profile, insertion]);
+  const power = powerState(campaign.spacecraft.installed, campaign.flightEvents);
+  const [view, setView] = useState<OrbitView>('system');
+  const [legLabel, setLegLabel] = useState('');
+  useEffect(() => { if (ctrl) configureOrbitView(ctrl, plan, ctx.profile, insertion === 'none' ? 'captured' : insertion, true); }, [ctrl, plan, ctx.profile, insertion]);
+  // Sonda montada (mesmos componentes do hangar) para a vista aproximada e a abertura dos painéis
+  useEffect(() => {
+    if (ctrl) ctrl.setProbe(campaign.spacecraft.installed, power.arraysDeployed || !power.hasSolarArrays);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ctrl, campaign.spacecraft.installed]);
+  useEffect(() => { ctrl?.setView(view); }, [ctrl, view]);
   useEffect(() => {
     if (!ctrl) return;
-    ctrl.setProgress(phase === 'science' ? 1 : executable.length ? campaign.maneuvers.length / executable.length : 1);
-  }, [ctrl, phase, campaign.maneuvers.length, executable.length]);
+    // A sonda viaja na cena até a posição correspondente às manobras feitas (sem teleporte)
+    const done = campaign.maneuvers.filter((m) => m.id !== 'avoid').length;
+    ctrl.setProgress(phase === 'science' ? 1 : executable.length ? done / executable.length : 1);
+  }, [ctrl, phase, campaign.maneuvers, executable.length]);
+  // Nome do trecho da viagem mostrado na tela (cruzeiro, aproximação...)
+  useEffect(() => {
+    if (!ctrl) return;
+    const id = setInterval(() => setLegLabel(ctrl.info().legLabel), 500);
+    return () => clearInterval(id);
+  }, [ctrl]);
+  // Exposto para os testes ponta a ponta (posição da sonda, vista e painéis)
+  useEffect(() => {
+    if (!ctrl || !navigator.webdriver) return;
+    (globalThis as { __orbitView?: unknown }).__orbitView = ctrl;
+    return () => { delete (globalThis as { __orbitView?: unknown }).__orbitView; };
+  }, [ctrl]);
+  const deployArrays = () => {
+    ctrl?.deployArrays();
+    setView('probe');
+    recordEvent({ t: 0, phase: 'orbit', id: ARRAYS_EVENT, label: 'Painéis solares estendidos: geração solar disponível para propulsão e instrumentos', severity: 'info' });
+  };
 
   const tNow = () => (ctx.profile.transferTimeS || 86400) * ((campaign.maneuvers.length + 1) / Math.max(1, executable.length));
   // Sem correções de trajetória (ou com navegação degradada) as dispersões aumentam o Δv real das manobras
@@ -105,6 +134,13 @@ export function OperationsScreen() {
       <aside className="side-left panel" aria-label="Operações">
         <div className="panel-title"><h2>{phase === 'science' ? 'Operações científicas' : 'Manobras da sonda'}</h2><span className="chip info">{INSERTION_LABEL[insertion]}</span></div>
         <div className="panel-body" style={{ flex: 1 }}>
+          {power.needsDeploy && (
+            <div className="small" style={{ border: '1px solid var(--amber)', padding: 8, marginBottom: 8, borderRadius: 3 }} data-testid="arrays-notice">
+              Painéis solares ainda dobrados (como viajaram dentro da coifa).{' '}
+              {power.blocked ? 'Sem eles a sonda só tem a bateria: propulsão principal e instrumentos ficam desligados.' : 'O RTG mantém a sonda ligada, mas a geração fica reduzida.'}
+              <div style={{ marginTop: 6 }}><button className="btn amber small" onClick={deployArrays} data-testid="deploy-arrays">Estender painéis solares</button></div>
+            </div>
+          )}
           {phase === 'cruise' ? (
             <>
               <table className="checks">
@@ -116,7 +152,7 @@ export function OperationsScreen() {
                       <tr key={m.id}>
                         <td>{m.label}{m.critical && <span className="chip warn" style={{ marginLeft: 4 }}>crítica</span>}<div className="small muted">{m.executable ? m.explanation : 'Reserva de propelente (consumo contínuo ao longo da missão).'}</div>{rec && <div className="small" style={{ color: rec.success ? 'var(--green)' : 'var(--red)' }}>{rec.note}</div>}</td>
                         <td className="mono">{fmtMs(m.dvMS * (m.executable ? dispersion(m) : 1))}</td>
-                        <td>{m.executable && !rec && <button className="btn small primary" disabled={next?.id !== m.id || Boolean(pendingEvent) || failedCapture} onClick={() => runManeuver(m)} data-testid={`mnv-${m.id}`}>Executar</button>}</td>
+                        <td>{m.executable && !rec && <button className="btn small primary" disabled={next?.id !== m.id || Boolean(pendingEvent) || failedCapture || power.blocked} onClick={() => runManeuver(m)} data-testid={`mnv-${m.id}`}>Executar</button>}</td>
                       </tr>
                     );
                   })}
@@ -134,7 +170,7 @@ export function OperationsScreen() {
                     <tr key={cp.id}>
                       <td>{cp.name}<div className="small muted">lat. {cp.latitudeDeg}° · {cp.measures.join(', ')}</div>{r?.notes.map((n) => <div key={n} className="small" style={{ color: 'var(--amber)' }}>{n}</div>)}</td>
                       <td className="mono">{r ? `${(r.quality * 100).toFixed(0)}% · ${r.dataGb.toFixed(0)} GB` : '—'}</td>
-                      <td>{!r && <button className="btn small primary" disabled={Boolean(pendingEvent)} onClick={() => recordCheckpoint(evaluateCheckpoint(mission, plan, campaign.spacecraft, cp, { activeEffects: campaign.activeEffects, insertionState: insertion }))} data-testid={`cp-${cp.id}`}>Observar</button>}</td>
+                      <td>{!r && <button className="btn small primary" disabled={Boolean(pendingEvent) || power.blocked} onClick={() => recordCheckpoint(evaluateCheckpoint(mission, plan, campaign.spacecraft, cp, { activeEffects: campaign.activeEffects, insertionState: insertion }))} data-testid={`cp-${cp.id}`}>Observar</button>}</td>
                     </tr>
                   );
                 })}
@@ -167,6 +203,11 @@ export function OperationsScreen() {
         <Stat label="Manobras" value={`${campaign.maneuvers.filter((m) => m.id !== 'avoid').length} / ${executable.length}`} />
         <Stat label="Dados coletados" value={`${campaign.checkpointResults.reduce((s, r) => s + r.dataGb, 0).toFixed(0)} GB`} sub={`${campaign.checkpointResults.length} / ${mission.checkpoints.length} checkpoints`} />
         <Stat label="Efeitos ativos" value={campaign.activeEffects.length ? campaign.activeEffects.join(', ') : 'nenhum'} />
+        <div className="panel" style={{ padding: 10, display: 'flex', gap: 6, alignItems: 'center' }}>
+          <span className="small muted" data-testid="leg-label" style={{ maxWidth: 220 }}>{legLabel}</span>
+          <button className={`btn small ${view === 'system' ? 'amber' : ''}`} onClick={() => setView('system')} data-testid="view-system" title="Trajetória: a câmera acompanha a sonda até o destino">Trajetória</button>
+          <button className={`btn small ${view === 'probe' ? 'amber' : ''}`} onClick={() => setView('probe')} data-testid="view-probe" title="Vista aproximada da sonda">Sonda</button>
+        </div>
         <div className="panel" style={{ padding: 10, display: 'flex', gap: 8, alignItems: 'center' }}>
           {phase === 'cruise' && !failedCapture && <button className="btn primary" disabled={!canStartScience} onClick={() => goTo('science')} data-testid="to-science">Iniciar ciência →</button>}
           {(phase === 'science' || failedCapture) && <button className="btn primary" disabled={Boolean(pendingEvent)} onClick={() => void finishMission()} data-testid="finish-mission">Encerrar missão e gerar relatório</button>}

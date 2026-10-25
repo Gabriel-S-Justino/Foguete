@@ -101,34 +101,34 @@ void main() {
   clouds = smoothstep(0.18, 0.95, clouds);
   float water = texture2D(waterTex, uv).r;
   vec3 H = normalize(L + V);
-  float spec = pow(max(dot(N, H), 0.0), 120.0) * water * (1.0 - clouds) * step(0.0, ndl);
+  float spec = pow(max(dot(N, H), 0.0), 160.0) * water * (1.0 - clouds) * step(0.0, ndl);
   float diffuse = max(ndl, 0.0);
-  vec3 surface = albedo * diffuse * 1.15 + vec3(1.0, 0.92, 0.78) * spec * 0.9;
+  vec3 surface = albedo * diffuse + vec3(1.0, 0.92, 0.78) * spec * 0.4;
   // Terminador avermelhado (luz atravessando mais atmosfera)
   vec3 sunTint = mix(vec3(1.0, 0.55, 0.3), vec3(1.0), smoothstep(0.0, 0.35, ndl));
   surface *= sunTint;
-  vec3 cloudCol = vec3(0.9) * diffuse * sunTint * 0.95;
+  vec3 cloudCol = vec3(0.9) * diffuse * sunTint * 0.85;
   surface = mix(surface, cloudCol, clouds * 0.92);
   vec3 lights = toLinear(texture2D(nightTex, uv).rgb) * vec3(1.0, 0.82, 0.55) * 1.6 * (1.0 - clouds * 0.75);
   color = surface * sunIntensity + lights * (1.0 - day) + albedo * ambient;
   // Dispersão de Rayleigh na borda do disco (lado iluminado)
   float rim = pow(1.0 - ndv, 3.0);
-  color += vec3(0.25, 0.5, 1.0) * rim * 0.9 * smoothstep(-0.25, 0.5, ndl);
-  color = mix(color, vec3(0.32, 0.5, 0.85) * max(ndl, 0.0), (1.0 - ndv) * 0.18);
+  color += vec3(0.25, 0.5, 1.0) * rim * 0.45 * smoothstep(-0.25, 0.5, ndl);
+  color = mix(color, vec3(0.32, 0.5, 0.85) * max(ndl, 0.0), (1.0 - ndv) * 0.12);
 #endif
 
 #ifdef MOON
   // Regolito: mistura de Lommel-Seeliger (pouco escurecimento de borda) e Lambert
   float mu0 = max(ndl, 0.0);
   float ls = mu0 / max(mu0 + ndv, 1e-3) * 2.0;
-  color = albedo * mix(mu0, ls, 0.7) * 1.35 * sunIntensity + albedo * ambient;
+  color = albedo * mix(mu0, ls, 0.7) * 1.1 * sunIntensity + albedo * ambient;
 #endif
 
 #ifdef JUPITER
   float mu = max(ndl, 0.0);
   float limb = mix(0.75, 1.0, pow(ndv, 0.35));
-  color = albedo * mu * 1.45 * limb * sunIntensity + albedo * ambient;
-  color += vec3(0.9, 0.8, 0.65) * pow(1.0 - ndv, 4.0) * 0.12 * smoothstep(-0.2, 0.4, ndl);
+  color = albedo * mu * 1.15 * limb * sunIntensity + albedo * ambient;
+  color += vec3(0.9, 0.8, 0.65) * pow(1.0 - ndv, 4.0) * 0.06 * smoothstep(-0.2, 0.4, ndl);
 #endif
 
   gl_FragColor = vec4(toGamma(color), 1.0);
@@ -155,7 +155,22 @@ varying vec3 vW;
 uniform vec3 cameraPosition;
 uniform vec3 sunDirection;
 uniform float strength;
+uniform vec3 planetCenter;
+uniform float planetRadius;
 void main() {
+  // Parte da casca atrás do planeta: descarta analiticamente (o buffer de profundidade não tem precisão
+  // para separar planeta e casca a milhares de km). Contas em unidades de raio, para caber em float32.
+  vec3 o = (cameraPosition - planetCenter) / planetRadius;
+  vec3 seg = (vW - cameraPosition) / planetRadius;
+  float len = length(seg);
+  vec3 d = seg / len;
+  float b = dot(o, d);
+  float c = dot(o, o) - 0.998;
+  float h = b * b - c;
+  if (h > 0.0) {
+    float t = -b - sqrt(h);
+    if (t > 0.0 && t < len) discard;
+  }
   vec3 N = normalize(vN);
   vec3 V = normalize(cameraPosition - vW);
   float facing = abs(dot(N, V));
@@ -176,10 +191,17 @@ function registerShaders(): void {
   registered = true;
 }
 
-function sunFor(scene: Scene): { dir: Vector3; intensity: number } {
+/**
+ * Direção (do planeta para o Sol) e intensidade da luz. Se a cena define `metadata.sunPosition` (vista
+ * heliocêntrica, Sol no centro), a direção é calculada para cada planeta; senão vem da luz direcional.
+ */
+function sunFor(scene: Scene, at?: Vector3): { dir: Vector3; intensity: number } {
   const light = scene.lights.find((l): l is DirectionalLight => l instanceof DirectionalLight);
-  if (!light) return { dir: new Vector3(-1, 0.3, 0.2).normalize(), intensity: 1 };
-  return { dir: light.direction.scale(-1).normalize(), intensity: Math.min(1.4, 0.55 + light.intensity * 0.2) };
+  const intensity = light ? Math.min(1.25, 0.55 + light.intensity * 0.2) : 1;
+  const sunPos = (scene.metadata as { sunPosition?: Vector3 } | null)?.sunPosition;
+  if (sunPos && at) return { dir: sunPos.subtract(at).normalize(), intensity };
+  if (!light) return { dir: new Vector3(-1, 0.3, 0.2).normalize(), intensity };
+  return { dir: light.direction.scale(-1).normalize(), intensity };
 }
 
 function texture(scene: Scene, file: string): Texture {
@@ -193,18 +215,32 @@ function texture(scene: Scene, file: string): Texture {
   return t;
 }
 
-/** Matriz (objeto → referencial do planeta) que leva o topo da esfera (+Y) ao ponto lat/lon, com +X para leste e +Z para o norte. */
-export function siteOrientation(latDeg: number, lonDeg: number): Matrix {
-  const lat = (latDeg * Math.PI) / 180, lon = (lonDeg * Math.PI) / 180;
+/**
+ * Matriz (objeto → referencial do planeta) que leva o topo da esfera (+Y) ao ponto lat/lon. O eixo +X do
+ * objeto aponta para o azimute dado (graus a partir do norte, sentido horário; 90° = leste, o padrão, com
+ * +Z para o norte).
+ */
+export function siteOrientation(latDeg: number, lonDeg: number, azimuthDeg = 90): Matrix {
+  const lat = (latDeg * Math.PI) / 180, lon = (lonDeg * Math.PI) / 180, az = (azimuthDeg * Math.PI) / 180;
   const up = new Vector3(Math.cos(lat) * Math.cos(lon), Math.sin(lat), Math.cos(lat) * Math.sin(lon));
   const east = new Vector3(-Math.sin(lon), 0, Math.cos(lon));
   const north = new Vector3(-Math.sin(lat) * Math.cos(lon), Math.cos(lat), -Math.sin(lat) * Math.sin(lon));
+  const x = north.scale(Math.cos(az)).addInPlace(east.scale(Math.sin(az)));
+  const z = north.scale(Math.sin(az)).addInPlace(east.scale(-Math.cos(az)));
   return Matrix.FromValues(
-    east.x, east.y, east.z, 0,
+    x.x, x.y, x.z, 0,
     up.x, up.y, up.z, 0,
-    north.x, north.y, north.z, 0,
+    z.x, z.y, z.z, 0,
     0, 0, 0, 1,
   );
+}
+
+/** Azimute de lançamento (graus a partir do norte) para atingir a inclinação a partir da latitude da base. */
+export function launchAzimuthDeg(inclinationDeg: number, latDeg: number): number {
+  const s = Math.cos((inclinationDeg * Math.PI) / 180) / Math.cos((latDeg * Math.PI) / 180);
+  const a = (Math.asin(Math.max(-1, Math.min(1, s))) * 180) / Math.PI;
+  // Órbitas retrógradas (ex.: heliossíncrona) saem para o sul-sudoeste
+  return inclinationDeg <= 90 ? a : 180 - a;
 }
 
 export interface PlanetOptions {
@@ -240,9 +276,9 @@ export function planetMaterial(scene: Scene, kind: PlanetKind, orientation = Mat
   mat.setMatrix('orientInv', orientation.clone().transpose());
   mat.setFloat('ambient', kind === 'earth' ? 0.012 : 0.02);
   mat.setFloat('cloudShift', 0);
-  mat.onBindObservable.add(() => {
+  mat.onBindObservable.add((mesh) => {
     const cam = scene.activeCamera;
-    const sun = sunFor(scene);
+    const sun = sunFor(scene, mesh.getAbsolutePosition());
     const effect = mat.getEffect();
     if (!effect) return;
     if (cam) effect.setVector3('cameraPosition', cam.globalPosition);
@@ -260,18 +296,20 @@ export function createPlanet(scene: Scene, kind: PlanetKind, diameter: number, o
     const atm = MeshBuilder.CreateSphere('atmosphere', { diameter: diameter * 1.022, segments: opts.segments ?? 96 }, scene);
     const am = new ShaderMaterial('atmMat', scene, { vertex: 'planetAtmosphere', fragment: 'planetAtmosphere' }, {
       attributes: ['position', 'normal'],
-      uniforms: ['world', 'worldViewProjection', 'cameraPosition', 'sunDirection', 'strength'],
+      uniforms: ['world', 'worldViewProjection', 'cameraPosition', 'sunDirection', 'strength', 'planetCenter', 'planetRadius'],
       needAlphaBlending: true,
     });
     am.alphaMode = Constants.ALPHA_ADD;
     am.backFaceCulling = false;
     am.disableDepthWrite = true;
-    am.setFloat('strength', 1.25);
+    am.setFloat('strength', 0.8);
     am.onBindObservable.add(() => {
       const effect = am.getEffect();
       if (!effect) return;
       if (scene.activeCamera) effect.setVector3('cameraPosition', scene.activeCamera.globalPosition);
-      effect.setVector3('sunDirection', sunFor(scene).dir);
+      effect.setVector3('sunDirection', sunFor(scene, p.getAbsolutePosition()).dir);
+      effect.setVector3('planetCenter', p.getAbsolutePosition());
+      effect.setFloat('planetRadius', (diameter / 2) * p.absoluteScaling.x);
     });
     atm.material = am;
     atm.parent = p;

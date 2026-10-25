@@ -53,7 +53,7 @@ class SceneManagerImpl {
       return false;
     }
     this.canvas = canvas;
-    this.engine = new Engine(canvas, true, { preserveDrawingBuffer: false, stencil: true, disableWebGL2Support: false, powerPreference: 'high-performance' }, true);
+    this.engine = new Engine(canvas, true, { preserveDrawingBuffer: false, stencil: true, disableWebGL2Support: false, powerPreference: 'high-performance', useHighPrecisionMatrix: true }, true);
     this.engine.onContextLostObservable.add(() => this.setStatus({ contextLost: true }));
     this.engine.onContextRestoredObservable.add(() => this.setStatus({ contextLost: false }));
     const onResize = () => this.engine?.resize();
@@ -107,7 +107,18 @@ class SceneManagerImpl {
         return null;
       }
       ctrl.setQuality?.(this.status.quality);
-      await ctrl.scene.whenReadyAsync();
+      // Uma textura ou shader que nunca fica pronto não pode travar a tela: após o limite a cena é exibida
+      // mesmo assim (os recursos pendentes aparecem quando terminarem)
+      let readyTimer = 0;
+      await Promise.race([
+        ctrl.scene.whenReadyAsync(),
+        new Promise<void>((resolve) => { readyTimer = window.setTimeout(() => {
+          const pending = ctrl.scene.meshes.filter((m) => m.isEnabled() && !m.isReady(true)).map((m) => `${m.name}${m.material ? ` (${m.material.name})` : ''}`);
+          console.warn(`cena "${key}" exibida com recursos pendentes: ${pending.slice(0, 12).join(', ') || 'texturas/pós-processamento'}`);
+          resolve();
+        }, 20000); }),
+      ]);
+      window.clearTimeout(readyTimer);
       this.current = ctrl;
       return ctrl;
     } finally {
