@@ -1,6 +1,7 @@
 /**
- * Teste ponta a ponta (Playwright + Chromium): percorre o fluxo completo da missão LEO
- * com a arquitetura de referência, do nome do jogador ao relatório final.
+ * Teste ponta a ponta (Playwright + Chromium): percorre o fluxo completo de uma missão com a arquitetura de
+ * referência, do nome do jogador ao relatório final (órbita de estacionamento, volta completa, partida, separação,
+ * manobras no instante calculado, vistas e escalas).
  * Uso: npm run build && npm run test:e2e   (sobe `vite preview` automaticamente)
  * Variáveis: E2E_URL (usar servidor já em execução), E2E_MISSION (padrão leo-climate), E2E_HEADED=1.
  */
@@ -121,8 +122,56 @@ try {
       if (await btn.isVisible().catch(() => false)) await btn.click();
     };
     const orbit = () => page.evaluate(() => globalThis.__orbitView.info());
-    await step('painéis solares em órbita', async () => {
+    // Espera uma condição da cena orbital respondendo às anomalias que pausam o relógio
+    const until = async (cond, what, timeoutMs = 420000) => {
+      const t0 = Date.now();
+      for (;;) {
+        await answer();
+        const i = await orbit();
+        if (await cond(i)) return i;
+        if (Date.now() - t0 > timeoutMs) throw new Error(`tempo esgotado esperando ${what} (t=${i.t.toFixed(0)} s, trecho ${i.segmentId})`);
+        await page.waitForTimeout(1000);
+      }
+    };
+    await step('órbita da Terra: sonda real, sem marcador, volta completa antes da partida', async () => {
       await page.waitForFunction(() => Boolean(globalThis.__orbitView), null, { timeout: 30000 });
+      await page.getByTestId('earth-orbit-phase').waitFor();
+      const i0 = await orbit();
+      if (i0.markerMeshes !== 0) throw new Error(`há ${i0.markerMeshes} malhas marcadoras na cena (a esfera da sonda foi removida)`);
+      if (i0.segmentId !== 'parking') throw new Error(`a missão começou fora da órbita de estacionamento (${i0.segmentId})`);
+      // Altitude orbital sobre o raio equatorial da Terra (6.378,137 km, JPL)
+      if (Math.abs(i0.distanceM - i0.altitudeM - 6378137) > 1) throw new Error(`distância ao centro e altitude incoerentes: ${i0.distanceM} / ${i0.altitudeM}`);
+      const hasDeparture = await page.getByTestId('command-departure').isVisible().catch(() => false);
+      if (hasDeparture && await page.getByTestId('command-departure').isEnabled()) throw new Error('partida liberada antes da primeira volta');
+      if (hasDeparture && !i0.stackAttached) throw new Error('a sonda deveria estar acoplada ao estágio superior na órbita de estacionamento');
+      await page.getByTestId('view-probe').click();
+      // A transição dura 1,4 s, mas no SwiftShader (1–3 FPS) só termina alguns quadros depois
+      await page.waitForFunction(() => globalThis.__orbitView.info().cameraDistanceM < 200, null, { timeout: 20000 }).catch(() => {});
+      await page.waitForTimeout(1000);
+      const ip = await orbit();
+      if (ip.cameraDistanceM > 200) throw new Error(`vista da sonda longe demais (${ip.cameraDistanceM.toFixed(0)} m)`);
+      if (!ip.probeModelVisible) throw new Error('modelo 3D da sonda não está visível na vista da sonda');
+      console.log(`  vista da sonda: câmera a ${ip.cameraDistanceM.toFixed(0)} m, atitude ${ip.attitude}, estágio acoplado: ${ip.stackAttached}`);
+      await shot('09a-sonda-orbita-terra');
+      await page.getByTestId('view-trajectory').click();
+      await page.getByTestId('warp-auto').click();
+      const half = await until((i) => i.revolution.fraction > 0.4 && i.revolution.fraction < 0.9, 'meia volta');
+      if (hasDeparture && await page.getByTestId('command-departure').isEnabled()) throw new Error(`partida liberada com ${(half.revolution.fraction * 100).toFixed(0)}% da volta`);
+      const rev = await until((i) => i.revolution.complete, 'volta completa');
+      await page.getByText('volta completa').first().waitFor();
+      console.log(`  volta completa em t = ${(rev.t / 60).toFixed(1)} min (ângulo percorrido ${(rev.revolution.swept * 180 / Math.PI).toFixed(1)}°)`);
+      await shot('09b-volta-completa');
+      if (hasDeparture) {
+        await page.getByTestId('command-departure').click();
+        await page.getByTestId('departure-countdown').waitFor();
+        const dep = await until((i) => i.segmentId !== 'parking', 'injeção de partida');
+        console.log(`  partida: trecho "${dep.segmentLabel}" em t = ${(dep.t / 60).toFixed(1)} min`);
+        await until((i) => !i.stackAttached, 'separação do estágio superior');
+        await page.waitForFunction(() => /Separação da sonda/.test(document.querySelector('[data-testid="ops-log"]')?.textContent ?? ''), null, { timeout: 30000 });
+        await shot('09c-separacao');
+      }
+    });
+    await step('painéis solares', async () => {
       if (await page.getByTestId('arrays-notice').isVisible().catch(() => false)) {
         // Painéis dobrados: manobras bloqueadas até estender
         const enabled = await page.locator('[data-testid^="mnv-"]:not([disabled])').count();
@@ -132,39 +181,61 @@ try {
         const mid = await orbit();
         await page.waitForTimeout(8000);
         const end = await orbit();
-        console.log(`  abertura dos painéis: ${mid.deployment.toFixed(2)} → ${end.deployment.toFixed(2)} (vista ${end.view})`);
+        console.log(`  abertura dos painéis: ${mid.deployment.toFixed(2)} → ${end.deployment.toFixed(2)} (vista ${end.focus})`);
         if (!(mid.deployment > 0 && mid.deployment < 1)) throw new Error(`abertura não foi animada (${mid.deployment})`);
         if (end.deployment < 0.99) throw new Error('painéis não terminaram de abrir');
-        await shot('09a-sonda-paineis-abertos');
-        await page.getByTestId('view-system').click();
+        await shot('09d-sonda-paineis-abertos');
+        await page.getByTestId('view-trajectory').click();
       } else {
         const i = await orbit();
         console.log(`  painéis já estendidos (abertura ${i.deployment.toFixed(2)}, painéis: ${i.hasArrays})`);
       }
     });
-    await step('manobras', async () => {
-      let shotN = 0;
-      for (let i = 0; i < 8; i++) {
-        await answer();
+    await step('vistas e escalas', async () => {
+      // Relógio pausado: a troca de escala não pode mudar nada da simulação
+      await page.getByTestId('clock-run').click();
+      await page.getByTestId('view-system').click();
+      await page.waitForTimeout(2500);
+      const sys = await orbit();
+      if (sys.scale !== 'physical' || sys.enlarged.length) throw new Error('a vista começou fora da escala física');
+      await shot('09e-sistema-escala-fisica');
+      await page.getByTestId('scale-didactic').click();
+      await page.waitForTimeout(1500);
+      const did = await orbit();
+      const note = await page.getByTestId('scale-note').textContent();
+      if (!/didática/.test(note ?? '') || did.enlarged.length < 8) throw new Error(`visualização didática sem aviso ou sem corpos ampliados: ${note}`);
+      if (did.t !== sys.t || did.distanceM !== sys.distanceM || did.segmentId !== sys.segmentId) throw new Error(`o modo de escala alterou a simulação (t ${sys.t} → ${did.t}, distância ${sys.distanceM} → ${did.distanceM})`);
+      const labels = await page.evaluate(() => [...document.querySelectorAll('.orbit-label')].filter((e) => e.style.display !== 'none').map((e) => e.textContent));
+      if (labels.length < 8) throw new Error(`poucos rótulos visíveis na vista do sistema: ${labels.join(', ')}`);
+      console.log(`  didática: ${did.enlarged.map((e) => `${e.name} ×${Math.round(e.factor)}`).join(', ')}`);
+      await shot('09f-sistema-didatica');
+      await page.getByTestId('scale-physical').click();
+      await page.getByTestId('view-destination').click();
+      await page.waitForTimeout(2500);
+      await shot('09g-destino');
+      await page.getByTestId('view-trajectory').click();
+      await page.getByTestId('clock-run').click();
+    });
+    await step('manobras no instante calculado', async () => {
+      let n = 0;
+      for (let k = 0; k < 6; k++) {
+        const remaining = await page.locator('[data-testid^="mnv-"]').count();
+        if (!remaining) break;
+        // O relógio para no instante da manobra e o botão é liberado
+        await until(async () => (await page.locator('[data-testid^="mnv-"]:not([disabled])').count()) > 0, 'manobra liberada');
         const b = page.locator('[data-testid^="mnv-"]:not([disabled])').first();
-        if (!(await b.isVisible().catch(() => false))) break;
-        const before = await orbit();
+        const id = (await b.getAttribute('data-testid')).slice(4);
+        const at = await orbit();
+        if (/^(loi|joi)$/.test(id) && at.attitude !== 'retrograde') throw new Error(`${id}: atitude ${at.attitude}, esperada retrógrada`);
+        console.log(`  ${id}: relógio parado em t = ${(at.t / 86400).toFixed(2)} dias, trecho "${at.segmentLabel}", altitude ${(at.altitudeM / 1000).toFixed(0)} km sobre ${at.centerName}, atitude ${at.attitude}`);
         await b.click();
-        // A sonda viaja até a nova posição (sem teleporte) e a câmera a acompanha
-        await page.waitForTimeout(1200);
-        const a = await orbit();
-        if (a.target - before.travel > 0.2 && a.travel >= a.target - 1e-3) throw new Error('sonda saltou para o destino em vez de viajar');
-        for (let k = 0; k < 60; k++) {
-          const s = await orbit();
-          if (Math.abs(s.target - s.travel) < 1e-3) break;
-          await page.waitForTimeout(1000);
-        }
-        const z = await orbit();
-        const camGap = Math.hypot(z.cameraTarget[0] - z.marker[0], z.cameraTarget[1] - z.marker[1], z.cameraTarget[2] - z.marker[2]);
-        console.log(`  manobra ${i + 1}: trecho "${z.legLabel}", viagem ${before.travel.toFixed(2)} → ${a.travel.toFixed(2)} (1,2 s) → ${z.travel.toFixed(2)} (alvo ${z.target.toFixed(2)}), câmera a ${camGap.toFixed(2)} u da sonda`);
-        await shot(`09-manobra-${++shotN}`);
+        await page.waitForTimeout(1000);
+        await shot(`09-manobra-${++n}-${id}`);
       }
       await answer();
+      await until(async () => page.getByTestId('to-science').isEnabled(), 'liberação da ciência', 120000);
+      const fin = await orbit();
+      console.log(`  final: trecho "${fin.segmentLabel}", altitude ${(fin.altitudeM / 1000).toFixed(0)} km sobre ${fin.centerName}`);
       await shot('09-manobras');
       await page.getByTestId('to-science').click();
     });

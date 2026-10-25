@@ -37,6 +37,40 @@ Todas as grandezas internas estão em SI (m, kg, s, N, J, W). Conversões para k
 - **Desorbitação** no fim da vida (LEO): queima retrógrada para perigeu de 50 km.
 - **Integrador n-corpos RK4** (`engine/physics/integrator.ts`): testado (conservação de energia em 10 órbitas), disponível para propagação, mas as fases de cruzeiro do jogo usam as soluções analíticas acima.
 
+## Trajetória da missão (rodada 4) — `engine/orbital-mechanics/missionTrajectory.ts`
+
+Uma única linha do tempo física alimenta o planejamento, as operações e a cena orbital. Ela é uma sequência de trechos keplerianos (`Segment`), cada um com corpo central, instante inicial e estado inicial. A posição em qualquer instante vem de propagação kepleriana em variável universal (`kepler.ts`), não de interpolação na tela.
+
+- **Constantes**: μ e raio médio de Terra, Lua, Sol e Júpiter, e esferas de influência (Laplace). Fontes em `data/scientific-sources/solar-system.json` (NASA Planetary Fact Sheets e JPL).
+- **Efemérides**: elementos keplerianos aproximados do JPL (Standish, válidos de 1800 a 2050) para os 8 planetas; a Lua segue uma órbita circular média (raio 384.400 km), desenhada para a janela de lançamento.
+- **Altitude × distância ao centro**: toda posição é guardada como distância ao **centro** do corpo; a altitude é `|r| − R`. A interface mostra as duas. Na trajetória orbital a altitude é medida sobre o raio equatorial (6.378,137 km, JPL), como nas altitudes de perigeu e apogeu publicadas; a cena de lançamento usa o raio médio (6.371 km), então a mesma órbita de 200 km fica cerca de 7 km mais alta em raio nas operações. Testes: na chegada à Lua e a Júpiter a sonda não desce abaixo da altitude planejada (50 km e 4.200 km) e o sobrevoo da Terra fica acima de 300 km.
+- **Órbita de estacionamento**: parte do estado real do fim da subida (`OrbitInsertion`: altitude, velocidade, ângulo de trajetória, inclinação, alcance). O nodo ascendente é escolhido pela hora local (SSO), para conter o v∞ de partida (Júpiter) ou zero.
+- **Volta completa antes da partida**: a volta é contada pelo **ângulo percorrido** em torno da Terra (`sweptAngle`, em passos de no máximo 1/36 do período), não por cronômetro. A queima de partida só é calculada depois de 360° **e** do comando do jogador; o estágio superior queima na próxima passagem pelo ponto de queima. Missões que ficam em órbita terrestre (LEO climática) também precisam da volta para liberar a ciência, mas não têm queima de partida. Missões reais que não passam por órbita de estacionamento (injeção direta, ex.: algumas sondas lançadas pelo Atlas V ou pelo SLS) saem da subida já na hipérbole; aqui todas as missões usam estacionamento, como no Falcon 9/Heavy.
+- **Lua**: a TLI é dimensionada para um apogeu `max(fator, 1,08) × d_Lua` e o instante de partida é resolvido para que a sonda encontre a Lua; dentro da esfera de influência a trajetória é uma hipérbole selenocêntrica calculada por **alvo no plano B** (`hyperbolaFromAsymptote`, `normalForInclination`) com periselênio e inclinação escolhidos. A entrada na esfera de influência usa uma iteração de Lambert de ponto fixo (40 iterações) para que posição e velocidade sejam contínuas no remendo (erro < 2 mm).
+- **Júpiter**: a hipérbole de partida pode ser não coplanar (o plano gira em torno do ponto de queima); o v∞ de partida é refinado por Newton 3×3 para zerar a TCM na trajetória direta. Na ΔV-EGA a busca percorre direção do v∞, data do sobrevoo da Terra e fração da DSM; o sobrevoo da Terra é uma hipérbole real (altitude mínima verificada). Lambert com bissecção até precisão de máquina (necessária em arcos de vários anos).
+- **Resultado da chegada**: captura, órbita alta ou sobrevoo (sem captura) mudam o último trecho da trajetória.
+
+## Atitude — `engine/orbital-mechanics/attitude.ts`
+
+A atitude visual é **independente da velocidade**: cada trecho declara um modo, e a cena monta a base de atitude (tríade ortonormal) a partir do estado. Modos: `prograde` (eixo +Y na velocidade, nadir como segunda referência), `retrograde` (eixo −v, para queimas de captura), `nadir`, `sun` (painéis voltados ao Sol no cruzeiro). Em órbita de estacionamento o conjunto estágio superior + sonda fica prógrado; em espera para LOI/JOI fica retrógrado. A troca de modo é suavizada (slerp). Testes conferem ortonormalidade e o alinhamento prógrado/retrógrado dentro de 1e-5°.
+
+## Separação de estágios — `engine/physics/debris.ts`
+
+Uma peça solta começa **exatamente** no estado do veículo no instante da separação (posição e velocidade), mais a velocidade relativa do mecanismo (0,5 a alguns m/s). A partir daí é um corpo independente: gravidade central, referencial girante da plataforma (Coriolis e centrífuga) e arrasto quadrático com a densidade US76 da altitude. Integração leapfrog (kick-drift-kick) em subpassos de até 0,5 s; uma peça em velocidade orbital mantém a altitude dentro de 50 m em 10 minutos (o Euler semi-implícito anterior oscilava ~2 km). Nas operações, o estágio superior se afasta da sonda a 0,5 m/s depois da separação.
+
+## Escalas de visualização — `engine/scenes/orbitScene.ts`
+
+- **Escala física** (padrão): raios e distâncias reais. Corpos pequenos demais para aparecer recebem só um rótulo HTML na tela (não há malha marcadora).
+- **Visualização didática**: cada corpo é ampliado até um tamanho angular mínimo de 0,0045 rad (limites: ×3000; Sol ×60; Lua ×30). O fator aparece no rótulo de cada corpo e no painel. **Distâncias e trajetória não mudam**, e a simulação não lê o modo de escala.
+- **Profundidade**: as coordenadas da cena são as físicas (Y↔Z) com origem flutuante no foco. Há grupos de renderização com projeção própria: estrelas; corpos distantes (near = 0,1 × distância à superfície mais próxima); sonda, estágio e rastro local (near 0,05 m, far 500 km). Isso evita a cintilação (z-fighting) com valores de 22 m a 30 UA na mesma cena.
+
+## Limitações da trajetória
+
+- A Lua segue órbita circular desenhada para a janela, não a efeméride real.
+- As TCMs entram como orçamento de Δv; a trajetória desenhada já é a corrigida.
+- Sem precessão J2 da órbita de estacionamento nem perturbações de terceiro corpo dentro de cada trecho (cônicas ajustadas).
+- A geometria da DSM calculada na ΔV-EGA (~0,9 km/s) é maior que o orçamento de 750 m/s do perfil da missão; o orçamento do jogo continua o do documento de missão; a nota do planejamento mostra o Δv da DSM calculado para a data.
+
 ## Sonda — `engine/entities/spacecraft.ts`
 
 - Energia: painéis com potência a 1 UA escalada por 1/d² e degradação anual; RTG constante; baterias dimensionadas contra o consumo durante o eclipse com profundidade de descarga limitada.
@@ -58,7 +92,7 @@ Todas as grandezas internas estão em SI (m, kg, s, N, J, W). Conversões para k
 ## Limitações conhecidas
 
 - Ascensão 2D, sem vento, sem dispersões de desempenho dos motores e sem trajetória 3D de azimute.
-- Transferências lunar e joviana em modelo coplanar circular; a janela de Júpiter é ilustrativa e não substitui efemérides (SPICE/Horizons).
+- O orçamento de Δv do planejamento ainda usa as fórmulas analíticas acima; a trajetória desenhada usa efemérides aproximadas do JPL e cônicas ajustadas (não substitui SPICE/Horizons).
 - Atmosfera acima de 86 km sem variação solar.
 - Custos, massas e consumos de componentes são didáticos.
 - O servidor recalcula massa, custo, capacidade, tanque, Δv disponível e requisitos, mas recebe do cliente o Δv **necessário** (que depende do modelo orbital completo, implementado só no frontend).

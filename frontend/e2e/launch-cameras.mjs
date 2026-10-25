@@ -156,6 +156,29 @@ try {
     // Separação do primeiro estágio vista pela câmera externa
     await page.waitForFunction(() => /separa/i.test(document.querySelector('[data-testid="terminal"]')?.textContent ?? ''), null, { timeout: 120000 });
     await page.getByTestId('warp-1').click();
+    // Continuidade da separação: a peça solta começa junto do veículo e segue a própria trajetória, sem saltos
+    const sep0 = await info();
+    assert(sep0.earthGroup === 1, `Terra fora do grupo de renderização próprio (${sep0.earthGroup})`);
+    const first = sep0.detached.find((d) => !/coifa|fairing/i.test(d.name));
+    assert(first, 'nenhuma peça solta registrada depois da separação');
+    const gap0 = Math.hypot(first.pad[0] - sep0.rocketPad[0], first.pad[1] - sep0.rocketPad[1]);
+    const track = [];
+    for (let i = 0; i < 6; i++) {
+      await page.waitForTimeout(400);
+      const s = await info();
+      const d = s.detached.find((x) => x.name === first.name);
+      track.push({ pad: d.pad, speed: d.speed, gap: Math.hypot(d.pad[0] - s.rocketPad[0], d.pad[1] - s.rocketPad[1]) });
+    }
+    console.log(`  peça "${first.name}": ${(gap0).toFixed(0)} m do veículo na separação; depois ${track.map((x) => x.gap.toFixed(0)).join(', ')} m; velocidade ${track[0].speed.toFixed(0)} m/s`);
+    // O detector de separação roda a 10×; o estágio superior acelera para longe, mas a peça ainda está perto
+    assert(gap0 < 20000, `peça solta longe do veículo logo após a separação (${gap0.toFixed(0)} m)`);
+    assert(track.every((x, i) => i === 0 || x.gap >= track[i - 1].gap - 5), 'a distância entre peça e veículo não cresce de forma contínua');
+    assert(track.every((x) => x.speed > 500), 'peça solta perdeu a velocidade do veículo (queda por quadro)');
+    for (let i = 1; i < track.length; i++) {
+      const step = Math.hypot(track[i].pad[0] - track[i - 1].pad[0], track[i].pad[1] - track[i - 1].pad[1]);
+      // ~0,4 s × 1× a ~2 km/s: no máximo alguns km entre amostras; um teleporte ou queda seria muito maior
+      assert(step < 10000, `salto de ${step.toFixed(0)} m entre amostras da peça solta`);
+    }
     await camera('externalDown');
     await page.waitForTimeout(2500);
     await shot('08-externa-baixo-separacao');

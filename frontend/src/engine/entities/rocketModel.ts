@@ -49,6 +49,13 @@ export interface RocketModel {
   enginePoints: EnginePoint[];
   /** Suportes das câmeras externas, presos ao último estágio (permanecem até a órbita). */
   cameraMounts: { down: TransformNode; up: TransformNode };
+  /**
+   * Unidades que se separam juntas em cada grupo de estágio: o próprio grupo, ou um nó por propulsor lateral
+   * (cada propulsor sai sozinho, empurrado para fora do núcleo).
+   */
+  units: TransformNode[][];
+  /** Direção radial (no plano XZ do foguete) de cada propulsor lateral. */
+  unitOffsets: Map<TransformNode, Vector3>;
   height: number;
   diameter: number;
   dispose(): void;
@@ -94,21 +101,30 @@ export function buildRocket(scene: Scene, mats: MaterialLibrary, vehicle: Launch
     y += seg.len;
   });
 
+  const units: TransformNode[][] = groups.map((g) => [g]);
+  const unitOffsets = new Map<TransformNode, Vector3>();
   if (spec.boosters) {
     const b = spec.boosters;
+    const onlyBoosters = !spec.segments.some((s) => s.group === b.group);
+    if (onlyBoosters) units[b.group] = [];
     for (let k = 0; k < b.count; k++) {
       const a = (k / b.count) * Math.PI * 2;
       const pos = new Vector3(Math.cos(a) * b.offset, 0, Math.sin(a) * b.offset);
+      // Nó próprio de cada propulsor (origem no eixo do foguete: as posições das peças não mudam)
+      const unit = new TransformNode(`booster-unit-${k}`, scene);
+      unit.parent = groups[b.group]!;
+      if (onlyBoosters) units[b.group]!.push(unit);
+      unitOffsets.set(unit, new Vector3(Math.cos(a), 0, Math.sin(a)));
       const body = MeshBuilder.CreateCylinder(`booster-${k}`, { height: b.len, diameterBottom: spec.extras?.includes('soyuz-flare') ? b.dia * 1.15 : b.dia, diameterTop: spec.extras?.includes('soyuz-flare') ? b.dia * 0.45 : b.dia, tessellation: 32 }, scene);
       body.material = mats.get(b.mat);
       body.position = pos.add(new Vector3(0, b.len / 2, 0));
-      body.parent = groups[b.group]!;
+      body.parent = unit;
       const nose = MeshBuilder.CreateCylinder(`booster-nose-${k}`, { height: b.dia * 1.6, diameterBottom: spec.extras?.includes('soyuz-flare') ? b.dia * 0.45 : b.dia, diameterTop: 0.1, tessellation: 32 }, scene);
       nose.material = mats.get(b.nose);
       nose.position = pos.add(new Vector3(0, b.len + b.dia * 0.8, 0));
-      nose.parent = groups[b.group]!;
+      nose.parent = unit;
       const eng = new TransformNode(`booster-eng-${k}`, scene);
-      eng.parent = groups[b.group]!;
+      eng.parent = unit;
       eng.position = pos.add(new Vector3(0, -0.2, 0));
       const count = spec.engines === 9 ? 9 : 1;
       const bellH = buildEngines(scene, mats, eng, count, b.dia, `b${k}`);
@@ -218,7 +234,7 @@ export function buildRocket(scene: Scene, mats: MaterialLibrary, vehicle: Launch
   };
 
   return {
-    root, groups, payload, fairing, fairingHalves, fairingEnvelope, enginePoints, cameraMounts, height: y, diameter: Math.max(...spec.segments.map((s) => s.dia)) + (spec.boosters ? spec.boosters.offset * 2 : 0),
+    root, groups, payload, fairing, fairingHalves, fairingEnvelope, enginePoints, cameraMounts, units, unitOffsets, height: y, diameter: Math.max(...spec.segments.map((s) => s.dia)) + (spec.boosters ? spec.boosters.offset * 2 : 0),
     dispose() { root.dispose(false, false); },
   };
 }

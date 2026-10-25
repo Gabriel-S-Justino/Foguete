@@ -132,6 +132,14 @@ export interface MissionReport {
   generatedAt: string;
 }
 
+export interface OrbitInsertion {
+  altitudeM: number;
+  speedMS: number;
+  flightPathDeg: number;
+  inclinationDeg: number;
+  downrangeM: number;
+}
+
 export interface Campaign {
   id: string;
   sessionId: string | null;
@@ -150,6 +158,11 @@ export interface Campaign {
   checkpointResults: CheckpointResult[];
   activeEffects: string[];
   insertionState: 'captured' | 'high-orbit' | 'flyby' | 'none';
+  /** Estado no fim da subida (base da órbita de estacionamento na fase de operações). */
+  orbitInsertion?: OrbitInsertion | null;
+  /** Operações: relógio da missão (s desde a inserção) e instante em que o jogador comandou a partida. */
+  opsClockS?: number;
+  departureCommandT?: number | null;
   finalCostUSD: number | null;
   report: MissionReport | null;
   seed: number;

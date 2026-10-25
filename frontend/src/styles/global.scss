@@ -133,3 +133,16 @@ a { color: var(--blue); }
 
 @media (max-width: 1400px) { .side-left, .side-right { width: 290px; } .stat .value { font-size: 14px; } }
 @media (max-width: 1100px) { .mission-grid { grid-template-columns: 1fr; } }
+
+/* Cena orbital: controles de foco/escala e rótulos dos corpos */
+.orbit-hud { position: absolute; top: var(--gutter); left: 50%; transform: translateX(-50%); width: min(720px, calc(100vw - 2 * clamp(280px, 22vw, 360px) - 4 * var(--gutter))); padding: 8px 10px; }
+.orbit-labels { z-index: 0; }
+.orbit-label {
+  position: absolute; left: 0; top: 0; white-space: nowrap; font-size: 11px; letter-spacing: 0.04em; color: rgba(214, 226, 240, 0.85);
+  text-shadow: 0 0 3px #000, 0 0 6px #000; will-change: transform;
+  .dot { display: inline-block; width: 8px; height: 8px; margin: 0 5px 0 -4px; vertical-align: -1px; border: 1px solid rgba(214, 226, 240, 0.7); border-radius: 50%; }
+  &.tiny .dot { background: rgba(214, 226, 240, 0.85); width: 5px; height: 5px; margin-left: -2.5px; }
+  &.body-sun .dot { border-color: #ffd27a; }
+  &.destination { color: var(--amber); .dot { border-color: var(--amber); } }
+  &.probe { color: #6fe3ff; .dot { border-radius: 0; transform: rotate(45deg); border-color: #6fe3ff; background: none; } }
+}

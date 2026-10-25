@@ -28,9 +28,12 @@ import { createExplosion } from '../effects/explosion';
 import { createSmokeTrail } from '../effects/smokeTrail';
 import { ProbeModel } from '../entities/probeModel';
 import { buildRocket, fitPayload } from '../entities/rocketModel';
+import { BODIES } from '../orbital-mechanics/orbits';
+import { type DetachedBody, type PadFrame, separate, stepDetached } from '../physics/debris';
 import type { LaunchController } from '../simulation/launchController';
 import { buildStarfield, createBaseScene } from './environment';
 import { createPlanet, launchAzimuthDeg, siteOrientation } from './planets';
+import { createGroupAssigner } from './renderGroups';
 import { terrainTextures } from './terrain';
 
 export type PadCamera = 'overview' | 'tracking' | 'cinematic' | 'externalDown' | 'externalUp';
@@ -53,13 +56,18 @@ export interface LaunchPadController extends SceneController {
     rocketPad: [number, number, number]; tiltDeg: number;
     /** Partículas vivas no rastro de fumaça da trajetória. */
     smokeParticles: number;
+    /** Peças soltas (estágios, propulsores, coifa): posição no referencial da plataforma (m), velocidade (m/s). */
+    detached: { name: string; pad: [number, number, number]; speed: number; landed: boolean }[];
+    /** Grupo de renderização da Terra (1: separado do grupo local, sem disputa de profundidade com o terreno). */
+    earthGroup: number;
   };
 }
 
 const PAD_H = 8;
-const R_EARTH = 6_371_000;
-const MU_EARTH = 3.986004418e14;
-const OMEGA_EARTH = 7.2921159e-5;
+/** Mesmo raio e μ da simulação de subida: a altitude mostrada é a altitude da física. */
+const R_EARTH = BODIES.earth.radius;
+const MU_EARTH = BODIES.earth.mu;
+const OMEGA_EARTH = BODIES.earth.rotationRate ?? 7.2921159e-5;
 /** Distância (m) do foguete à origem da cena que dispara a troca de origem flutuante. */
 const REBASE_M = 2000;
 /** Bases: inclinações altas (polar, heliossíncrona) saem de Vandenberg; as demais do Cabo Canaveral. */
@@ -70,7 +78,12 @@ const ZOOM_MIN = 0.2, ZOOM_MAX = 12;
 const G_SKY = 0, G_PLANET = 1, G_LOCAL = 2;
 const FAR = 3e7;
 
-interface Falling { node: TransformNode; v: Vector3; spin: number; axis: Vector3; drag: number }
+/**
+ * Peça solta: nó-pivô no centro da peça (gira em torno do próprio centro), estado físico no referencial da
+ * plataforma e `fresh` no quadro da separação (a peça começa exatamente onde estava presa e só passa a ser
+ * integrada no quadro seguinte, junto com o veículo).
+ */
+interface Falling { node: TransformNode; body: DetachedBody; spin: number; axis: Vector3; fresh: boolean }
 
 export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, installed: InstalledComponent[]): LaunchPadController {
   const base = createBaseScene(engine, { clear: new Color4(0.45, 0.62, 0.85, 1), target: new Vector3(0, 40, 0), radius: 230, alpha: -Math.PI / 2.6, beta: 1.38, maxZ: FAR, exposure: 1.05, environment: 'outdoor', environmentIntensity: 0.6 });
@@ -96,15 +109,18 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
   const earth = createPlanet(scene, 'earth', R_EARTH * 2, { orientation: siteOrientation(CAPE.lat, CAPE.lon), segments: 256 });
   const earthMat = earth.material as ShaderMaterial;
   earth.position.set(0, -R_EARTH, 0);
-  earth.renderingGroupId = G_PLANET;
+  // Grupos com profundidade própria: a Terra (milhares de km) não divide o buffer de profundidade com o
+  // terreno e a plataforma (detalhes de centímetros); sem isso a superfície da Terra, poucos metros abaixo
+  // do terreno, "vencia" o teste de profundidade em quadros alternados durante a subida
+  const groups = createGroupAssigner(scene, G_LOCAL);
+  groups.reserve(earth, G_PLANET);
   for (const m of earth.getChildMeshes()) {
-    m.renderingGroupId = G_PLANET;
     // Casca da atmosfera: a oclusão pelo planeta é feita no shader (ver planets.ts)
     if (m.material) m.material.depthFunction = Constants.ALWAYS;
   }
   const stars = buildStarfield(scene, 600000, 2600, 0.0011);
   stars.scaling.setAll(0.45);
-  stars.renderingGroupId = G_SKY;
+  groups.reserve(stars, G_SKY);
   stars.alwaysSelectAsActiveMesh = true;
   const starMat = stars.material as StandardMaterial;
   starMat.disableDepthWrite = true;
@@ -129,7 +145,12 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
   ocean.material = om;
   const apron = MeshBuilder.CreateGround('apron', { width: 280, height: 280 }, scene);
   apron.position.y = 0.08;
-  apron.material = mats.get('asphalt');
+  // Superfícies quase coplanares com o terreno: deslocamento de profundidade (polygon offset), que se mede
+  // em passos do próprio buffer e por isso continua valendo com a câmera a quilômetros de distância
+  const apronMat = mats.variant('asphalt', 'apronMat');
+  apronMat.zOffset = -2;
+  apronMat.zOffsetUnits = -4;
+  apron.material = apronMat;
   apron.receiveShadows = true;
   const padBase = MeshBuilder.CreateCylinder('padBase', { diameter: 120, height: PAD_H, tessellation: 8 }, scene);
   padBase.position.y = PAD_H / 2;
@@ -137,7 +158,10 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
   padBase.receiveShadows = true;
   const trench = MeshBuilder.CreateBox('flameTrench', { width: 14, depth: 70, height: 1 }, scene);
   trench.position = new Vector3(0, PAD_H - 0.4, 30);
-  trench.material = mats.get('sootBlack');
+  const trenchMat = mats.variant('sootBlack', 'trenchMat');
+  trenchMat.zOffset = -1;
+  trenchMat.zOffsetUnits = -2;
+  trench.material = trenchMat;
   const mount = MeshBuilder.CreateBox('launchMount', { width: 26, depth: 26, height: 6 }, scene);
   mount.position.y = PAD_H + 3;
   mount.material = mats.get('darkSteel');
@@ -250,10 +274,6 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
   smokeColor.a = Math.min(0.82, smokeColor.a * (0.95 + 0.5 * (firstPlume?.smokeAmount ?? 0.7)));
   const smoke = createSmokeTrail(scene, { texture: smokeTexture(scene), color: smokeColor, denseAltM: 15000, maxAltM: 45000 });
 
-  // Grupos de renderização: tudo o que não é céu nem planeta é cena local
-  const localGroup = (m: { renderingGroupId: number }) => { m.renderingGroupId = G_LOCAL; };
-  for (const m of scene.meshes) if (m !== stars && m !== earth && m.parent !== earth) localGroup(m);
-  const meshObs = scene.onNewMeshAddedObservable.add(localGroup);
 
   // ── Câmeras ──
   const groundCamPad = new Vector3(-420, PAD_H + 4, -560);
@@ -263,7 +283,9 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
   const mountedCam = (name: string, parent: TransformNode) => {
     const c = new UniversalCamera(name, Vector3.Zero(), scene);
     c.parent = parent;
-    c.minZ = 0.05;
+    // A câmera fica a ~0,5 m do costado: plano próximo de 0,25 m (antes 0,05 m, que deixava o buffer de
+    // profundidade sem resolução para o solo a poucos km)
+    c.minZ = 0.25;
     c.maxZ = FAR;
     c.fov = 1.25;
     c.inputs.clear();
@@ -286,23 +308,23 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
   let fairingDropped = false;
   let exploded = false;
   const falling: Falling[] = [];
+  const frame: PadFrame = { mu: MU_EARTH, radius: R_EARTH, rate: OMEGA_EARTH * Math.cos((28.5 * Math.PI) / 180) };
+  const rho = (h: number) => atmosphere(Math.max(0, h)).densityKgM3;
   let armsRetract = 0;
   let clampsOpen = 0;
   let tilt = 0;
   /** Posição do nó de voo no referencial da plataforma (m, float64) e velocidade nesse referencial. */
   const padPos = new Vector3(0, restY, 0);
   const padVel = Vector3.Zero();
-  /** Rotação do referencial da plataforma no plano da órbita (ω·cos i), usada nas forças de Coriolis. */
-  let padRate = OMEGA_EARTH * Math.cos((28.5 * Math.PI) / 180);
   let coast: 'none' | 'orbit' | 'ballistic' = 'none';
-  let orbitRate = 0;
+  /** Estado do veículo depois do fim da simulação de subida (órbita ou queda balística). */
+  let coastBody: DetachedBody | null = null;
   let cinematicAlpha = -Math.PI / 1.6;
   let lastT = -1;
   /** Abertura dos painéis em andamento (fração inicial e início em relógio real; dura 8 s). */
   let deployT: { from: number; t0: number } | null = null;
   /** Depois do comando de abertura, o rastreio enquadra a sonda (painéis visíveis) em vez do veículo inteiro. */
   let probeFocus = false;
-  const tmp = new Vector3();
 
   const groupForStage = (stageIndex: number): number[] => {
     // Estágios paralelos (propulsores) queimam junto com o núcleo
@@ -312,15 +334,6 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
     return active;
   };
 
-  /** Gravidade central + Coriolis e centrífuga do referencial da plataforma (que gira com a Terra). Devolve a altitude. */
-  const accel = (p: Vector3, v: Vector3, out: Vector3) => {
-    const cx = p.x, cy = p.y + R_EARTH, cz = p.z;
-    const r = Math.hypot(cx, cy, cz);
-    const g = -MU_EARTH / (r * r * r);
-    const w = padRate;
-    out.set(g * cx + w * w * cx - 2 * w * v.y, g * cy + w * w * cy + 2 * w * v.x, g * cz);
-    return r - R_EARTH;
-  };
 
   /** Troca de origem: o cenário, as partículas soltas no mundo e o rastro acompanham. */
   const rebase = () => {
@@ -352,11 +365,28 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
   };
   canvas?.addEventListener('wheel', onWheel, { passive: false });
 
-  /** Solta uma peça: ela passa a pertencer ao mundo e segue com a velocidade do veículo mais o empurrão. */
+  /**
+   * Solta uma peça sem mudar a posição dela no mundo: um nó-pivô é criado no centro da peça, sob a raiz do
+   * mundo, e a peça passa a ser filha dele (setParent preserva a transformação global). A física começa
+   * com a posição e a velocidade do veículo neste quadro, mais a velocidade relativa `push` do mecanismo.
+   */
   const detach = (node: TransformNode, push: Vector3, spin: number, drag: number, axis = Axis.Z) => {
-    node.setParent(worldRoot);
-    falling.push({ node, v: padVel.add(push), spin, axis, drag });
+    worldRoot.computeWorldMatrix(true);
+    node.computeWorldMatrix(true);
+    const meshes = node.getChildMeshes();
+    meshes.forEach((m) => m.computeWorldMatrix(true));
+    const { min, max } = node.getHierarchyBoundingVectors(true);
+    const center = meshes.length ? min.add(max).scale(0.5) : node.getAbsolutePosition().clone();
+    const pivot = new TransformNode(`${node.name}-solto`, scene);
+    pivot.parent = worldRoot;
+    // Raiz do mundo em −origem: posição local da peça = posição na cena + origem (referencial da plataforma)
+    pivot.position.copyFrom(center).addInPlace(origin);
+    pivot.computeWorldMatrix(true);
+    node.setParent(pivot);
+    falling.push({ node: pivot, body: separate(pivot.position, padVel, push, drag), spin, axis, fresh: true });
   };
+  /** Unidades separáveis de um grupo de estágio: cada propulsor lateral sai sozinho; o núcleo sai inteiro. */
+  const unitsOf = (groupIndex: number): TransformNode[] => rocket.units[groupIndex] ?? [];
 
   const explode = (at: Vector3) => {
     exploded = true;
@@ -375,7 +405,7 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
       const o = siteOrientation(site.lat, site.lon, launchAzimuthDeg(incl, site.lat));
       earthMat.setMatrix('orient', o);
       earthMat.setMatrix('orientInv', o.clone().transpose());
-      padRate = OMEGA_EARTH * Math.cos((incl * Math.PI) / 180);
+      frame.rate = OMEGA_EARTH * Math.cos((incl * Math.PI) / 180);
     },
     setCamera(m) {
       mode = m;
@@ -403,6 +433,8 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
         mode, zoom: zoomF, position: [p.x + origin.x, p.y + origin.y, p.z + origin.z], fov: cam.fov,
         rocketPad: [padPos.x, padPos.y, padPos.z], tiltDeg: (tilt * 180) / Math.PI,
         smokeParticles: smoke.system.getActiveCount(),
+        detached: falling.map((f) => ({ name: f.node.name, pad: [f.body.p.x, f.body.p.y, f.body.p.z] as [number, number, number], speed: Math.hypot(f.body.v.x, f.body.v.y, f.body.v.z), landed: f.body.landed })),
+        earthGroup: earth.renderingGroupId,
       };
     },
     update(dt) {
@@ -429,23 +461,20 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
         if (lastT >= 0 && tel.t > lastT) simDt = tel.t - lastT;
         lastT = tel.t;
         if (!active && !prelaunch && alt > 1) {
-          // Fim da simulação de subida: em órbita o veículo segue em altitude constante; em aborto ou
-          // falha cai em trajetória balística
+          // Fim da simulação de subida: o veículo segue pela mesma física (gravidade central e o referencial
+          // girante da plataforma), partindo do estado do fim da queima. Em órbita isso é a própria órbita
+          // (perigeu e apogeu da inserção); em aborto ou falha é uma queda balística
           coast = snap.state === 'orbit' ? 'orbit' : 'ballistic';
-          orbitRate = horiz / r;
+          coastBody = separate(padPos, padVel, Vector3.Zero(), coast === 'orbit' ? 0 : 4e-4);
         }
       } else if (!exploded) {
         simDt = dt * Math.max(1, snap.timeWarp);
-        if (coast === 'orbit') {
-          const r = Math.hypot(padPos.x, padPos.y + R_EARTH);
-          theta += orbitRate * simDt;
-          padPos.set(r * Math.sin(theta), r * Math.cos(theta) - R_EARTH, 0);
-          const v = orbitRate * r;
-          padVel.set(Math.cos(theta) * v, -Math.sin(theta) * v, 0);
-        } else {
-          const h = accel(padPos, padVel, tmp);
-          padVel.addInPlace(tmp.scale(simDt));
-          padPos.addInPlace(padVel.scale(simDt));
+        const body = coastBody!;
+        const h = stepDetached(frame, body, simDt, rho);
+        padPos.set(body.p.x, body.p.y, body.p.z);
+        padVel.set(body.v.x, body.v.y, body.v.z);
+        theta = Math.atan2(padPos.x, padPos.y + R_EARTH);
+        if (coast === 'ballistic') {
           flightNode.rotate(Axis.Z, 0.25 * dt, Space.LOCAL);
           if (h < PAD_H) {
             rebase();
@@ -464,7 +493,9 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
       // local a um alcance d está girado d/R em relação ao vertical da plataforma). Suavizado: sem saltos.
       if (!exploded && coast !== 'ballistic') {
         let target = tilt;
-        if (coast === 'orbit') target = Math.PI / 2 + theta;
+        // Em órbita, o conjunto estágio superior + sonda mantém atitude prógrada (eixo no vetor velocidade),
+        // como no costeio antes da separação: a atitude segue a velocidade calculada, não o contrário
+        if (coast === 'orbit') target = Math.atan2(padVel.x, padVel.y);
         else if (active && alt > 0.5) target = Math.PI / 2 - (tel.pitchDeg * Math.PI) / 180 + theta;
         tilt += (target - tilt) * Math.min(1, dt * 3);
         flightNode.rotation.z = -tilt;
@@ -479,8 +510,8 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
       // Terminação de voo: destruição controlada no ar
       if (!exploded && ctrl.flightOutcome === 'flight-terminated') {
         explode(flightNode.position.clone());
-        rocket.groups.forEach((g, i) => detach(g, new Vector3((i - 1) * 6, 4 + i * 2, (i % 2 ? 1 : -1) * 4), (i % 2 ? 1 : -1) * 0.8, 4e-4));
-        if (rocket.fairing) detach(rocket.fairing, new Vector3(5, 6, -3), 1.2, 3e-3);
+        rocket.groups.forEach((g, i) => { if (g.isDescendantOf(flightNode)) detach(g, new Vector3((i - 1) * 6, 4 + i * 2, (i % 2 ? 1 : -1) * 4), (i % 2 ? 1 : -1) * 0.8, 4e-4); });
+        if (rocket.fairing && !fairingDropped) detach(rocket.fairing, new Vector3(5, 6, -3), 1.2, 3e-3);
         exhausts.forEach((e) => e.fx.stop());
       }
 
@@ -494,8 +525,22 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
       // do veículo, recebe um empurrão para trás pelo eixo e fica para trás porque o resto continua acelerando
       const axisDir = new Vector3(Math.sin(tilt), Math.cos(tilt), 0);
       while (separated < snap.stageSeparatedCount && !exploded) {
-        const g = rocket.groups[separated];
-        if (g && separated < rocket.groups.length - 1) detach(g, axisDir.scale(-3).add(new Vector3(0, 0, separated % 2 ? 0.8 : -0.8)), (separated % 2 ? 1 : -1) * 0.06, 2e-4);
+        if (separated < rocket.groups.length - 1) {
+          const units = unitsOf(separated);
+          const lateral = new Vector3(Math.cos(tilt), -Math.sin(tilt), 0);
+          units.forEach((u, k) => {
+            if (units.length > 1) {
+              // Propulsores laterais: empurrados para fora (radialmente) pelos mecanismos de separação,
+              // girando para longe do núcleo
+              const out = rocket.unitOffsets.get(u) ?? new Vector3(k % 2 ? -1 : 1, 0, 0);
+              const radial = lateral.scale(out.x).add(new Vector3(0, 0, out.z)).normalize();
+              detach(u, radial.scale(1.5).add(axisDir.scale(-0.5)), 0.05, 3e-4, Vector3.Cross(axisDir, radial).normalize());
+            } else {
+              // Estágio inteiro: molas/retrofoguetes dão ~1 m/s para trás pelo eixo
+              detach(u, axisDir.scale(-1).add(new Vector3(0, 0, separated % 2 ? 0.15 : -0.15)), (separated % 2 ? 1 : -1) * 0.02, 2e-4);
+            }
+          });
+        }
         separated++;
       }
       if (!fairingDropped && !exploded && snap.events.some((e) => e.id === 'fairing') && rocket.fairing) {
@@ -507,15 +552,15 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
         });
       }
       for (const fl of falling) {
-        if (!fl.node.isEnabled() || simDt <= 0) continue;
-        const h = accel(fl.node.position, fl.v, tmp);
-        fl.v.addInPlace(tmp.scale(simDt));
-        // Arrasto proporcional à densidade do ar (coeficiente balístico aproximado de cada peça)
-        const rho = atmosphere(Math.max(0, h)).densityKgM3;
-        if (rho > 1e-7) fl.v.scaleInPlace(1 / (1 + fl.drag * rho * fl.v.length() * simDt));
-        fl.node.position.addInPlace(fl.v.scale(simDt));
+        if (!fl.node.isEnabled()) continue;
+        // No quadro da separação a peça fica onde estava presa (o veículo já avançou neste quadro); daí em
+        // diante ela é integrada com o mesmo passo de tempo simulado do veículo
+        if (fl.fresh) { fl.fresh = false; continue; }
+        if (simDt <= 0) continue;
+        stepDetached(frame, fl.body, simDt, rho);
+        fl.node.position.set(fl.body.p.x, fl.body.p.y, fl.body.p.z);
         fl.node.rotate(fl.axis, fl.spin * simDt, Space.LOCAL);
-        if (h < 0 || Vector3.Distance(fl.node.position, padPos) > 600000) fl.node.setEnabled(false);
+        if (fl.body.landed || Vector3.Distance(fl.node.position, padPos) > 600000) fl.node.setEnabled(false);
       }
 
       // Pluma: empuxo e pressão ambiente vindos da simulação
@@ -549,8 +594,12 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
         const aim = center.add(new Vector3((Math.random() - 0.5) * shake * 2, (Math.random() - 0.5) * shake * 2, 0));
         groundCam.setTarget(aim);
         const dist = Vector3.Distance(groundCam.position, center);
-        const frame = Math.max(rocket.height * 1.6, alt < 200 ? towerH * 2.2 : 0);
-        groundCam.fov = Math.max(0.0015, Math.min(1.2, (2 * Math.atan(frame / 2 / dist)) / zoomF));
+        const frameH = Math.max(rocket.height * 1.6, alt < 200 ? towerH * 2.2 : 0);
+        groundCam.fov = Math.max(0.0015, Math.min(1.2, (2 * Math.atan(frameH / 2 / dist)) / zoomF));
+        // Plano próximo proporcional à distância quando o campo de visão é estreito (só o foguete aparece):
+        // a resolução de profundidade cai com z²/near, e com near = 2 m as peças do foguete a 100 km de
+        // distância disputavam profundidade entre si
+        groundCam.minZ = groundCam.fov < 0.3 ? Math.max(2, Math.min(dist * 0.02, 5000)) : 2;
       } else if (mode === 'tracking' || mode === 'cinematic') {
         // "Para cima" da câmera = vertical local sob o foguete: o horizonte fica nivelado e a inclinação
         // do veículo aparece em relação a ele durante toda a subida
@@ -559,7 +608,7 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
         arc.setTarget(focusProbe ? probe.root.getAbsolutePosition().clone() : center.clone(), false, true, true);
         const baseR = focusProbe ? 32 : mode === 'tracking' ? Math.max(rocket.height * 2.6, 140) : rocket.height * 1.4;
         arc.radius = baseR / zoomF;
-        arc.minZ = Math.max(0.1, arc.radius * 0.004);
+        arc.minZ = Math.max(0.1, arc.radius * 0.02);
         arc.upperBetaLimit = alt > 300 ? Math.PI - 0.15 : Math.PI / 2 - 0.02;
         if (mode === 'cinematic') {
           cinematicAlpha += dt * 0.08;
@@ -600,7 +649,7 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
     },
     dispose() {
       canvas?.removeEventListener('wheel', onWheel);
-      scene.onNewMeshAddedObservable.remove(meshObs);
+      groups.dispose();
       arc.detachControl();
       exhausts.forEach((e) => e.fx.dispose());
       smoke.dispose();

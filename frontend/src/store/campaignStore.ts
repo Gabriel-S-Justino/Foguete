@@ -6,7 +6,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { AssistanceLevel, MissionId, TestCampaignId } from '../types/catalog';
 import type {
-  Campaign, CampaignStage, CheckpointResult, FlightEventRecord, FlightOutcome, ManeuverRecord, MissionPlan, MissionReport,
+  Campaign, CampaignStage, CheckpointResult, FlightEventRecord, FlightOutcome, OrbitInsertion, ManeuverRecord, MissionPlan, MissionReport,
 } from '../types/campaign';
 import { catalogVersions, findVehicle, getMission } from '../engine/catalog';
 import { canInstall, canRemove } from '../engine/entities/spacecraft';
@@ -95,7 +95,9 @@ interface Store {
   selectVehicle(id: string): void;
   updatePlan(patch: Partial<MissionPlan>): void;
   runValidation(): void;
-  recordLaunch(outcome: FlightOutcome, events: FlightEventRecord[], effects: string[]): void;
+  recordLaunch(outcome: FlightOutcome, events: FlightEventRecord[], effects: string[], insertion?: OrbitInsertion | null): void;
+  /** Operações: relógio da missão e comando de partida (persistidos para retomar a missão). */
+  setOpsClock(t: number, departureCommandT?: number | null): void;
   recordManeuver(record: ManeuverRecord, event: FlightEventRecord, propellantRemainingKg: number, insertion?: Campaign['insertionState']): void;
   recordEvent(event: FlightEventRecord, effect?: string): void;
   recordCheckpoint(result: CheckpointResult): void;
@@ -210,11 +212,12 @@ export const useCampaign = create<Store>()(persist((set, get) => {
       });
     },
 
-    recordLaunch(outcome, events, effects) {
+    recordLaunch(outcome, events, effects, insertion) {
       patch((x) => {
         const mission = x.missionId ? getMission(x.missionId) : null;
         return {
           ...x, flightOutcome: outcome, flightEvents: [...x.flightEvents, ...events], activeEffects: [...new Set([...x.activeEffects, ...effects])],
+          orbitInsertion: outcome === 'orbit' ? insertion ?? null : null, opsClockS: 0, departureCommandT: null,
           propellantRemainingKg: x.spacecraft.propellantKg,
           stage: outcome === 'orbit' ? 'flight' : 'report',
           insertionState: outcome === 'orbit' && mission?.planning.type === 'earth-orbit' ? 'captured' : 'none',
@@ -260,10 +263,13 @@ export const useCampaign = create<Store>()(persist((set, get) => {
       set({ history: [...get().history, { ...report, attempt: c.attempt }].slice(-20) });
     },
 
+    setOpsClock(t, departureCommandT) {
+      patch((x) => ({ ...x, opsClockS: t, ...(departureCommandT !== undefined ? { departureCommandT } : {}) }));
+    },
     newAttempt() {
       patch((x) => ({
         ...x, stage: 'hangar', flightOutcome: 'pending', flightEvents: [], maneuvers: [], propellantRemainingKg: null, checkpointResults: [],
-        activeEffects: [], insertionState: 'none', finalCostUSD: null, report: null, validation: null, attempt: x.attempt + 1,
+        activeEffects: [], insertionState: 'none', orbitInsertion: null, opsClockS: 0, departureCommandT: null, finalCostUSD: null, report: null, validation: null, attempt: x.attempt + 1,
         seed: Math.floor(Math.random() * 2 ** 31), versions: { ...catalogVersions },
       }));
     },

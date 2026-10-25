@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useScene } from '../../components/useScene';
 import { fmtMs, SourceRef, Stat, StatusChip } from '../../components/ui';
 import { getMission, simulationConfig } from '../../engine/catalog';
@@ -8,7 +8,8 @@ import { createOrbitScene } from '../../engine/scenes/otherScenes';
 import { useCampaign } from '../../store/campaignStore';
 import type { RangeParam } from '../../types/catalog';
 import type { EarthOrbitPlan, JupiterPlan, LunarPlan, MissionPlan } from '../../types/campaign';
-import { configureOrbitView } from './orbitView';
+import { OrbitHud } from '../simulation/OrbitHud';
+import { missionTimeline } from './orbitView';
 
 function Slider({ label, unit, range, value, step = 1, onChange, testId, hint }: { label: string; unit: string; range: RangeParam; value: number; step?: number; onChange: (v: number) => void; testId?: string; hint?: string }) {
   return (
@@ -31,7 +32,25 @@ export function PlanningScreen() {
   const assist = simulationConfig.assistance[campaign.assistance];
   const ctx = useMemo(() => validateMission({ mission, config: campaign.spacecraft, vehicleId: campaign.vehicleId, plan, assistance: campaign.assistance }).context, [mission, campaign.spacecraft, campaign.vehicleId, plan, campaign.assistance]);
   const profile = ctx.profile;
-  useEffect(() => { if (ctrl) configureOrbitView(ctrl, plan, profile); }, [ctrl, plan, profile]);
+  // Prévia da trajetória física (inserção nominal); a construção espera os controles pararem de mexer
+  const [trajNote, setTrajNote] = useState<string[]>([]);
+  useEffect(() => {
+    if (!ctrl) return;
+    const id = setTimeout(() => {
+      try {
+        const tl = missionTimeline(mission, plan, profile);
+        ctrl.setMission({ timeline: tl, vehicle: null, separationT: null });
+        ctrl.setClock({ running: false, holdAt: null });
+        // Mostra a transferência inteira: o instante logo depois da partida (ou a órbita, na missão terrestre)
+        ctrl.setTime(tl.departure ? tl.departure.t + 3600 : 0);
+        ctrl.setFocus('trajectory');
+        setTrajNote(tl.notes);
+      } catch (err) {
+        setTrajNote([`Trajetória não calculada para estes parâmetros (${(err as Error).message}).`]);
+      }
+    }, 250);
+    return () => clearTimeout(id);
+  }, [ctrl, mission, plan, profile]);
   const set = (patch: Partial<MissionPlan>) => update(patch);
   const dvAvail = ctx.summary.deltaVAvailableMS;
 
@@ -71,6 +90,9 @@ export function PlanningScreen() {
           <ul className="small muted" style={{ paddingLeft: 18, lineHeight: 1.45 }}>{mission.knownLimitations.map((n) => <li key={n}>{n}</li>)}</ul>
         </div>
       </aside>
+      <OrbitHud ctrl={ctrl}>
+        {trajNote.map((n) => <div key={n} className="muted" data-testid="trajectory-note">{n}</div>)}
+      </OrbitHud>
       <div className="bottom-bar">
         <Stat label="Perfil do lançador" value={profile.launchProfile} sub={profile.c3KmS2 !== null ? `C3 ${profile.c3KmS2.toFixed(1)} km²/s²` : `${profile.targetAltitudeKm} km, ${profile.launchInclinationDeg.toFixed(1)}°`} />
         <Stat label="Δv necessário" value={fmtMs(profile.requiredDvMS)} sub={`margem ${profile.marginPct}%`} meter={dvAvail > 0 ? profile.requiredDvMS / dvAvail : 1.1} testId="stat-dv" />
