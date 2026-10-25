@@ -308,9 +308,12 @@ function parkingState(input: TimelineInput, epochMs: number, raanDeg: number): S
   const rHat = rotate(node, nrm, u);
   const tHat = cross(nrm, rHat);
   const r = BODIES.earth.radius + ins.altitudeM;
-  const g = ins.flightPathDeg * DEG;
+  // Estado não ligado (velocidade de escape) não tem volta a contar: vira órbita circular na mesma altitude
+  const bound = Number.isFinite(ins.speedMS) && ins.speedMS ** 2 < (2 * BODIES.earth.mu) / r;
+  const speed = bound ? ins.speedMS : Math.sqrt(BODIES.earth.mu / r);
+  const g = bound ? ins.flightPathDeg * DEG : 0;
   const rEq = scale(rHat, r);
-  const vEq = add(scale(tHat, ins.speedMS * Math.cos(g)), scale(rHat, ins.speedMS * Math.sin(g)));
+  const vEq = add(scale(tHat, speed * Math.cos(g)), scale(rHat, speed * Math.sin(g)));
   void epochMs;
   return { r: equatorialToEcliptic(rEq), v: equatorialToEcliptic(vEq) };
 }

@@ -121,6 +121,13 @@ describe('volta completa na órbita da Terra', () => {
     // A queima é na próxima passagem pelo ponto de queima (menos de um período depois do comando)
     expect(late.departure!.t - 30000).toBeLessThan(late.parking.period * 1.05);
   });
+  it('inserção em velocidade de escape não quebra a linha do tempo: vira órbita circular na mesma altitude', () => {
+    const tl = buildTimeline(lunar({ insertion: { ...ins, speedMS: 11500 } }));
+    expect(Number.isFinite(tl.parking.period)).toBe(true);
+    expect(Number.isFinite(tl.parking.revolutionT)).toBe(true);
+    expect(tl.parking.perigeeAltM / 1000).toBeCloseTo(200, 0);
+    expect(tl.departure!.t).toBeGreaterThan(tl.parking.revolutionT);
+  });
   it('a missão de órbita terrestre não tem partida: só a volta antes do ajuste', () => {
     const tl = buildTimeline({ kind: 'earth-orbit', launchDate: '2027-06-15', insertion: { ...ins, altitudeM: 705e3, speedMS: 7504, inclinationDeg: 98.2 }, parkingAltitudeKm: 705, launchInclinationDeg: 98.2, localTimeOfNode: '10:30', maneuverIds: ['trim'] });
     expect(tl.departure).toBeNull();

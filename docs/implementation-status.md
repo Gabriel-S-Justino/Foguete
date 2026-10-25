@@ -98,7 +98,7 @@ Cada item abaixo teve a causa encontrada antes da correção. Detalhes da físic
 |---|---|---|
 | Typecheck | `npm run typecheck` | sem erros |
 | Lint | `npm run lint` | sem erros |
-| Unitários | `npm test` (Vitest) | **107/107**. Novos: 20 de trajetória (Kepler/Lambert, efemérides contra a NASA, atitude, volta completa, partida só depois da volta e do comando, Lua, Júpiter direta e ΔV-EGA, continuidade nos remendos) e 7 de separação (estado inicial exato, sem salto por quadro, gravidade, arrasto, órbita estável, queda suborbital) |
+| Unitários | `npm test` (Vitest) | **108/108**. Novos: 21 de trajetória (inclui inserção em velocidade de escape) (Kepler/Lambert, efemérides contra a NASA, atitude, volta completa, partida só depois da volta e do comando, Lua, Júpiter direta e ΔV-EGA, continuidade nos remendos) e 7 de separação (estado inicial exato, sem salto por quadro, gravidade, arrasto, órbita estável, queda suborbital) |
 | Build de produção | `npm run build` | ok |
 | Backend, SQLite | `pytest` | **39/39** (backend não mudou) |
 | E2E Lua, sem backend | `E2E_MISSION=lunar-he3 npm run test:e2e` | ok: sem malha marcadora, vista da sonda a 22 m com o estágio acoplado, volta completa em 88 min (360°), partida bloqueada antes, TLI, separação, painéis, escalas, TCM e LOI no instante calculado (LOI com atitude retrógrada, 50 km sobre a Lua), **sucesso** (ciência 95) |
