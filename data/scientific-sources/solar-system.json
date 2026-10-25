@@ -1,0 +1,218 @@
+{
+ "version": "2026.10.25",
+ "notes": "Dados físicos dos planetas para a visualização do sistema solar e a trajetória da missão. Raios médios: NASA Science \"Solar System Sizes\"; diâmetros equatoriais e distâncias médias: NASA Science \"Planet Sizes and Locations in Our Solar System\"; período de rotação e obliquidade: NSSDCA Planetary Fact Sheet; elementos orbitais: JPL \"Approximate Positions of the Planets\", tabela 1 (válida de 1800 a 2050). Posições heliocêntricas no referencial da eclíptica J2000.",
+ "sources": [
+  "nasa-solar-system-sizes",
+  "nasa-planet-sizes-locations",
+  "nssdc-factsheets",
+  "jpl-approx-positions"
+ ],
+ "sun": {
+  "name": "Sol",
+  "radiusKm": 695700,
+  "sourceId": "jpl-astro-par"
+ },
+ "moon": {
+  "name": "Lua",
+  "meanRadiusKm": 1737.4,
+  "semiMajorAxisKm": 384400,
+  "inclinationToEclipticDeg": 5.145,
+  "siderealPeriodDays": 27.3217,
+  "sourceId": "nssdc-factsheets"
+ },
+ "obliquityJ2000Deg": 23.43928,
+ "planets": {
+  "mercury": {
+   "name": "Mercúrio",
+   "meanRadiusKm": 2440,
+   "equatorialDiameterKm": 4880,
+   "averageDistanceFromSunKm": 58000000.0,
+   "rotationPeriodH": 1407.6,
+   "obliquityDeg": 0.034,
+   "elementsJ2000": {
+    "aAU": 0.38709927,
+    "e": 0.20563593,
+    "iDeg": 7.00497902,
+    "LDeg": 252.2503235,
+    "longPeriDeg": 77.45779628,
+    "longNodeDeg": 48.33076593
+   },
+   "ratesPerCentury": {
+    "aAU": 3.7e-07,
+    "e": 1.906e-05,
+    "iDeg": -0.00594749,
+    "LDeg": 149472.67411175,
+    "longPeriDeg": 0.16047689,
+    "longNodeDeg": -0.12534081
+   }
+  },
+  "venus": {
+   "name": "Vênus",
+   "meanRadiusKm": 6052,
+   "equatorialDiameterKm": 12104,
+   "averageDistanceFromSunKm": 108000000.0,
+   "rotationPeriodH": -5832.5,
+   "obliquityDeg": 177.4,
+   "elementsJ2000": {
+    "aAU": 0.72333566,
+    "e": 0.00677672,
+    "iDeg": 3.39467605,
+    "LDeg": 181.9790995,
+    "longPeriDeg": 131.60246718,
+    "longNodeDeg": 76.67984255
+   },
+   "ratesPerCentury": {
+    "aAU": 3.9e-06,
+    "e": -4.107e-05,
+    "iDeg": -0.0007889,
+    "LDeg": 58517.81538729,
+    "longPeriDeg": 0.00268329,
+    "longNodeDeg": -0.27769418
+   }
+  },
+  "earth": {
+   "name": "Terra",
+   "meanRadiusKm": 6371,
+   "equatorialDiameterKm": 12756,
+   "averageDistanceFromSunKm": 149700000.0,
+   "rotationPeriodH": 23.9345,
+   "obliquityDeg": 23.44,
+   "elementsJ2000": {
+    "aAU": 1.00000261,
+    "e": 0.01671123,
+    "iDeg": -1.531e-05,
+    "LDeg": 100.46457166,
+    "longPeriDeg": 102.93768193,
+    "longNodeDeg": 0.0
+   },
+   "ratesPerCentury": {
+    "aAU": 5.62e-06,
+    "e": -4.392e-05,
+    "iDeg": -0.01294668,
+    "LDeg": 35999.37244981,
+    "longPeriDeg": 0.32327364,
+    "longNodeDeg": 0.0
+   }
+  },
+  "mars": {
+   "name": "Marte",
+   "meanRadiusKm": 3390,
+   "equatorialDiameterKm": 6792,
+   "averageDistanceFromSunKm": 227900000.0,
+   "rotationPeriodH": 24.6229,
+   "obliquityDeg": 25.19,
+   "elementsJ2000": {
+    "aAU": 1.52371034,
+    "e": 0.0933941,
+    "iDeg": 1.84969142,
+    "LDeg": -4.55343205,
+    "longPeriDeg": -23.94362959,
+    "longNodeDeg": 49.55953891
+   },
+   "ratesPerCentury": {
+    "aAU": 1.847e-05,
+    "e": 7.882e-05,
+    "iDeg": -0.00813131,
+    "LDeg": 19140.30268499,
+    "longPeriDeg": 0.44441088,
+    "longNodeDeg": -0.29257343
+   }
+  },
+  "jupiter": {
+   "name": "Júpiter",
+   "meanRadiusKm": 69911,
+   "equatorialDiameterKm": 142984,
+   "averageDistanceFromSunKm": 778000000.0,
+   "rotationPeriodH": 9.925,
+   "obliquityDeg": 3.13,
+   "elementsJ2000": {
+    "aAU": 5.202887,
+    "e": 0.04838624,
+    "iDeg": 1.30439695,
+    "LDeg": 34.39644051,
+    "longPeriDeg": 14.72847983,
+    "longNodeDeg": 100.47390909
+   },
+   "ratesPerCentury": {
+    "aAU": -0.00011607,
+    "e": -0.00013253,
+    "iDeg": -0.00183714,
+    "LDeg": 3034.74612775,
+    "longPeriDeg": 0.21252668,
+    "longNodeDeg": 0.20469106
+   }
+  },
+  "saturn": {
+   "name": "Saturno",
+   "meanRadiusKm": 58232,
+   "equatorialDiameterKm": 120536,
+   "averageDistanceFromSunKm": 1400000000.0,
+   "rotationPeriodH": 10.656,
+   "obliquityDeg": 26.73,
+   "elementsJ2000": {
+    "aAU": 9.53667594,
+    "e": 0.05386179,
+    "iDeg": 2.48599187,
+    "LDeg": 49.95424423,
+    "longPeriDeg": 92.59887831,
+    "longNodeDeg": 113.66242448
+   },
+   "ratesPerCentury": {
+    "aAU": -0.0012506,
+    "e": -0.00050991,
+    "iDeg": 0.00193609,
+    "LDeg": 1222.49362201,
+    "longPeriDeg": -0.41897216,
+    "longNodeDeg": -0.28867794
+   }
+  },
+  "uranus": {
+   "name": "Urano",
+   "meanRadiusKm": 25362,
+   "equatorialDiameterKm": 51118,
+   "averageDistanceFromSunKm": 2900000000.0,
+   "rotationPeriodH": -17.24,
+   "obliquityDeg": 97.77,
+   "elementsJ2000": {
+    "aAU": 19.18916464,
+    "e": 0.04725744,
+    "iDeg": 0.77263783,
+    "LDeg": 313.23810451,
+    "longPeriDeg": 170.9542763,
+    "longNodeDeg": 74.01692503
+   },
+   "ratesPerCentury": {
+    "aAU": -0.00196176,
+    "e": -4.397e-05,
+    "iDeg": -0.00242939,
+    "LDeg": 428.48202785,
+    "longPeriDeg": 0.40805281,
+    "longNodeDeg": 0.04240589
+   }
+  },
+  "neptune": {
+   "name": "Netuno",
+   "meanRadiusKm": 24622,
+   "equatorialDiameterKm": 49528,
+   "averageDistanceFromSunKm": 4500000000.0,
+   "rotationPeriodH": 16.11,
+   "obliquityDeg": 28.32,
+   "elementsJ2000": {
+    "aAU": 30.06992276,
+    "e": 0.00859048,
+    "iDeg": 1.77004347,
+    "LDeg": -55.12002969,
+    "longPeriDeg": 44.96476227,
+    "longNodeDeg": 131.78422574
+   },
+   "ratesPerCentury": {
+    "aAU": 0.00026291,
+    "e": 5.105e-05,
+    "iDeg": 0.00035372,
+    "LDeg": 218.45945325,
+    "longPeriDeg": -0.32241464,
+    "longNodeDeg": -0.00508664
+   }
+  }
+ }
+}

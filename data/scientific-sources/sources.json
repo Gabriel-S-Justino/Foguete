@@ -84,8 +84,8 @@
       "institution": "NASA/JPL Solar System Dynamics",
       "url": "https://ssd.jpl.nasa.gov/planets/approx_pos.html",
       "kind": "agency",
-      "verified": false,
-      "notes": "Longitudes médias J2000 e taxas usadas para a janela educacional Terra–Júpiter (órbitas circulares coplanares)."
+      "verified": true,
+      "notes": "Tabela 1 (1800–2050): elementos keplerianos e taxas por século dos oito planetas, usados para as posições dos planetas na data da missão (visualização do sistema solar e trajetória) e para a janela educacional Terra–Júpiter. Valores conferidos na página em 2026-10-25."
     },
     {
       "id": "jpl-astro-par",
@@ -103,7 +103,7 @@
       "url": "https://nssdc.gsfc.nasa.gov/planetary/factsheet/",
       "kind": "agency",
       "verified": false,
-      "notes": "Distâncias médias ao Sol, raios, períodos. Conferir."
+      "notes": "Distâncias médias ao Sol, diâmetros, períodos de rotação e obliquidades (tabela comparativa conferida em 2026-10-25); dados da Lua."
     },
     {
       "id": "us-standard-atmosphere-1976",
@@ -140,6 +140,42 @@
       "kind": "gameplay",
       "verified": true,
       "notes": "Valor criado para equilibrar o jogo. Não representa dado oficial."
+    },
+    {
+      "id": "nasa-planet-sizes-locations",
+      "title": "Planet Sizes and Locations in Our Solar System",
+      "institution": "NASA Science",
+      "url": "https://science.nasa.gov/solar-system/planet-sizes-and-locations-in-our-solar-system/",
+      "kind": "agency",
+      "verified": true,
+      "notes": "Diâmetros equatoriais e distâncias médias ao Sol dos oito planetas (consultado em 2026-10-25)."
+    },
+    {
+      "id": "nasa-solar-system-sizes",
+      "title": "Solar System Sizes",
+      "institution": "NASA Science",
+      "url": "https://science.nasa.gov/resource/solar-system-sizes/",
+      "kind": "agency",
+      "verified": true,
+      "notes": "Raios médios dos planetas; a própria página avisa que a ilustração não mostra as distâncias corretas (consultado em 2026-10-25)."
+    },
+    {
+      "id": "nasa-what-is-orbit",
+      "title": "What Is an Orbit? (Grades 5-8)",
+      "institution": "NASA",
+      "url": "https://www.nasa.gov/solar-system/what-is-an-orbit-grades-5-8/",
+      "kind": "agency",
+      "verified": true,
+      "notes": "Explicação didática: órbita como equilíbrio entre a velocidade para a frente e a queda pela gravidade; órbitas mais altas têm velocidade menor."
+    },
+    {
+      "id": "nasa-3d-resources",
+      "title": "NASA 3D Resources",
+      "institution": "NASA",
+      "url": "https://science.nasa.gov/3d-resources/",
+      "kind": "agency",
+      "verified": true,
+      "notes": "Modelos e texturas livres para uso, conforme as diretrizes de uso de imagens e mídia da NASA. Espelho em github.com/nasa/NASA-3D-Resources."
     }
   ]
 }
