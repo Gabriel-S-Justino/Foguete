@@ -27,6 +27,14 @@ export function plannedManeuvers(profile: MissionProfile): PlannedManeuver[] {
   }));
 }
 
+/**
+ * Manobra com o Δv que o jogo cobra: o calculado pela trajetória física (missionTrajectory) quando existe;
+ * o valor do orçamento do planejamento fica como referência. Sem cálculo de trajetória, vale o orçamento.
+ */
+export function chargedManeuver(m: PlannedManeuver, trajectoryDvMS: number | undefined): PlannedManeuver {
+  return trajectoryDvMS !== undefined && Number.isFinite(trajectoryDvMS) ? { ...m, dvMS: Math.max(0, trajectoryDvMS) } : m;
+}
+
 export interface ManeuverOutcome { record: ManeuverRecord; propellantRemainingKg: number; event: FlightEventRecord; insertionState?: 'captured' | 'high-orbit' | 'flyby' }
 
 /**
