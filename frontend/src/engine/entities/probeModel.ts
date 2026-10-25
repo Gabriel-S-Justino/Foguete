@@ -327,7 +327,7 @@ export class ProbeModel {
           mat.emissiveColor = new Color3(0.2, 0.7, 0.4);
           plate.material = mat;
         } else {
-          const marker = box('marker', 0.001, 0.001, 0.001, 'mliGold');
+          const marker = box('mli-tag', 0.001, 0.001, 0.001, 'mliGold');
           marker.isVisible = false;
         }
         break;

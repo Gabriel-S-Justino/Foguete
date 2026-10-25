@@ -1,6 +1,6 @@
 # Modelos 3D da NASA: fontes, uso e processamento
 
-Atualizado em 2026-10-25.
+Atualizado em 2026-10-25 (rodada 4).
 
 ## Modelos integrados
 
@@ -11,6 +11,10 @@ Atualizado em 2026-10-25.
 | Juno | Hangar da sonda ("Nave real" da missão a Júpiter) e tela inicial, onde substitui a sonda decorativa procedural | `frontend/public/models/nasa/juno.glb` | [3D Models/Juno (B)/Juno (B).glb](https://github.com/nasa/NASA-3D-Resources/tree/master/3D%20Models/Juno%20(B)) |
 
 Os arquivos foram baixados de `raw.githubusercontent.com/nasa/NASA-3D-Resources/master/...` em 2026-10-25.
+
+## Cena orbital (operações e planejamento)
+
+Na cena orbital a sonda é o **modelo procedural montado pelo jogador** (os mesmos componentes do hangar, em tamanho real), acoplado ao **último estágio do lançador escolhido** (também procedural, de `rocketModel.ts`) até a separação. Nenhum modelo da NASA é usado nessa cena: Landsat 8, LRO e Juno são naves reais diferentes da sonda do jogador e apareceriam no lugar dela. A esfera amarela que marcava a sonda foi removida; quando a sonda fica pequena demais na tela, só um rótulo HTML ("Sonda") indica a posição.
 
 ## Condições de uso
 
@@ -43,7 +47,7 @@ Ajustes visuais no carregamento: os materiais com nomes de folha metálica ou ma
 | Sonda montada pelo jogador | Continua procedural: cada componente é instalado, removido, destacado e animado (painéis, antena, braços robóticos). Um modelo estático da NASA quebraria a montagem. |
 | Lançadores (Falcon 9, Falcon Heavy, Starship, Soyuz, New Glenn) | Não são veículos da NASA, e o repositório não tem modelos deles. |
 | SLS | Nenhum arquivo encontrado nos caminhos testados (`3D Models/SLS/…`, `Space Launch System/…`, `Space Launch System (SLS)/…` e variações). Sem listagem do repositório, não dá para afirmar que ele não existe. Mesmo que exista, precisaria ser dividido por estágio para manter a separação animada. |
-| Terra, Lua e Júpiter | Mantidos: já usam texturas derivadas de imagens da NASA (`docs/texture-sources.md`) em shader próprio, com iluminação e atmosfera. Nenhum modelo de planeta foi encontrado nos caminhos testados. |
+| Sol, planetas e Lua | Esferas em shader próprio com texturas (`docs/texture-sources.md`). Do NASA-3D-Resources vieram as texturas de **Marte** (`Images and Textures/Mars/Mars.jpg`, sem alteração) e **Vênus** (`Images and Textures/Venus/Venus.jpg`, mapa de radar Magellan usado só como relevo sob a cor das nuvens). Terra e Lua usam imagens da NASA obtidas por outros caminhos; Mercúrio, Júpiter, Saturno, Urano, Netuno e o Sol usam a Solar System Scope (CC BY 4.0). Nenhum modelo 3D de planeta foi encontrado nos caminhos testados. |
 | Terra (satélite) | O arquivo existe (2,1 MB), mas aponta para texturas externas `.tga` que não estão no `.glb`. Substituído pelo Landsat 8. |
 | Galileo, Saturn V, Clementine, Pioneer 10, Dawn, Space Shuttle (A), ISS (A), Apollo Lunar Module | Encontrados e verificados, mas sem lugar coerente nas três missões atuais. Podem entrar como peças de exposição em versões futuras. |
 | Juno (A) | 9 MB; usada a variante Juno (B), mais leve. |

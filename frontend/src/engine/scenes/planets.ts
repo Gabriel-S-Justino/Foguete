@@ -4,16 +4,26 @@
  *   e máscara de oceano derivada do Blue Marble para o reflexo especular.
  * - Lua: NASA SVS CGI Moon Kit (cor LROC) com relevo derivado do LOLA.
  * - Júpiter: Solar System Scope (CC BY 4.0), baseada no mapa global da Cassini.
+ * - Marte e Vênus: NASA-3D-Resources (Vênus com a cobertura de nuvens aplicada sobre o radar Magellan).
+ * - Mercúrio, Saturno (e anéis), Urano e Netuno: Solar System Scope (CC BY 4.0).
  *
  * Um único shader faz a projeção equirretangular por pixel (sem costura no meridiano 180°), terminador
  * dia/noite, reflexo do Sol nos oceanos e dispersão atmosférica na borda. A orientação permite colocar
  * qualquer ponto da superfície (ex.: a base de lançamento) no topo da esfera.
  */
 import {
-  Constants, DirectionalLight, Effect, Matrix, type Mesh, MeshBuilder, type Scene, ShaderMaterial, Texture, Vector3,
+  Constants, DirectionalLight, Effect, Matrix, Mesh, MeshBuilder, type Scene, ShaderMaterial, Texture, Vector3,
 } from '@babylonjs/core';
 
-export type PlanetKind = 'earth' | 'moon' | 'jupiter';
+export type PlanetKind = 'earth' | 'moon' | 'jupiter' | 'mercury' | 'venus' | 'mars' | 'saturn' | 'uranus' | 'neptune';
+
+/** Textura de cor de cada planeta (Terra e Lua têm mapas adicionais). */
+const ALBEDO: Record<PlanetKind, string> = {
+  earth: 'earth_day_4k.jpg', moon: 'moon_2k.jpg', jupiter: 'jupiter_2k.jpg', mercury: 'mercury_1k.jpg', venus: 'venus_1k.jpg',
+  mars: 'mars_1440.jpg', saturn: 'saturn_1k.jpg', uranus: 'uranus_1k.jpg', neptune: 'neptune_1k.jpg',
+};
+/** Planetas gasosos (escurecimento de borda) e rochosos (Lambert). */
+const GASEOUS = new Set<PlanetKind>(['jupiter', 'saturn', 'uranus', 'neptune', 'venus']);
 
 const TEX_BASE = `${import.meta.env?.BASE_URL ?? '/'}textures/planets/`;
 
@@ -122,6 +132,10 @@ void main() {
   float mu0 = max(ndl, 0.0);
   float ls = mu0 / max(mu0 + ndv, 1e-3) * 2.0;
   color = albedo * mix(mu0, ls, 0.7) * 1.1 * sunIntensity + albedo * ambient;
+#endif
+
+#ifdef ROCKY
+  color = albedo * max(ndl, 0.0) * 1.05 * sunIntensity + albedo * ambient;
 #endif
 
 #ifdef JUPITER
@@ -253,7 +267,8 @@ export interface PlanetOptions {
 
 export function planetMaterial(scene: Scene, kind: PlanetKind, orientation = Matrix.Identity()): ShaderMaterial {
   registerShaders();
-  const defines = [kind.toUpperCase()];
+  // Shaders específicos para Terra e Lua; os demais usam o de gasosos (borda) ou o de rochosos
+  const defines = [kind === 'earth' || kind === 'moon' ? kind.toUpperCase() : GASEOUS.has(kind) ? 'JUPITER' : 'ROCKY'];
   const samplers = ['albedoTex', ...(kind === 'earth' ? ['nightTex', 'cloudTex', 'waterTex'] : []), ...(kind === 'moon' ? ['normalTex'] : [])];
   const mat = new ShaderMaterial(`${kind}Mat`, scene, { vertex: 'planet', fragment: 'planet' }, {
     attributes: ['position', 'normal'],
@@ -270,7 +285,7 @@ export function planetMaterial(scene: Scene, kind: PlanetKind, orientation = Mat
     mat.setTexture('albedoTex', texture(scene, 'moon_2k.jpg'));
     mat.setTexture('normalTex', texture(scene, 'moon_normal_1k.jpg'));
   } else {
-    mat.setTexture('albedoTex', texture(scene, 'jupiter_2k.jpg'));
+    mat.setTexture('albedoTex', texture(scene, ALBEDO[kind]));
   }
   mat.setMatrix('orient', orientation);
   mat.setMatrix('orientInv', orientation.clone().transpose());
@@ -325,4 +340,82 @@ export function createPlanet(scene: Scene, kind: PlanetKind, diameter: number, o
   }
   p.isPickable = false;
   return p;
+}
+
+const RING_VERTEX = /* glsl */ `
+precision highp float;
+attribute vec3 position;
+uniform mat4 world;
+uniform mat4 worldViewProjection;
+varying vec3 vL;
+varying vec3 vW;
+void main() {
+  vL = position;
+  vW = (world * vec4(position, 1.0)).xyz;
+  gl_Position = worldViewProjection * vec4(position, 1.0);
+}`;
+
+const RING_FRAGMENT = /* glsl */ `
+precision highp float;
+varying vec3 vL;
+varying vec3 vW;
+uniform sampler2D ringTex;
+uniform float innerR;
+uniform float outerR;
+uniform vec3 sunDirection;
+uniform vec3 planetCenter;
+uniform float planetRadius;
+uniform float sunIntensity;
+void main() {
+  float r = length(vL.xz);
+  if (r < innerR || r > outerR) discard;
+  vec4 c = texture2D(ringTex, vec2((r - innerR) / (outerR - innerR), 0.5));
+  // Sombra do planeta sobre os anéis (cilindro na direção do Sol), em unidades de raio do planeta
+  vec3 p = (vW - planetCenter) / planetRadius;
+  vec3 L = normalize(sunDirection);
+  float along = dot(p, L);
+  float perp = length(p - L * along);
+  float shadow = (along < 0.0 && perp < 1.0) ? 0.08 : 1.0;
+  vec3 col = pow(c.rgb, vec3(2.2)) * 1.6 * sunIntensity * shadow;
+  gl_FragColor = vec4(pow(col, vec3(1.0 / 2.2)), c.a * 0.95);
+}`;
+
+/**
+ * Anéis de Saturno: disco no plano equatorial do planeta (filho da esfera de raio 1), com o perfil radial de
+ * cor e transparência entre 1,085 e 2,298 raios (D ao A, como na textura de origem).
+ */
+export function createSaturnRings(scene: Scene, planet: Mesh): Mesh {
+  registerShaders();
+  Effect.ShadersStore.saturnRingVertexShader ??= RING_VERTEX;
+  Effect.ShadersStore.saturnRingFragmentShader ??= RING_FRAGMENT;
+  const inner = 1.085, outer = 2.298;
+  const ring = MeshBuilder.CreateDisc('saturnRings', { radius: outer, tessellation: 128, sideOrientation: Mesh.DOUBLESIDE }, scene);
+  ring.rotation.x = Math.PI / 2;
+  ring.bakeCurrentTransformIntoVertices();
+  const mat = new ShaderMaterial('saturnRingMat', scene, { vertex: 'saturnRing', fragment: 'saturnRing' }, {
+    attributes: ['position'],
+    uniforms: ['world', 'worldViewProjection', 'innerR', 'outerR', 'sunDirection', 'planetCenter', 'planetRadius', 'sunIntensity'],
+    samplers: ['ringTex'],
+    needAlphaBlending: true,
+  });
+  const tex = new Texture(`${TEX_BASE}saturn_ring.png`, scene, true, true, Texture.BILINEAR_SAMPLINGMODE);
+  tex.wrapU = Texture.CLAMP_ADDRESSMODE;
+  tex.hasAlpha = true;
+  mat.setTexture('ringTex', tex);
+  mat.setFloat('innerR', inner);
+  mat.setFloat('outerR', outer);
+  mat.backFaceCulling = false;
+  mat.onBindObservable.add(() => {
+    const effect = mat.getEffect();
+    if (!effect) return;
+    const sun = sunFor(scene, planet.getAbsolutePosition());
+    effect.setVector3('sunDirection', sun.dir);
+    effect.setFloat('sunIntensity', sun.intensity);
+    effect.setVector3('planetCenter', planet.getAbsolutePosition());
+    effect.setFloat('planetRadius', planet.absoluteScaling.x);
+  });
+  ring.material = mat;
+  ring.parent = planet;
+  ring.isPickable = false;
+  return ring;
 }

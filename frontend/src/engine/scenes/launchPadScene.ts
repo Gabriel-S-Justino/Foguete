@@ -56,6 +56,10 @@ export interface LaunchPadController extends SceneController {
     rocketPad: [number, number, number]; tiltDeg: number;
     /** Partículas vivas no rastro de fumaça da trajetória. */
     smokeParticles: number;
+    /** Peças soltas (estágios, propulsores, coifa): posição no referencial da plataforma (m), velocidade (m/s). */
+    detached: { name: string; pad: [number, number, number]; speed: number; landed: boolean }[];
+    /** Grupo de renderização da Terra (1: separado do grupo local, sem disputa de profundidade com o terreno). */
+    earthGroup: number;
   };
 }
 
@@ -429,6 +433,8 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
         mode, zoom: zoomF, position: [p.x + origin.x, p.y + origin.y, p.z + origin.z], fov: cam.fov,
         rocketPad: [padPos.x, padPos.y, padPos.z], tiltDeg: (tilt * 180) / Math.PI,
         smokeParticles: smoke.system.getActiveCount(),
+        detached: falling.map((f) => ({ name: f.node.name, pad: [f.body.p.x, f.body.p.y, f.body.p.z] as [number, number, number], speed: Math.hypot(f.body.v.x, f.body.v.y, f.body.v.z), landed: f.body.landed })),
+        earthGroup: earth.renderingGroupId,
       };
     },
     update(dt) {

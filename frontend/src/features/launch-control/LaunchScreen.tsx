@@ -76,7 +76,7 @@ export function LaunchScreen() {
   const a = ctrl.actions;
   const tel = snap.telemetry;
   const final = FINAL.has(snap.state);
-  const finish = () => recordLaunch(ctrl.flightOutcome, ctrl.flightEvents, ctrl.activeEffects);
+  const finish = () => recordLaunch(ctrl.flightOutcome, ctrl.flightEvents, ctrl.activeEffects, ctrl.insertion);
   const newWindow = () => {
     recordEvent({ t: 0, phase: 'pad', id: `scrub-${window}`, label: 'Lançamento cancelado (scrub); nova janela agendada', severity: 'aviso' });
     setWindow((w) => w + 1);

@@ -16,6 +16,8 @@
  *   satélites de observação como o Landsat 8 e o LRO: a sonda gira uma vez por órbita para acompanhar o
  *   planeta (escolha de missão, não consequência da gravidade) e os painéis giram em torno de X para o Sol.
  * - `prograde`: eixo +Y no vetor velocidade (conjunto com o estágio superior antes de uma queima de partida).
+ * - `retrograde`: eixo +Y contra a velocidade (queima de inserção em órbita: o motor principal, na base, freia
+ *   a sonda).
  * - `sun`: topo (+Y, face ativa dos painéis abertos e antena de alto ganho) para o Sol, instrumentos (+Z)
  *   o mais perto possível da Terra (cruzeiro com painéis solares; a Juno mantém o eixo apontado para o Sol
  *   e a Terra).
@@ -23,7 +25,7 @@
  */
 import { cross, dot, norm, scale, sub, unit, type V3 } from './kepler';
 
-export type AttitudeMode = 'nadir' | 'prograde' | 'sun' | 'inertial';
+export type AttitudeMode = 'nadir' | 'prograde' | 'retrograde' | 'sun' | 'inertial';
 
 export interface AttitudeInput {
   /** Posição da sonda em relação ao corpo central e velocidade (inerciais). */
@@ -66,6 +68,8 @@ export function attitudeBasis(mode: AttitudeMode, input: AttitudeInput, inertial
     }
     case 'prograde':
       return triad(input.v, nadir, 'y');
+    case 'retrograde':
+      return triad(scale(input.v, -1), nadir, 'y');
     case 'sun':
       return triad(input.toSun, input.toEarth, 'y');
     case 'inertial':

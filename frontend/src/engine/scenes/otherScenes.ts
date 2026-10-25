@@ -184,7 +184,7 @@ export function createBriefingScene(engine: Engine): BriefingController {
 }
 
 /* ───────────────────────── Visualização orbital ───────────────────────── */
-export { createOrbitScene, type OrbitConfig, type OrbitLeg, type OrbitPathSpec, type OrbitSceneController, type OrbitView } from './orbitScene';
+export { createOrbitScene, type ClockControl, type OrbitFocus, type OrbitInfo, type OrbitMission, type OrbitSceneController, type OrbitView, type ScaleMode } from './orbitScene';
 
 /** Converte amostras [t, x, y, z] (m) em pontos de cena com escala (m por unidade). Babylon é y-up. */
 export function samplesToPoints(samples: number[][], metersPerUnit: number): Vector3[] {

@@ -67,7 +67,9 @@ export function separate(position: Vec3, vehicleVelocity: Vec3, relativeVelocity
 }
 
 /**
- * Avança a peça por dt segundos de tempo simulado (subpassos de até 0,5 s, Euler semi-implícito).
+ * Avança a peça por dt segundos de tempo simulado (subpassos de até 0,5 s, leapfrog kick-drift-kick).
+ * O esquema simétrico mantém a órbita fechada: um Euler semi-implícito com o mesmo passo começa com meio passo
+ * de gravidade a mais na velocidade e faz a altitude de uma órbita circular oscilar ~2 km.
  * `density(h)` dá a densidade do ar (kg/m³) na altitude h. Devolve a altitude final.
  */
 export function stepDetached(frame: PadFrame, body: DetachedBody, dt: number, density: (h: number) => number): number {
@@ -76,18 +78,22 @@ export function stepDetached(frame: PadFrame, body: DetachedBody, dt: number, de
   const h = dt / n;
   const a = vec();
   let alt = altitudeOf(frame, body.p);
-  for (let i = 0; i < n; i++) {
+  // Meio impulso: gravidade/inércia e arrasto quadrático a = −(Cd·A/2m)·ρ·|v|·v (implícito no módulo para não inverter o sentido)
+  const kick = (half: number) => {
     alt = padAcceleration(frame, body.p, body.v, a);
     const rho = alt > 0 ? density(alt) : density(0);
     const speed = Math.hypot(body.v.x, body.v.y, body.v.z);
-    // Arrasto quadrático: a = −(Cd·A/2m)·ρ·|v|·v (implícito no módulo para não inverter o sentido)
-    const k = 1 / (1 + body.drag * rho * speed * h);
-    body.v.x = (body.v.x + a.x * h) * k;
-    body.v.y = (body.v.y + a.y * h) * k;
-    body.v.z = (body.v.z + a.z * h) * k;
+    const k = 1 / (1 + body.drag * rho * speed * half);
+    body.v.x = (body.v.x + a.x * half) * k;
+    body.v.y = (body.v.y + a.y * half) * k;
+    body.v.z = (body.v.z + a.z * half) * k;
+  };
+  for (let i = 0; i < n; i++) {
+    kick(h / 2);
     body.p.x += body.v.x * h;
     body.p.y += body.v.y * h;
     body.p.z += body.v.z * h;
+    kick(h / 2);
     alt = altitudeOf(frame, body.p);
     if (alt <= 0) { body.landed = true; break; }
   }

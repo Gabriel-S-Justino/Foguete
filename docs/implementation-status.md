@@ -1,6 +1,6 @@
 # Estado da implementação
 
-Última atualização: 2026-10-25 (rodada 3: verificação dos bugs relatados, encaixe da sonda na coifa e modelos 3D da NASA) · branch `claude/nasa-3d-models`
+Última atualização: 2026-10-25 (rodada 4: física, escala, órbita de estacionamento e vista do Sistema Solar) · branch `claude/fisica-escala-orbita`
 
 ## Funcionalidades implementadas
 
@@ -65,6 +65,19 @@
   - Hangar da sonda: botão **Nave real** mostra a nave real equivalente à missão num expositor, com texto e link da fonte.
   - Tela inicial: a Juno da NASA substitui a sonda decorativa procedural.
   - A sonda montável e os lançadores continuam procedurais (montagem, animações e separação de estágios). Detalhes, licença e modelos não usados em `docs/model-sources.md`.
+
+### Rodada 4 (2026-10-25)
+Cada item abaixo teve a causa encontrada antes da correção. Detalhes da física em `docs/physics-model.md`.
+
+- [x] **Cintilação das texturas na subida.** Causa: a Terra em tamanho real (milhares de km) e o terreno/plataforma (detalhes de cm) dividiam o mesmo buffer de profundidade, e o observador de malhas novas do Babylon (assíncrono) devolvia a Terra e o céu ao grupo local logo depois de montados. Agora cada escala tem um grupo de renderização com profundidade própria e as reservas de grupo são respeitadas (`renderGroups.ts`). O E2E de câmeras confere a Terra no grupo 1.
+- [x] **Atitude da sonda em órbita.** A atitude visual é um modo por trecho (prógrado, retrógrado, nadir, Sol), montado como uma base ortonormal a partir do estado, e não mais a direção da velocidade. Na órbita de estacionamento o conjunto estágio + sonda fica prógrado; esperando a LOI/JOI fica retrógrado; no cruzeiro os painéis apontam para o Sol.
+- [x] **Separação de estágios contínua.** A peça solta parte do estado exato do veículo, com a velocidade relativa do mecanismo, e segue com gravidade, referencial girante e arrasto. Nesta rodada o integrador passou de Euler semi-implícito para leapfrog: o anterior fazia a altitude de uma peça em órbita oscilar cerca de 2 km. Nas operações o estágio superior acompanha a sonda até a separação e depois se afasta a 0,5 m/s. Há 7 testes unitários novos e uma verificação no E2E de câmeras.
+- [x] **Escala física com dados da NASA.** Raios, μ e elementos orbitais vêm de `data/scientific-sources/solar-system.json` (NASA Fact Sheets e JPL). A sonda guarda a distância ao centro do corpo, e a altitude é calculada a partir dela; a interface mostra as duas. A trajetória (cônicas ajustadas com alvo no plano B) leva a sonda ao periselênio e ao perijove planejados, sem atravessar a Lua, a Terra ou Júpiter.
+- [x] **Esfera amarela removida.** A cena mostra só o modelo 3D da sonda, em tamanho real, acoplado ao último estágio do lançador até a separação. Quando a sonda fica pequena demais na tela, um rótulo HTML ("Sonda") indica a posição; ele some atrás de planetas. O E2E confere que não há malhas marcadoras.
+- [x] **Volta completa na órbita da Terra.** O relógio da missão começa na inserção real da subida. A volta é contada pelo ângulo percorrido (360°), não por cronômetro. O painel mostra a fase e o progresso, e a injeção de partida só pode ser comandada depois da volta. O estágio superior queima na próxima passagem pelo ponto de queima calculado. Na missão LEO a volta libera o ajuste de órbita e a ciência. Uma missão real com injeção direta não passaria por essa fase (ver `docs/physics-model.md`).
+- [x] **Vista do Sistema Solar.** Inclui o Sol, os 8 planetas com texturas (Saturno com anéis), a Lua, as órbitas em cinza e a trajetória colorida por fase. Os focos são Sistema Solar, Trajetória, Destino e Sonda, com enquadramento automático, transição suave e limite de zoom fora dos corpos. Ao trocar de trecho (ex.: estacionamento → TLI), a vista Trajetória se reenquadra. Os modos são **Escala física** (padrão) e **Visualização didática**, que amplia os corpos e mostra o fator de cada um no rótulo e no painel. O modo de escala não altera a simulação, e o E2E confere isso. O relógio tem aceleração de 1× a 100.000× e um modo automático que para em cada manobra.
+- [x] **Manobras no instante calculado.** O relógio para no instante de cada manobra da trajetória, e só então o botão é liberado, mostrando o Δv calculado. A ordem segue a trajetória: no ΔV-EGA a DSM vem antes da TCM. Antes, a ordem da tabela travava a missão.
+- [x] **Texturas e modelos.** Marte e Vênus usam texturas do NASA-3D-Resources, e Mercúrio, Saturno (com anéis), Urano, Netuno e o Sol usam a Solar System Scope (CC BY 4.0). A cena orbital não usa modelos da NASA, porque a sonda é a do jogador. Detalhes em `docs/model-sources.md` e `docs/texture-sources.md`.
 
 ### Backend (FastAPI)
 - [x] Rotas versionadas em `/api/v1`: health, sessões, campanhas com revisão, validação, eventos, finalização e relatórios.
@@ -155,9 +168,10 @@ O E2E roda no Chromium com renderização por software (SwiftShader), a cerca de
 - O Δv **necessário** é calculado só no cliente (modelo orbital completo). O servidor usa esse valor informado pelo cliente.
 - O bundle do Babylon.js tem cerca de 5 MB (1,1 MB gzip), porque é importado pelo pacote raiz `@babylonjs/core`. Imports profundos reduziriam o tamanho.
 - Sem testes de componentes React isolados; a interface é coberta pelo E2E.
-- A visão do sistema usa escalas didáticas: no cruzeiro para Júpiter os planetas aparecem ampliados, e cada trecho (Terra–Lua, órbita lunar, heliocêntrico, sistema joviano) tem escala própria.
+- A Lua segue uma órbita circular desenhada para a janela (não a efeméride real); as TCMs são orçamento de Δv (a trajetória desenhada já é a corrigida); sem precessão J2 na órbita de estacionamento.
+- A DSM calculada no ΔV-EGA (~0,9 km/s na data padrão) é maior que o orçamento de 750 m/s do perfil; o jogo continua cobrando o valor do orçamento.
 - As texturas da plataforma, do hangar e da sonda são procedurais (geradas no navegador), inspiradas em fotos de referência; não são fotografias.
 - A pluma e a fumaça são efeitos visuais calibrados a olho a partir de fotos e vídeos de lançamentos, não uma simulação de escoamento.
 - No SwiftShader (renderização por software usada nos testes) a cena de lançamento roda a cerca de 2–8 FPS; em GPU real não foi medido nesta sessão.
-- Ascensão 2D sem vento, sem azimute 3D e sem dispersões de motor. Janela de Júpiter em modelo circular coplanar (ver `docs/physics-model.md`).
+- Ascensão 2D sem vento, sem azimute 3D e sem dispersões de motor. O orçamento de Δv do planejamento usa fórmulas analíticas; a trajetória desenhada usa efemérides aproximadas do JPL (ver `docs/physics-model.md`).
 - Acessibilidade parcial: rótulos ARIA nos controles principais e navegação por teclado na seleção de missão, sem revisão completa.

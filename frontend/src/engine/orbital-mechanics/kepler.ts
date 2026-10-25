@@ -137,12 +137,13 @@ export function lambert(mu: number, r1: V3, r2: V3, tof: number, prograde = true
   let flo = F(lo), fhi = F(hi);
   if (!(flo < 0 && fhi > 0)) throw new Error('Lambert: tempo de voo fora do intervalo de uma revolução');
   let z = 0;
-  for (let i = 0; i < 200; i++) {
+  // Bissecção até o limite da precisão dupla (trajetórias de anos exigem erro de tempo de voo < 1 ms)
+  for (let i = 0; i < 400; i++) {
     z = (lo + hi) / 2;
     const fz = F(z);
-    if (Math.abs(fz) < 1e-9 * Math.sqrt(mu) * tof) break;
+    if (fz === 0) break;
     if (fz < 0) { lo = z; flo = fz; } else { hi = z; fhi = fz; }
-    if (hi - lo < 1e-12) break;
+    if (hi - lo <= 4e-16 * Math.max(1, Math.abs(z))) break;
   }
   void flo; void fhi;
   const yz = y(z);

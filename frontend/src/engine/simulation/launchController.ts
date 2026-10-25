@@ -4,7 +4,7 @@
  * Independente do React: a interface assina a telemetria; a cena 3D lê o estado a cada quadro.
  */
 import type { LaunchVehicle, MissionSpec } from '../../types/catalog';
-import type { FlightEventRecord, FlightOutcome, MissionPlan, SpacecraftConfig, ValidationReport } from '../../types/campaign';
+import type { FlightEventRecord, FlightOutcome, MissionPlan, OrbitInsertion, SpacecraftConfig, ValidationReport } from '../../types/campaign';
 import { simulationConfig } from '../catalog';
 import { createRng, hashSeed } from '../core/rng';
 import { analyzeSpacecraft, type SpacecraftSummary } from '../entities/spacecraft';
@@ -143,6 +143,16 @@ export class LaunchController {
   get currentState(): LaunchState { return this.state; }
   get flightEvents(): FlightEventRecord[] { return this.events; }
   get flightOutcome(): FlightOutcome { return this.outcome; }
+  /** Estado no fim da subida (altitude, velocidade inercial, ângulo de trajetória), base da órbita nas operações. */
+  get insertion(): OrbitInsertion | null {
+    if (this.outcome !== 'orbit') return null;
+    const tel = this.sim.telemetry();
+    return {
+      altitudeM: tel.altitudeM, speedMS: tel.speedMS, downrangeM: tel.downrangeM,
+      flightPathDeg: (Math.asin(Math.max(-1, Math.min(1, tel.verticalSpeedMS / Math.max(1, tel.speedMS)))) * 180) / Math.PI,
+      inclinationDeg: this.setup.profile.launchInclinationDeg,
+    };
+  }
 
   /** Ações disponíveis variam com o estado operacional. */
   get actions() {
@@ -322,10 +332,14 @@ export class LaunchController {
         this.state = 'orbit';
         this.outcome = 'orbit';
         const p = this.setup.profile;
+        const orbitTxt = `perigeu ${tel.periapsisKm.toFixed(0)} km, apogeu ${tel.apoapsisKm.toFixed(0)} km`;
         if (p.launchProfile !== 'leo-polar') {
-          this.log(tel.t, 'upper', 'departure', `Estágio superior executa a injeção de partida (C3 ≈ ${p.c3KmS2?.toFixed(1)} km²/s²), modelada analiticamente a partir da capacidade documentada do veículo`, 'info');
+          // A injeção de partida e a separação acontecem nas operações, depois da primeira volta completa
+          this.log(tel.t, 'upper', 'parking-orbit', `Inserção na órbita de estacionamento (${orbitTxt}). Sonda e estágio superior seguem acoplados até a injeção de partida, depois de uma volta completa em torno da Terra${this.sensorDegraded ? ' (navegação inicial degradada por sensor não recalibrado)' : ''}`, 'info');
+        } else {
+          this.log(tel.t, 'upper', 'orbit-insertion', `Inserção na órbita operacional (${orbitTxt})`, 'info');
+          this.log(tel.t, 'upper', 'separation', `Separação da sonda${this.sensorDegraded ? ' (navegação inicial degradada por sensor não recalibrado)' : ''}`, 'info');
         }
-        this.log(tel.t, 'upper', 'separation', `Separação da sonda${this.sensorDegraded ? ' (navegação inicial degradada por sensor não recalibrado)' : ''}`, 'info');
       } else if (tel.phase === 'failed') {
         this.state = 'failed';
         this.outcome = 'launch-failure';
