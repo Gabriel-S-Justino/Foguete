@@ -30,7 +30,7 @@ export function StartScreen() {
         <label htmlFor="player-name" className="small muted">Nome do diretor de missão</label>
         <div className="row" style={{ marginTop: 6, flexWrap: 'nowrap' }}>
           <input id="player-name" data-testid="player-name" className="input" value={name} maxLength={PLAYER_NAME_MAX + 8} autoComplete="nickname"
-            onChange={(e) => { setName(e.target.value); setError(''); }} placeholder="Ex.: Kali" />
+            onChange={(e) => { setName(e.target.value); setError(''); }} placeholder="Ex.: Neil Armstrong" />
           <button className="btn primary" type="submit" disabled={busy} data-testid="start-button">{busy ? 'Registrando…' : 'Iniciar'}</button>
         </div>
         {error && <p role="alert" className="small" style={{ color: 'var(--red)', margin: '8px 0 0' }}>{error}</p>}
