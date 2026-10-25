@@ -44,7 +44,7 @@ export class RobotArm {
     this.yawNode.parent = this.root;
     this.yawNode.position.y = BASE_H;
     const turret = MeshBuilder.CreateCylinder(`${name}-turret`, { diameter: 0.9, height: 0.5, tessellation: 24 }, scene);
-    turret.material = mats.get('paintedWhite');
+    turret.material = mats.get('robotOrange');
     turret.parent = this.yawNode;
 
     this.shoulderNode = new TransformNode(`${name}-shoulder`, scene);
@@ -56,7 +56,7 @@ export class RobotArm {
     sj.parent = this.shoulderNode;
     const upper = MeshBuilder.CreateBox(`${name}-upper`, { width: 0.42, depth: 0.5, height: L1 }, scene);
     upper.position.y = L1 / 2;
-    upper.material = mats.get('paintedWhite');
+    upper.material = mats.get('robotOrange');
     upper.parent = this.shoulderNode;
 
     this.elbowNode = new TransformNode(`${name}-elbow`, scene);
@@ -68,7 +68,7 @@ export class RobotArm {
     ej.parent = this.elbowNode;
     const fore = MeshBuilder.CreateBox(`${name}-fore`, { width: 0.32, depth: 0.38, height: L2 }, scene);
     fore.position.y = L2 / 2;
-    fore.material = mats.get('paintedWhite');
+    fore.material = mats.get('robotOrange');
     fore.parent = this.elbowNode;
     const cable = MeshBuilder.CreateTube(`${name}-cable`, { path: [new Vector3(0.22, 0.2, 0), new Vector3(0.35, L2 / 2, 0.1), new Vector3(0.22, L2 - 0.2, 0)], radius: 0.05 }, scene);
     cable.material = mats.get('rubber');

@@ -2,8 +2,8 @@
  * Cenas: tela inicial, hangar de lançadores, briefing 3D e visualização orbital.
  */
 import {
-  Color3, Color4, Curve3, type Engine, GlowLayer, HighlightLayer, type LinesMesh, type Mesh, MeshBuilder, PointerEventTypes,
-  StandardMaterial, TransformNode, Vector3,
+  Color3, Color4, Curve3, type Engine, GlowLayer, HighlightLayer, type Mesh, MeshBuilder, PointerEventTypes,
+  StandardMaterial, Vector3,
 } from '@babylonjs/core';
 import type { LaunchVehicle } from '../../types/catalog';
 import type { InstalledComponent } from '../../types/campaign';
@@ -11,11 +11,11 @@ import type { SceneController } from '../core/SceneManager';
 import { ProbeModel } from '../entities/probeModel';
 import { buildRocket, type RocketModel } from '../entities/rocketModel';
 import { referenceConfig } from '../rules/presets';
-import { buildHangar, buildStarfield, createBaseScene, createPlanet, type PlanetKind } from './environment';
+import { buildHangar, buildStarfield, createBaseScene, createPlanet } from './environment';
 
 /* ───────────────────────── Tela inicial ───────────────────────── */
 export function createStartScene(engine: Engine): SceneController {
-  const base = createBaseScene(engine, { clear: new Color4(0.005, 0.008, 0.015, 1), target: new Vector3(0, 0, 0), radius: 26, alpha: -2.2, beta: 1.35, shadows: false, exposure: 1.0, maxZ: 20000 });
+  const base = createBaseScene(engine, { clear: new Color4(0.005, 0.008, 0.015, 1), target: new Vector3(0, 0, 0), radius: 26, alpha: -2.2, beta: 1.35, shadows: false, exposure: 1.0, maxZ: 20000, environment: 'space', environmentIntensity: 0.35 });
   const { scene, mats, camera, sun } = base;
   camera.inputs.clear();
   sun.direction = new Vector3(-1, -0.15, 0.4);
@@ -53,7 +53,7 @@ export interface RocketHangarController extends SceneController {
 export function createRocketHangarScene(engine: Engine, maxHeightM: number): RocketHangarController {
   // Galpão dimensionado para o maior veículo do catálogo
   const H = Math.ceil(maxHeightM * 1.18);
-  const base = createBaseScene(engine, { clear: new Color4(0.05, 0.06, 0.07, 1), target: new Vector3(0, 30, 0), radius: 140, alpha: -Math.PI / 2.3, beta: 1.32, maxZ: 6000, exposure: 1.25 });
+  const base = createBaseScene(engine, { clear: new Color4(0.05, 0.06, 0.07, 1), target: new Vector3(0, 30, 0), radius: 140, alpha: -Math.PI / 2.3, beta: 1.32, maxZ: 6000, exposure: 1.15, environment: 'hangar', environmentIntensity: 0.8 });
   const { scene, mats, camera, shadows } = base;
   buildHangar(base, { width: 120, depth: 140, height: H, bays: 7, withCrane: true, doorSide: 'back' });
   camera.lowerRadiusLimit = 20;
@@ -111,7 +111,7 @@ export interface BriefingController extends SceneController {
 }
 
 export function createBriefingScene(engine: Engine): BriefingController {
-  const base = createBaseScene(engine, { clear: new Color4(0.03, 0.04, 0.05, 1), target: new Vector3(0, 2, 0), radius: 16, alpha: -Math.PI / 2.1, beta: 1.25, maxZ: 3000 });
+  const base = createBaseScene(engine, { clear: new Color4(0.03, 0.04, 0.05, 1), target: new Vector3(0, 2, 0), radius: 16, alpha: -Math.PI / 2.1, beta: 1.25, maxZ: 3000, environment: 'hangar', environmentIntensity: 0.8 });
   const { scene, mats, camera, shadows } = base;
   const floor = MeshBuilder.CreateGround('floor', { width: 200, height: 200 }, scene);
   floor.material = mats.get('concrete');
@@ -171,83 +171,7 @@ export function createBriefingScene(engine: Engine): BriefingController {
 }
 
 /* ───────────────────────── Visualização orbital ───────────────────────── */
-export interface OrbitPathSpec {
-  /** Pontos em unidades de cena. */
-  points: Vector3[];
-  color: Color3;
-  name: string;
-  dashed?: boolean;
-}
-
-export interface OrbitSceneController extends SceneController {
-  configure(opts: { body: PlanetKind; bodyDiameter: number; paths: OrbitPathSpec[]; markerPath?: Vector3[]; secondary?: { kind: PlanetKind; diameter: number; position: Vector3 }[]; cameraRadius: number }): void;
-  setProgress(fraction: number): void;
-}
-
-export function createOrbitScene(engine: Engine): OrbitSceneController {
-  const base = createBaseScene(engine, { clear: new Color4(0, 0.003, 0.01, 1), target: Vector3.Zero(), radius: 40, alpha: -Math.PI / 3, beta: 1.15, shadows: false, maxZ: 1e6, exposure: 1 });
-  const { scene, camera, sun } = base;
-  camera.upperBetaLimit = Math.PI - 0.1;
-  camera.lowerRadiusLimit = 2;
-  sun.direction = new Vector3(-1, -0.2, 0.3);
-  sun.intensity = 3;
-  buildStarfield(scene, 50000, 1800);
-  const root = new TransformNode('orbitRoot', scene);
-  let marker: Mesh | null = null;
-  let markerPath: Vector3[] = [];
-  let lines: LinesMesh[] = [];
-  let bodies: Mesh[] = [];
-  let progress = 0;
-  let t = 0;
-  return {
-    scene,
-    setQuality: base.setQuality,
-    configure(o) {
-      lines.forEach((l) => l.dispose());
-      bodies.forEach((b) => b.dispose());
-      marker?.dispose();
-      lines = []; bodies = [];
-      const body = createPlanet(scene, o.body, o.bodyDiameter);
-      body.parent = root;
-      bodies.push(body);
-      for (const s of o.secondary ?? []) {
-        const b = createPlanet(scene, s.kind, s.diameter);
-        b.position = s.position;
-        b.parent = root;
-        bodies.push(b);
-      }
-      for (const p of o.paths) {
-        const l = o.paths.length && p.dashed
-          ? MeshBuilder.CreateDashedLines(p.name, { points: p.points, dashSize: 2, gapSize: 1.5, dashNb: Math.min(600, p.points.length * 2) }, scene)
-          : MeshBuilder.CreateLines(p.name, { points: p.points }, scene);
-        l.color = p.color;
-        l.parent = root;
-        lines.push(l);
-      }
-      markerPath = o.markerPath ?? o.paths[o.paths.length - 1]?.points ?? [];
-      marker = MeshBuilder.CreateSphere('probeMarker', { diameter: Math.max(0.4, o.bodyDiameter * 0.03), segments: 12 }, scene);
-      const mm = new StandardMaterial('markerMat', scene);
-      mm.emissiveColor = new Color3(1, 0.7, 0.2);
-      mm.disableLighting = true;
-      marker.material = mm;
-      marker.parent = root;
-      camera.radius = o.cameraRadius;
-      camera.setTarget(Vector3.Zero());
-    },
-    setProgress(f) { progress = Math.max(0, Math.min(1, f)); },
-    update(dt) {
-      t += dt;
-      if (bodies[0]) bodies[0].rotation.y += dt * 0.05;
-      if (marker && markerPath.length > 1) {
-        // Progresso definido pela operação; pequena oscilação mostra o movimento orbital
-        const f = progress >= 1 ? (t * 0.03) % 1 : progress;
-        const idx = Math.min(markerPath.length - 1, Math.floor(f * (markerPath.length - 1)));
-        marker.position.copyFrom(markerPath[idx]!);
-      }
-    },
-    dispose() { scene.dispose(); },
-  };
-}
+export { createOrbitScene, type OrbitConfig, type OrbitLeg, type OrbitPathSpec, type OrbitSceneController, type OrbitView } from './orbitScene';
 
 /** Converte amostras [t, x, y, z] (m) em pontos de cena com escala (m por unidade). Babylon é y-up. */
 export function samplesToPoints(samples: number[][], metersPerUnit: number): Vector3[] {

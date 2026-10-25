@@ -116,6 +116,9 @@ function radialTexture(scene: Scene, name: string, stops: [number, string][], pu
   return tex;
 }
 
+/** Textura de fumaça compartilhada pelos efeitos da cena. */
+export function smokeTexture(scene: Scene): DynamicTexture { return texturesFor(scene).smoke; }
+
 function texturesFor(scene: Scene) {
   let t = textures.get(scene);
   if (!t) {
@@ -139,6 +142,11 @@ export interface ExhaustOptions {
 }
 
 export interface ExhaustEffect {
+  /** Saída das tubeiras (nó preso ao motor). */
+  readonly nozzle: TransformNode;
+  readonly smokeColor: Color4;
+  /** Quanto o propelente produz de fumaça visível (sólido > querosene > metano > hidrogênio). */
+  readonly smokeAmount: number;
   /** throttle 0..1, ambientPressureRatio 0 (vácuo) .. 1 (nível do mar), groundProximity 0..1 */
   set(throttle: number, ambientPressureRatio: number, groundProximity: number): void;
   setQuality(level: number): void;
@@ -225,8 +233,9 @@ export function createExhaust(scene: Scene, engineNode: TransformNode, opts: Exh
   trail.addSizeGradient(0, 1.2 * dia);
   trail.addSizeGradient(0.3, 4 * dia);
   trail.addSizeGradient(1, 9 * dia);
-  trail.minLifeTime = 4;
-  trail.maxLifeTime = 9;
+  // Curto: só a fumaça junto ao bocal. O rastro ao longo da trajetória é o de smokeTrail.ts
+  trail.minLifeTime = 1.2;
+  trail.maxLifeTime = 2.8;
   trail.minEmitPower = 4;
   trail.maxEmitPower = 14;
   trail.minAngularSpeed = -0.3;
@@ -276,6 +285,9 @@ export function createExhaust(scene: Scene, engineNode: TransformNode, opts: Exh
   const obs = scene.onBeforeRenderObservable.add(() => { time += scene.getEngine().getDeltaTime() / 1000; });
 
   return {
+    nozzle,
+    smokeColor: look.smokeColor,
+    smokeAmount: look.smoke,
     set(throttle, pressure, groundK) {
       const q = quality === 0 ? 0.35 : quality === 1 ? 0.65 : 1;
       const on = throttle > 0.01;

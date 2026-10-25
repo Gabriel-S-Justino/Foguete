@@ -1,7 +1,7 @@
 /** Construtores de ambientes reutilizados pelas cenas: hangar industrial, céu estrelado e planetas (texturas reais em planets.ts). */
 import {
-  ArcRotateCamera, Color3, Color4, DefaultRenderingPipeline, DirectionalLight, type Engine,
-  HemisphericLight, ImageProcessingConfiguration, Matrix, Mesh, MeshBuilder, PBRMaterial, Scene, ShadowGenerator,
+  ArcRotateCamera, Color3, Color4, Constants, DefaultRenderingPipeline, DirectionalLight, type Engine,
+  HemisphericLight, ImageProcessingConfiguration, Matrix, Mesh, MeshBuilder, RawCubeTexture, Scene, ShadowGenerator,
   StandardMaterial, Vector3,
 } from '@babylonjs/core';
 import { MaterialLibrary } from '../entities/materials';
@@ -16,7 +16,65 @@ export interface BaseScene {
   setQuality(level: number): void;
 }
 
-export function createBaseScene(engine: Engine, opts: { clear: Color4; target: Vector3; radius: number; alpha?: number; beta?: number; exposure?: number; shadows?: boolean; maxZ?: number }): BaseScene {
+export type EnvironmentKind = 'hangar' | 'outdoor' | 'space';
+
+/**
+ * Cubo de ambiente procedural usado na iluminação indireta e nos reflexos dos materiais PBR (sem ele os
+ * metais ficam chapados). Hangar: teto escuro com faixas de luminárias, paredes e piso claros. Exterior:
+ * céu com gradiente até o horizonte, Sol e solo. Espaço: preto com a Terra iluminada embaixo.
+ */
+export function environmentCube(scene: Scene, kind: EnvironmentKind, sunDir = new Vector3(-0.4, -1, 0.35)): RawCubeTexture {
+  const size = 64;
+  const sun = sunDir.scale(-1).normalize();
+  const color = (x: number, y: number, z: number): [number, number, number] => {
+    const l = Math.hypot(x, y, z);
+    x /= l; y /= l; z /= l;
+    if (kind === 'hangar') {
+      if (y > 0.55) {
+        // Teto: faixas de luminárias de LED a cada ~0,25 em x
+        const strip = Math.abs(((x / y) * 2.2) % 1) < 0.12 ? 1 : 0;
+        return strip ? [255, 250, 238] : [58, 60, 64];
+      }
+      if (y < -0.2) return [150, 152, 154];
+      const t = (y + 0.2) / 0.75;
+      return [118 + t * 20, 122 + t * 20, 126 + t * 18];
+    }
+    if (kind === 'outdoor') {
+      const sd = x * sun.x + y * sun.y + z * sun.z;
+      const disk = sd > 0.9995 ? 1 : 0;
+      const glow = Math.max(0, sd) ** 64;
+      if (y >= 0) {
+        const t = Math.pow(1 - y, 3);
+        return [Math.min(255, 70 + t * 120 + glow * 120 + disk * 255), Math.min(255, 120 + t * 90 + glow * 110 + disk * 255), Math.min(255, 205 + t * 30 + glow * 80 + disk * 255)];
+      }
+      const t = Math.min(1, -y * 4);
+      return [150 - t * 70, 150 - t * 62, 140 - t * 70];
+    }
+    // Espaço: Terra iluminada ocupando a parte de baixo, céu negro
+    if (y < -0.35) { const t = Math.min(1, (-y - 0.35) * 3); return [20 + t * 30, 40 + t * 45, 70 + t * 70]; }
+    return [2, 2, 4];
+  };
+  // Ordem das faces do Babylon: +X, -X, +Y, -Y, +Z, -Z
+  const faces: ((u: number, v: number) => [number, number, number])[] = [
+    (u, v) => [1, -v, -u], (u, v) => [-1, -v, u], (u, v) => [u, 1, v],
+    (u, v) => [u, -1, -v], (u, v) => [u, -v, 1], (u, v) => [-u, -v, -1],
+  ];
+  const data = faces.map((dir) => {
+    const buf = new Uint8Array(size * size * 4);
+    for (let j = 0; j < size; j++) for (let i = 0; i < size; i++) {
+      const [x, y, z] = dir(((i + 0.5) / size) * 2 - 1, ((j + 0.5) / size) * 2 - 1);
+      const c = color(x, y, z);
+      const k = (j * size + i) * 4;
+      buf[k] = c[0]; buf[k + 1] = c[1]; buf[k + 2] = c[2]; buf[k + 3] = 255;
+    }
+    return buf;
+  });
+  const tex = new RawCubeTexture(scene, data, size, Constants.TEXTUREFORMAT_RGBA, Constants.TEXTURETYPE_UNSIGNED_BYTE, true);
+  tex.name = `env-${kind}`;
+  return tex;
+}
+
+export function createBaseScene(engine: Engine, opts: { clear: Color4; target: Vector3; radius: number; alpha?: number; beta?: number; exposure?: number; shadows?: boolean; maxZ?: number; environment?: EnvironmentKind; environmentIntensity?: number }): BaseScene {
   const scene = new Scene(engine);
   scene.clearColor = opts.clear;
   scene.imageProcessingConfiguration.toneMappingEnabled = true;
@@ -37,6 +95,14 @@ export function createBaseScene(engine: Engine, opts: { clear: Color4; target: V
   const sun = new DirectionalLight('sun', new Vector3(-0.4, -1, 0.35), scene);
   sun.position = new Vector3(40, 80, -40);
   sun.intensity = 2.2;
+  if (opts.environment) {
+    try {
+      scene.environmentTexture = environmentCube(scene, opts.environment, sun.direction);
+      scene.environmentIntensity = opts.environmentIntensity ?? 0.7;
+      // O ambiente já fornece a luz indireta: a hemisférica só completa
+      hemi.intensity = 0.3;
+    } catch { /* sem cubo de ambiente: fica a luz hemisférica */ }
+  }
   let shadows: ShadowGenerator | null = null;
   if (opts.shadows !== false) {
     shadows = new ShadowGenerator(2048, sun);
@@ -86,13 +152,10 @@ export function buildHangar(base: BaseScene, o: HangarOptions): { floor: Mesh; l
   }
   const grate = MeshBuilder.CreateGround('grating', { width: o.width * 0.12, height: o.depth * 0.8 }, scene);
   grate.position = new Vector3(o.width * 0.33, 0.012, 0);
-  grate.material = mats.get('darkSteel');
+  grate.material = mats.get('grating');
 
   // Paredes
-  const wallMat = new PBRMaterial('wallMat', scene);
-  wallMat.albedoColor = new Color3(0.72, 0.71, 0.66);
-  wallMat.metallic = 0.3;
-  wallMat.roughness = 0.6;
+  const wallMat = mats.get('wallPanel');
   const walls: [Vector3, number, number][] = [
     [new Vector3(0, o.height / 2, o.depth / 2), o.width, 0],
     [new Vector3(-o.width / 2, o.height / 2, 0), o.depth, Math.PI / 2],
@@ -204,7 +267,7 @@ export function buildIntegrationEquipment(base: BaseScene, center: Vector3, spre
     legs.position = new Vector3(x, 0.45, z); legs.rotation.y = rot; legs.material = mats.get('darkSteel');
     const screen = MeshBuilder.CreateBox(`screen${x}${z}`, { width: 0.7, depth: 0.05, height: 0.45 }, scene);
     screen.position = new Vector3(x + 0.4 * Math.cos(rot), 1.3, z - 0.3 * Math.sin(rot)); screen.rotation.y = rot;
-    const sm = mats.get('blackAnodized').clone(`screenMat${x}${z}`);
+    const sm = mats.variant('blackAnodized', `screenMat${x}${z}`);
     sm.emissiveColor = new Color3(0.1, 0.35, 0.55);
     screen.material = sm;
   };
@@ -233,8 +296,9 @@ export function buildIntegrationEquipment(base: BaseScene, center: Vector3, spre
   }
 }
 
-export function buildStarfield(scene: Scene, radius: number, count = 1500): Mesh {
-  const stars = MeshBuilder.CreateSphere('starTemplate', { diameter: radius * 0.003, segments: 3 }, scene);
+/** Estrelas como pontos numa esfera; starSize é o diâmetro angular (rad) de cada uma. */
+export function buildStarfield(scene: Scene, radius: number, count = 1500, starSize = 0.003): Mesh {
+  const stars = MeshBuilder.CreateSphere('starTemplate', { diameter: radius * starSize, segments: 3 }, scene);
   const mat = new StandardMaterial('starMat', scene);
   mat.emissiveColor = new Color3(1, 1, 1);
   mat.disableLighting = true;

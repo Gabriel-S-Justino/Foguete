@@ -8,6 +8,8 @@ import { createLaunchPadScene, PAD_CAMERAS, type PadCamera } from '../../engine/
 import { LaunchController, type LaunchSnapshot } from '../../engine/simulation/launchController';
 import { useCampaign } from '../../store/campaignStore';
 
+import { ARRAYS_EVENT } from '../../engine/entities/power';
+
 const FINAL = new Set(['orbit', 'aborted', 'failed', 'scrubbed']);
 const STATE_LABEL: Record<LaunchSnapshot['state'], string> = {
   checks: 'VERIFICAÇÕES', ready: 'PRONTO — AGUARDANDO GO', hold: 'HOLD', countdown: 'CONTAGEM FINAL', ignition: 'IGNIÇÃO',
@@ -17,7 +19,7 @@ const STATE_LABEL: Record<LaunchSnapshot['state'], string> = {
 const CAMERA_LABEL: Record<PadCamera, string> = { overview: 'Geral', tracking: 'Rastreio', cinematic: 'Cinemática', externalDown: 'Externa ↓', externalUp: 'Externa ↑' };
 const CAMERA_HINT: Record<PadCamera, string> = {
   overview: 'Câmera de rastreio fixa no solo, com zoom óptico que acompanha a distância',
-  tracking: 'Acompanha o veículo; arraste para girar em volta',
+  tracking: 'Acompanha o veículo e a inclinação real da trajetória até a órbita; arraste para girar em volta',
   cinematic: 'Gira lentamente em volta do veículo',
   externalDown: 'Câmera presa ao último estágio, olhando para baixo (motores, separação, Terra)',
   externalUp: 'Câmera presa ao último estágio, olhando para cima (corpo e coifa)',
@@ -48,6 +50,13 @@ export function LaunchScreen() {
   useEffect(() => ctrl.subscribe(setSnap), [ctrl]);
   useEffect(() => () => ctrl.dispose(), [ctrl]);
   useEffect(() => { pad?.setCamera(camera); }, [pad, camera]);
+  // Depois da decolagem a vista passa sozinha para o rastreio (que acompanha a inclinação até a órbita),
+  // a menos que o jogador tenha escolhido outra câmera desde a confirmação do lançamento
+  const userCamera = useRef(false);
+  const pickCamera = (c: PadCamera) => { userCamera.current = true; setCamera(c); };
+  useEffect(() => {
+    if (!userCamera.current && camera === 'overview' && snap.state === 'flight' && snap.telemetry.altitudeM > 250) setCamera('tracking');
+  }, [snap, camera]);
   // Exposto para os testes ponta a ponta (estado das câmeras e do zoom)
   useEffect(() => {
     if (!pad || !navigator.webdriver) return;
@@ -55,6 +64,14 @@ export function LaunchScreen() {
     return () => { delete (globalThis as { __launchPad?: unknown }).__launchPad; };
   }, [pad]);
   useEffect(() => { termRef.current?.scrollTo({ top: termRef.current.scrollHeight }); }, [snap.events.length]);
+
+  // Painéis solares: recolhidos na coifa durante a subida; em órbita o jogador manda abrir
+  const arraysDeployed = campaign.flightEvents.some((e) => e.id === ARRAYS_EVENT);
+  const deployArrays = () => {
+    pad?.deployArrays();
+    recordEvent({ t: snap.telemetry.t, phase: 'orbit', id: ARRAYS_EVENT, label: 'Painéis solares estendidos em órbita', severity: 'info' });
+    if (camera !== 'tracking') pickCamera('tracking');
+  };
 
   const a = ctrl.actions;
   const tel = snap.telemetry;
@@ -126,7 +143,7 @@ export function LaunchScreen() {
         <div className="panel" style={{ padding: 8, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', flex: 1 }}>
           <button className="btn primary" disabled={!a.startProcedures} onClick={() => ctrl.startProcedures()} data-testid="start-procedures">Iniciar procedimentos</button>
           <button className="btn amber" disabled={!a.hold} onClick={() => ctrl.hold()} data-testid="hold">Hold</button>
-          <button className="btn primary" disabled={!a.confirmLaunch} onClick={() => ctrl.confirmLaunch()} data-testid="confirm-launch" title={a.blocking ? 'Condição bloqueante ativa' : ''}>Confirmar lançamento</button>
+          <button className="btn primary" disabled={!a.confirmLaunch} onClick={() => { userCamera.current = false; ctrl.confirmLaunch(); }} data-testid="confirm-launch" title={a.blocking ? 'Condição bloqueante ativa' : ''}>Confirmar lançamento</button>
           <button className="btn danger" disabled={!a.abort} onClick={() => ctrl.abort()} data-testid="abort">Abortar</button>
           {snap.state === 'flight' && <button className="btn danger small" onClick={() => ctrl.abort('flight-termination')} data-testid="terminate">Terminação de voo</button>}
           <button className="btn" disabled={!a.scrub} onClick={() => ctrl.scrub()} data-testid="scrub">Scrub</button>
@@ -134,10 +151,11 @@ export function LaunchScreen() {
           <span className="small muted" style={{ marginLeft: 8 }}>Tempo:</span>
           {[1, 5, 10, 20].map((w) => <button key={w} className={`btn small ${snap.timeWarp === w ? 'amber' : ''}`} onClick={() => ctrl.setTimeWarp(w)} data-testid={`warp-${w}`}>{w}×</button>)}
           <span className="small muted" style={{ marginLeft: 8 }}>Câmera:</span>
-          {PAD_CAMERAS.map((c) => <button key={c} className={`btn small ${camera === c ? 'amber' : ''}`} onClick={() => setCamera(c)} data-testid={`camera-${c}`} title={CAMERA_HINT[c]}>{CAMERA_LABEL[c]}</button>)}
+          {PAD_CAMERAS.map((c) => <button key={c} className={`btn small ${camera === c ? 'amber' : ''}`} onClick={() => pickCamera(c)} data-testid={`camera-${c}`} title={CAMERA_HINT[c]}>{CAMERA_LABEL[c]}</button>)}
           <button className="btn small" onClick={() => pad?.zoom(1.4)} data-testid="zoom-in" title="Aproximar (também pela roda do mouse)" aria-label="Aproximar">+</button>
           <button className="btn small" onClick={() => pad?.zoom(1 / 1.4)} data-testid="zoom-out" title="Afastar (também pela roda do mouse)" aria-label="Afastar">−</button>
           <span className="spacer" />
+          {snap.state === 'orbit' && pad?.hasSolarArrays && !arraysDeployed && <button className="btn amber" onClick={deployArrays} data-testid="deploy-arrays" title="Abre os painéis dobrados dentro da coifa; a câmera de rastreio enquadra a sonda">Estender painéis solares</button>}
           {snap.state === 'scrubbed' && <button className="btn amber" onClick={newWindow} data-testid="new-window">Nova janela</button>}
           {final && snap.state !== 'scrubbed' && <button className="btn primary" onClick={finish} data-testid="launch-continue">{snap.state === 'orbit' ? 'Separação: operar a sonda →' : 'Ver relatório →'}</button>}
           {snap.state === 'scrubbed' && <button className="btn" onClick={finish}>Encerrar campanha</button>}

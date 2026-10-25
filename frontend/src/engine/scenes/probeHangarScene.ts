@@ -23,7 +23,7 @@ export interface ProbeHangarController extends SceneController {
 const STAND_H = 1.4;
 
 export function createProbeHangarScene(engine: Engine): ProbeHangarController {
-  const base = createBaseScene(engine, { clear: new Color4(0.06, 0.07, 0.08, 1), target: new Vector3(0, 2.6, 0), radius: 15, alpha: -Math.PI / 2.6, beta: 1.2, exposure: 1.2 });
+  const base = createBaseScene(engine, { clear: new Color4(0.06, 0.07, 0.08, 1), target: new Vector3(0, 2.6, 0), radius: 15, alpha: -Math.PI / 2.6, beta: 1.2, exposure: 1.1, environment: 'hangar', environmentIntensity: 0.8 });
   const { scene, mats, camera, shadows } = base;
   buildHangar(base, { width: 46, depth: 60, height: 20, bays: 6, withCrane: true, doorSide: 'back' });
   buildIntegrationEquipment(base, new Vector3(0, 0, 0), 5.5);

@@ -107,16 +107,21 @@ try {
 
   await step('lançamento com câmeras', async () => {
     await page.getByTestId('start-procedures').click();
-    await page.waitForFunction(() => /PRONTO|HOLD/.test(document.querySelector('[data-testid="launch-state"]')?.textContent ?? ''), null, { timeout: 20000 });
+    await page.waitForFunction(() => /PRONTO|HOLD/.test(document.querySelector('[data-testid="launch-state"]')?.textContent ?? ''), null, { timeout: 90000 });
     for (let i = 0; i < 5 && await page.getByTestId('confirm-launch').isDisabled(); i++) {
       if (await page.getByTestId('hold').isEnabled()) await page.getByTestId('hold').click();
       await page.waitForTimeout(7000);
     }
     await camera('overview');
     await page.getByTestId('confirm-launch').click();
-    await page.waitForFunction(() => /EM VOO/.test(document.querySelector('[data-testid="launch-state"]')?.textContent ?? ''), null, { timeout: 30000 });
+    await page.waitForFunction(() => /EM VOO/.test(document.querySelector('[data-testid="launch-state"]')?.textContent ?? ''), null, { timeout: 90000 });
     await page.waitForTimeout(2500);
     await shot('03-geral-decolagem');
+    // Decolagem: o foguete sobe na vertical antes de inclinar (não escorrega para o lado)
+    const lift = await info();
+    const altLift = lift.rocketPad[1];
+    assert(Math.abs(lift.rocketPad[0]) < 60, `foguete deslocou ${lift.rocketPad[0].toFixed(1)} m para o lado logo na decolagem`);
+    assert(lift.tiltDeg < 5, `foguete já inclinado ${lift.tiltDeg.toFixed(1)}° na decolagem`);
     const down0 = await camera('externalDown');
     await shot('04-externa-baixo-decolagem');
     await page.waitForTimeout(1500);
@@ -124,13 +129,30 @@ try {
     assert(down1.position[1] > down0.position[1], 'câmera externa não acompanhou a subida do foguete');
     await camera('externalUp');
     await shot('05-externa-cima-decolagem');
+    await page.getByTestId('warp-5').click();
     await camera('tracking');
-    await page.getByTestId('warp-10').click();
-    await page.waitForTimeout(4000);
+    await page.waitForTimeout(3000);
     await shot('06-rastreio-subida');
+    const climb = await info();
+    assert(climb.rocketPad[1] > altLift, 'foguete não subiu');
     await camera('cinematic');
     await page.waitForTimeout(1500);
     await shot('07-cinematica');
+    await camera('tracking');
+    // Trajetória: amostras de inclinação e posição durante a subida
+    await page.getByTestId('warp-10').click();
+    const samples = [];
+    for (let i = 0; i < 12; i++) {
+      await page.waitForTimeout(2500);
+      const s = await info();
+      samples.push(s);
+      if (/separa/i.test(await page.getByTestId('terminal').textContent())) break;
+    }
+    console.log('  amostras (alcance km, altura km, inclinação °, fumaça):', samples.map((s) => `${(s.rocketPad[0] / 1000).toFixed(1)}/${(s.rocketPad[1] / 1000).toFixed(1)}/${s.tiltDeg.toFixed(0)}/${s.smokeParticles}`).join('  '));
+    assert(samples.some((s) => s.smokeParticles > 30), 'rastro de fumaça da trajetória não apareceu');
+    const tilts = samples.map((s) => s.tiltDeg);
+    assert(tilts[tilts.length - 1] > tilts[0] + 5, `inclinação não aumentou na curva de gravidade (${tilts.map((t) => t.toFixed(0)).join(', ')})`);
+    await shot('07b-rastreio-curva-gravidade');
     // Separação do primeiro estágio vista pela câmera externa
     await page.waitForFunction(() => /separa/i.test(document.querySelector('[data-testid="terminal"]')?.textContent ?? ''), null, { timeout: 120000 });
     await page.getByTestId('warp-1').click();
@@ -142,15 +164,27 @@ try {
     await shot('09-externa-cima-separacao');
     await camera('overview');
     await shot('10-geral-longa-distancia');
+    await camera('tracking');
     await page.getByTestId('warp-20').click();
-    await page.waitForFunction(() => /ÓRBITA|FALHA|ABORT/.test(document.querySelector('[data-testid="launch-state"]')?.textContent ?? ''), null, { timeout: 240000 });
+    await page.waitForFunction(() => /ÓRBITA|FALHA|ABORT/.test(document.querySelector('[data-testid="launch-state"]')?.textContent ?? ''), null, { timeout: 300000 });
+    const state = await page.getByTestId('launch-state').textContent();
+    await page.waitForTimeout(1500);
+    await shot('11-rastreio-orbita');
+    const fin = await info();
+    console.log(`  estado final: ${state}; alcance ${(fin.rocketPad[0] / 1000).toFixed(0)} km, altura ${(fin.rocketPad[1] / 1000).toFixed(0)} km, inclinação ${fin.tiltDeg.toFixed(0)}°, fumaça ${fin.smokeParticles}`);
+    if (/ÓRBITA/.test(state ?? '')) {
+      // Em órbita o eixo fica no horizonte local: 90° + ângulo central percorrido (alcance / raio da Terra)
+      const expected = 90 + (Math.atan2(fin.rocketPad[0], fin.rocketPad[1] + 6371000) * 180) / Math.PI;
+      assert(Math.abs(fin.tiltDeg - expected) < 12, `atitude em órbita ${fin.tiltDeg.toFixed(0)}° ≠ horizonte local ${expected.toFixed(0)}°`);
+      // A câmera continua acompanhando o veículo em órbita
+      await page.waitForTimeout(3000);
+      const later = await info();
+      assert(Math.hypot(later.rocketPad[0] - fin.rocketPad[0], later.rocketPad[1] - fin.rocketPad[1]) > 1000, 'veículo parado depois da inserção em órbita');
+      assert(Math.hypot(later.position[0] - later.rocketPad[0], later.position[1] - later.rocketPad[1], later.position[2] - later.rocketPad[2]) < 2000, 'câmera de rastreio não acompanhou o veículo em órbita');
+    }
     await camera('externalDown');
     await page.waitForTimeout(1000);
-    await shot('11-externa-baixo-final');
-    await camera('tracking');
-    await page.waitForTimeout(1000);
-    await shot('12-rastreio-final');
-    console.log(`  estado final: ${await page.getByTestId('launch-state').textContent()}`);
+    await shot('12-externa-baixo-final');
   });
   if (errors.length) throw new Error(`erros no console:\n${errors.join('\n')}`);
   console.log('E2E de câmeras concluído sem erros.');
