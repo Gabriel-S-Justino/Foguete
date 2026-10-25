@@ -97,9 +97,10 @@ export function createProbeHangarScene(engine: Engine): ProbeHangarController {
   });
 
   const frame = () => {
+    // Com a nave de referência em foco, montar a sonda não tira a câmera dela
+    if (view === 'reference') return;
     const h = probe.height + STAND_H;
     camera.setTarget(new Vector3(0, h * 0.55, 0));
-    if (view === 'reference') return;
     if (view === 'overview') camera.radius = Math.max(11, h * 4.2);
   };
 
