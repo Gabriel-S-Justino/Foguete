@@ -2,10 +2,12 @@
  * Hangar de integração da sonda (referência visual: imagem do Amazônia-1 fornecida pelo usuário).
  * Mantém o modelo 3D sincronizado com a configuração lógica e anima os braços robóticos a cada montagem.
  */
-import { Color3, Color4, type Engine, HighlightLayer, type Mesh, MeshBuilder, PointerEventTypes, Vector3 } from '@babylonjs/core';
+import { Color3, Color4, type Engine, HighlightLayer, type Mesh, MeshBuilder, PointerEventTypes, type TransformNode, Vector3 } from '@babylonjs/core';
+import type { MissionId } from '../../types/catalog';
 import type { InstalledComponent } from '../../types/campaign';
 import type { SceneController } from '../core/SceneManager';
 import { getComponent } from '../catalog';
+import { loadNasaModel, REFERENCE_SPACECRAFT, type NasaModelId } from '../entities/nasaModels';
 import { ProbeModel } from '../entities/probeModel';
 import { RobotArm } from '../entities/robotArm';
 import { buildHangar, buildIntegrationEquipment, createBaseScene } from './environment';
@@ -13,7 +15,11 @@ import { buildHangar, buildIntegrationEquipment, createBaseScene } from './envir
 export interface ProbeHangarController extends SceneController {
   sync(installed: InstalledComponent[]): void;
   highlight(componentId: string | null): void;
-  setView(view: 'overview' | 'inspect'): void;
+  setView(view: 'overview' | 'inspect' | 'reference'): void;
+  /** Expõe no hangar a nave real da NASA equivalente à missão (modelo do NASA 3D Resources). */
+  showReference(missionId: MissionId): void;
+  /** Modelo de referência exposto e carregado (para testes). */
+  referenceInfo(): { id: NasaModelId | null; loaded: boolean };
   onPick(cb: (componentId: string, instanceId: string) => void): void;
   armStatus(): string[];
   /** Quantidade de componentes visíveis no modelo 3D (para testes de consistência). */
@@ -21,6 +27,9 @@ export interface ProbeHangarController extends SceneController {
 }
 
 const STAND_H = 1.4;
+/** Expositor da nave de referência, à esquerda da área de integração. */
+const REF_POS = new Vector3(-14, 0, -6);
+const REF_H = 1.1;
 
 export function createProbeHangarScene(engine: Engine): ProbeHangarController {
   const base = createBaseScene(engine, { clear: new Color4(0.06, 0.07, 0.08, 1), target: new Vector3(0, 2.6, 0), radius: 15, alpha: -Math.PI / 2.6, beta: 1.2, exposure: 1.1, environment: 'hangar', environmentIntensity: 0.8 });
@@ -64,7 +73,19 @@ export function createProbeHangarScene(engine: Engine): ProbeHangarController {
   let highlighted: Mesh[] = [];
   let pickCb: ((componentId: string, instanceId: string) => void) | null = null;
   let current: InstalledComponent[] = [];
-  let view: 'overview' | 'inspect' = 'overview';
+  let view: 'overview' | 'inspect' | 'reference' = 'overview';
+
+  // Expositor: pedestal com anel de luz; o modelo da NASA é carregado sob demanda
+  const refStand = MeshBuilder.CreateCylinder('refStand', { diameter: 3.4, height: REF_H, tessellation: 48 }, scene);
+  refStand.position = REF_POS.add(new Vector3(0, REF_H / 2, 0));
+  refStand.material = mats.get('darkSteel');
+  const refRing = MeshBuilder.CreateTorus('refRing', { diameter: 3.6, thickness: 0.05, tessellation: 64 }, scene);
+  refRing.position = REF_POS.add(new Vector3(0, REF_H + 0.01, 0));
+  refRing.material = mats.get('lampEmissive');
+  let refId: NasaModelId | null = null;
+  let refNode: TransformNode | null = null;
+  let refToken = 0;
+  let refCenter = REF_POS.add(new Vector3(0, REF_H + 3, 0));
   const pendingRemovals = new Set<string>();
   const inTransit = new Set<string>();
 
@@ -76,6 +97,8 @@ export function createProbeHangarScene(engine: Engine): ProbeHangarController {
   });
 
   const frame = () => {
+    // Com a nave de referência em foco, montar a sonda não tira a câmera dela
+    if (view === 'reference') return;
     const h = probe.height + STAND_H;
     camera.setTarget(new Vector3(0, h * 0.55, 0));
     if (view === 'overview') camera.radius = Math.max(11, h * 4.2);
@@ -192,12 +215,36 @@ export function createProbeHangarScene(engine: Engine): ProbeHangarController {
     setView(v) {
       view = v;
       if (v === 'overview') { camera.alpha = -Math.PI / 2.6; camera.beta = 1.2; frame(); }
+      else if (v === 'reference') { camera.setTarget(refCenter.clone()); camera.alpha = -Math.PI / 1.7; camera.beta = 1.3; camera.radius = 12; }
       else { camera.radius = 6; camera.beta = 1.25; }
     },
+    showReference(missionId) {
+      const id = REFERENCE_SPACECRAFT[missionId];
+      if (id === refId) return;
+      refId = id;
+      refNode?.dispose();
+      refNode = null;
+      const token = ++refToken;
+      void loadNasaModel(scene, id).then((node) => {
+        if (!node) return;
+        if (token !== refToken) { node.dispose(); return; }
+        refNode = node;
+        // Apoiada sobre o pedestal: a base do modelo fica 10 cm acima do tampo
+        node.position = REF_POS.clone();
+        node.computeWorldMatrix(true);
+        const { min, max } = node.getHierarchyBoundingVectors(true);
+        node.position.y += REF_H + 0.1 - min.y;
+        refCenter = REF_POS.add(new Vector3(0, REF_H + 0.1 + (max.y - min.y) / 2, 0));
+        if (view === 'reference') camera.setTarget(refCenter.clone());
+        node.getChildMeshes().forEach((m) => { m.isPickable = false; shadows?.addShadowCaster(m); });
+      });
+    },
+    referenceInfo() { return { id: refId, loaded: refNode !== null }; },
     onPick(cb) { pickCb = cb; },
     armStatus() { return [`Braço A: ${leftArm.status}`, `Braço B: ${rightArm.status}`]; },
     visibleCount() { return probe.partNodes.filter((p) => !pendingRemovals.has(p.instanceId)).length; },
     dispose() {
+      refToken++;
       highlight.dispose();
       probe.dispose();
       scene.dispose();

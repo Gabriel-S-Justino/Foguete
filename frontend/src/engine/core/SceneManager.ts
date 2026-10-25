@@ -43,6 +43,8 @@ class SceneManagerImpl {
   private listeners = new Set<Listener>();
   private lowFpsTime = 0;
   private loadToken = 0;
+  /** Cena pedida antes de o canvas existir (o efeito da tela roda antes do efeito do App que cria o Engine). */
+  private pending: { key: string; factory: SceneFactory<SceneController>; resolve: (c: SceneController | null) => void } | null = null;
   status: EngineStatus = { webgl2: true, contextLost: false, fps: 60, quality: 2, loading: false, degraded: false };
 
   attach(canvas: HTMLCanvasElement): boolean {
@@ -71,6 +73,9 @@ class SceneManagerImpl {
       this.monitorPerformance(dt);
     });
     this.setStatus({ webgl2: true });
+    const queued = this.pending;
+    this.pending = null;
+    if (queued) void this.show(queued.key, queued.factory).then(queued.resolve, () => queued.resolve(null));
     return true;
   }
 
@@ -92,7 +97,11 @@ class SceneManagerImpl {
 
   /** Mostra uma cena; a cena anterior é descartada (sem múltiplos engines ativos). */
   async show<T extends SceneController>(key: string, factory: SceneFactory<T>): Promise<T | null> {
-    if (!this.engine) return null;
+    if (!this.engine) {
+      // Sem Engine ainda: guarda o pedido (o mais recente vale) e cria a cena assim que o canvas for ligado
+      this.pending?.resolve(null);
+      return new Promise<T | null>((resolve) => { this.pending = { key, factory, resolve: resolve as (c: SceneController | null) => void }; });
+    }
     if (this.currentKey === key && this.current) return this.current as T;
     const token = ++this.loadToken;
     this.setStatus({ loading: true });

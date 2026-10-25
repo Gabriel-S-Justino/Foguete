@@ -27,7 +27,7 @@ import { createExhaust, type ExhaustEffect, smokeTexture } from '../effects/exha
 import { createExplosion } from '../effects/explosion';
 import { createSmokeTrail } from '../effects/smokeTrail';
 import { ProbeModel } from '../entities/probeModel';
-import { buildRocket } from '../entities/rocketModel';
+import { buildRocket, fitPayload } from '../entities/rocketModel';
 import type { LaunchController } from '../simulation/launchController';
 import { buildStarfield, createBaseScene } from './environment';
 import { createPlanet, launchAzimuthDeg, siteOrientation } from './planets';
@@ -220,6 +220,7 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
   probe.rebuild(installed);
   // Painéis solares e antenas dobrados: a sonda viaja dentro da coifa
   probe.setDeployment(0);
+  fitPayload(rocket, probe.root);
   const rocketMeshes = rocket.root.getChildMeshes();
   rocketMeshes.forEach((m) => { shadows?.addShadowCaster(m); m.applyFog = false; });
   let castersOn = true;

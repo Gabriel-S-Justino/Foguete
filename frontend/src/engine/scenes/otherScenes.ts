@@ -3,11 +3,12 @@
  */
 import {
   Color3, Color4, Curve3, type Engine, GlowLayer, HighlightLayer, type Mesh, MeshBuilder, PointerEventTypes,
-  StandardMaterial, Vector3,
+  StandardMaterial, type TransformNode, Vector3,
 } from '@babylonjs/core';
 import type { LaunchVehicle } from '../../types/catalog';
 import type { InstalledComponent } from '../../types/campaign';
 import type { SceneController } from '../core/SceneManager';
+import { loadNasaModel } from '../entities/nasaModels';
 import { ProbeModel } from '../entities/probeModel';
 import { buildRocket, type RocketModel } from '../entities/rocketModel';
 import { referenceConfig } from '../rules/presets';
@@ -28,6 +29,18 @@ export function createStartScene(engine: Engine): SceneController {
   probe.root.scaling.setAll(0.9);
   probe.root.position = new Vector3(-2, 0.5, 0);
   probe.root.rotation = new Vector3(0.25, 0.6, -0.15);
+  // Quando o modelo da Juno (NASA 3D Resources) termina de carregar, ele substitui a sonda procedural
+  let hero: TransformNode = probe.root;
+  let disposed = false;
+  void loadNasaModel(scene, 'juno', 7).then((juno) => {
+    if (!juno) return;
+    if (disposed) { juno.dispose(); return; }
+    // À direita do título, inclinada para mostrar os três painéis solares
+    juno.position = new Vector3(3.6, 1.6, -4);
+    juno.rotation = new Vector3(0.9, 0.6, -0.3);
+    probe.root.setEnabled(false);
+    hero = juno;
+  });
   const glow = new GlowLayer('glow', scene);
   glow.intensity = 0.4;
   let t = 0;
@@ -36,11 +49,11 @@ export function createStartScene(engine: Engine): SceneController {
     update(dt) {
       t += dt;
       earth.rotation.y += dt * 0.01;
-      probe.root.rotation.y += dt * 0.05;
+      hero.rotation.y += dt * 0.05;
       camera.alpha = -2.2 + Math.sin(t * 0.05) * 0.2;
     },
     setQuality: base.setQuality,
-    dispose() { probe.dispose(); scene.dispose(); },
+    dispose() { disposed = true; probe.dispose(); scene.dispose(); },
   };
 }
 
