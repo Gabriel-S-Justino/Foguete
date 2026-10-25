@@ -1,6 +1,6 @@
-/** Construtores de ambientes reutilizados pelas cenas: hangar industrial, céu estrelado e planetas procedurais. */
+/** Construtores de ambientes reutilizados pelas cenas: hangar industrial, céu estrelado e planetas (texturas reais em planets.ts). */
 import {
-  ArcRotateCamera, Color3, Color4, DefaultRenderingPipeline, DirectionalLight, DynamicTexture, type Engine,
+  ArcRotateCamera, Color3, Color4, DefaultRenderingPipeline, DirectionalLight, type Engine,
   HemisphericLight, ImageProcessingConfiguration, Matrix, Mesh, MeshBuilder, PBRMaterial, Scene, ShadowGenerator,
   StandardMaterial, Vector3,
 } from '@babylonjs/core';
@@ -250,77 +250,4 @@ export function buildStarfield(scene: Scene, radius: number, count = 1500): Mesh
   return stars;
 }
 
-export type PlanetKind = 'earth' | 'moon' | 'jupiter';
-
-/** Textura procedural de planeta (sem dependências externas). */
-export function planetMaterial(scene: Scene, kind: PlanetKind): PBRMaterial {
-  const w = 512, h = 256;
-  const tex = new DynamicTexture(`${kind}Tex`, { width: w, height: h }, scene, true);
-  const ctx = tex.getContext() as CanvasRenderingContext2D;
-  let seed = kind === 'earth' ? 11 : kind === 'moon' ? 23 : 37;
-  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-  if (kind === 'jupiter') {
-    const bands = ['#d8c3a5', '#b88a5c', '#e8dcc6', '#a36f45', '#d6b48a', '#f0e6d2', '#9b6a46', '#cfae86'];
-    for (let y = 0; y < h; y++) {
-      const b = bands[Math.floor((y / h) * bands.length * 2 + Math.sin(y * 0.15) * 0.6) % bands.length]!;
-      ctx.fillStyle = b;
-      ctx.fillRect(0, y, w, 1);
-    }
-    for (let k = 0; k < 400; k++) {
-      ctx.fillStyle = `rgba(255,255,255,${rnd() * 0.08})`;
-      ctx.fillRect(rnd() * w, rnd() * h, 20 + rnd() * 60, 1 + rnd() * 2);
-    }
-    ctx.fillStyle = 'rgba(176,82,52,0.85)';
-    ctx.beginPath(); ctx.ellipse(w * 0.62, h * 0.66, 18, 9, 0, 0, Math.PI * 2); ctx.fill();
-  } else if (kind === 'moon') {
-    ctx.fillStyle = '#8d8d8a';
-    ctx.fillRect(0, 0, w, h);
-    for (let k = 0; k < 18; k++) {
-      ctx.fillStyle = `rgba(60,60,62,${0.25 + rnd() * 0.3})`;
-      ctx.beginPath(); ctx.ellipse(rnd() * w, h * 0.25 + rnd() * h * 0.45, 20 + rnd() * 50, 10 + rnd() * 25, rnd(), 0, Math.PI * 2); ctx.fill();
-    }
-    for (let k = 0; k < 600; k++) {
-      const r = 1 + rnd() * 6;
-      ctx.strokeStyle = `rgba(40,40,40,${0.2 + rnd() * 0.3})`;
-      ctx.beginPath(); ctx.arc(rnd() * w, rnd() * h, r, 0, Math.PI * 2); ctx.stroke();
-    }
-  } else {
-    ctx.fillStyle = '#1b3f73';
-    ctx.fillRect(0, 0, w, h);
-    for (let k = 0; k < 26; k++) {
-      ctx.fillStyle = rnd() > 0.5 ? '#4f6d3a' : '#8a7a52';
-      ctx.beginPath(); ctx.ellipse(rnd() * w, h * 0.2 + rnd() * h * 0.6, 20 + rnd() * 60, 10 + rnd() * 40, rnd() * 3, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.fillStyle = '#e8eef3';
-    ctx.fillRect(0, 0, w, h * 0.06);
-    ctx.fillRect(0, h * 0.94, w, h * 0.06);
-    for (let k = 0; k < 220; k++) {
-      ctx.fillStyle = `rgba(255,255,255,${0.2 + rnd() * 0.4})`;
-      ctx.beginPath(); ctx.ellipse(rnd() * w, rnd() * h, 10 + rnd() * 35, 3 + rnd() * 8, rnd() * 3, 0, Math.PI * 2); ctx.fill();
-    }
-  }
-  tex.update();
-  const mat = new PBRMaterial(`${kind}Mat`, scene);
-  mat.albedoTexture = tex;
-  mat.metallic = 0;
-  mat.roughness = kind === 'earth' ? 0.6 : 0.95;
-  return mat;
-}
-
-export function createPlanet(scene: Scene, kind: PlanetKind, diameter: number): Mesh {
-  const p = MeshBuilder.CreateSphere(`${kind}`, { diameter, segments: 64 }, scene);
-  p.material = planetMaterial(scene, kind);
-  p.rotation.x = Math.PI; // textura com norte para cima
-  if (kind === 'earth') {
-    const atm = MeshBuilder.CreateSphere('atmosphere', { diameter: diameter * 1.025, segments: 48 }, scene);
-    const am = new StandardMaterial('atmMat', scene);
-    am.emissiveColor = new Color3(0.35, 0.6, 1);
-    am.alpha = 0.18;
-    am.disableLighting = true;
-    am.backFaceCulling = false;
-    atm.material = am;
-    atm.parent = p;
-    atm.isPickable = false;
-  }
-  return p;
-}
+export { createPlanet, planetMaterial, siteOrientation, type PlanetKind } from './planets';

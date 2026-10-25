@@ -73,13 +73,18 @@ export function createRocketHangarScene(engine: Engine, maxHeightM: number): Roc
   let rocket: RocketModel | null = null;
   let targetY = 30;
   let targetR = 140;
+  // Enquadramento animado só durante a transição: depois o zoom e a rotação ficam com o jogador
+  // (antes o raio era forçado a cada quadro e a roda do mouse não tinha efeito)
+  let framing = false;
   return {
     scene,
     setQuality: base.setQuality,
     update(dt) {
-      const k = Math.min(1, dt * 2);
+      if (!framing) return;
+      const k = Math.min(1, dt * 2.5);
       camera.target.y += (targetY - camera.target.y) * k;
       camera.radius += (targetR - camera.radius) * k;
+      if (Math.abs(targetR - camera.radius) < 0.5 && Math.abs(targetY - camera.target.y) < 0.1) framing = false;
     },
     showVehicle(vehicle) {
       rocket?.dispose();
@@ -89,7 +94,8 @@ export function createRocketHangarScene(engine: Engine, maxHeightM: number): Roc
       // Enquadramento automático: o foguete inteiro cabe no campo de visão vertical
       const h = rocket.height + 2;
       targetY = h * 0.5;
-      targetR = (h * 0.62) / Math.tan(camera.fov / 2);
+      targetR = Math.min(camera.upperRadiusLimit ?? Infinity, (h * 0.62) / Math.tan(camera.fov / 2));
+      framing = true;
     },
     currentHeight: () => rocket?.height ?? 0,
     dispose() { rocket?.dispose(); scene.dispose(); },

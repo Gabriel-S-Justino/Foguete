@@ -1,6 +1,6 @@
 # Estado da implementação
 
-Última atualização: 2026-10-24 · branch `Main`
+Última atualização: 2026-10-24 (revisão de animações, texturas e câmeras) · branch `Main`
 
 ## Funcionalidades implementadas
 
@@ -23,8 +23,20 @@
   - 12 verificações de sistemas derivadas do estado.
   - Condições sorteadas (clima, sensor, pressurização, energia de solo).
   - Comandos de hold, confirmação, aborto, terminação de voo, pausa, scrub e nova janela.
-  - Aceleração de tempo de 1× a 20× e quatro câmeras, com troca automática para rastreio na decolagem.
-- [x] Ascensão física com passo fixo, separação de estágios, Max-Q, falhas (ignição, perda de motor, separação, vibração), pluma de partículas e telemetria completa.
+  - Aceleração de tempo de 1× a 20× e cinco câmeras com zoom (roda do mouse ou botões +/−) que não é desfeito no quadro seguinte:
+    - **Geral**: câmera de rastreio de longo alcance fixa no solo, com zoom óptico que acompanha a distância.
+    - **Rastreio**: órbita em volta do veículo (arrastar para girar).
+    - **Cinemática**: gira lentamente em volta do veículo.
+    - **Externa ↓**: presa ao último estágio, olhando para baixo (motores, pluma, separação do estágio, Terra).
+    - **Externa ↑**: presa ao último estágio, olhando para cima (corpo do estágio e coifa).
+- [x] Ascensão física com passo fixo, separação de estágios, Max-Q, falhas (ignição, perda de motor, separação, vibração) e telemetria completa.
+- [x] Animação do lançamento (revisada em 2026-10-24):
+  - Inclinação suave a partir da arfagem simulada, girando em torno do centro de massa e com a mesma compressão de escala da posição (o eixo coincide com a direção do movimento na tela). Antes a inclinação "pulava" aos 200 m e girava em torno do solo.
+  - Estágios separados mantêm a velocidade do veículo, recebem empurrão para trás e ficam para trás girando; a coifa abre em duas metades articuladas. Objetos soltos usam o relógio da simulação (respeitam pausa e aceleração de tempo).
+  - Depois da órbita o veículo continua em voo paralelo à superfície; aborto em voo vira queda balística com explosão no impacto; terminação de voo destrói o veículo no ar com destroços. Antes o foguete congelava no céu.
+  - Pluma com shader presa ao bocal (segue o eixo do motor em qualquer inclinação), cor por propelente (querosene, metano, hidrogênio com discos de Mach, sólido), expansão no vácuo, chamas locais, rastro de fumaça só em atmosfera densa, nuvem de vapor na plataforma, luz da exaustão.
+  - Céu escurece com a altitude da câmera, estrelas aparecem acima da atmosfera e o terreno dá lugar à Terra texturizada abaixo, orientada para o Cabo Canaveral.
+- [x] Planetas com texturas reais (Terra com dia, luzes noturnas, nuvens, reflexo nos oceanos e atmosfera; Lua com relevo; Júpiter), em shader próprio sem costura no antimeridiano. Fontes e licenças em `docs/texture-sources.md`.
 - [x] Manobras da sonda pela equação de Tsiolkovsky com a massa real. A captura pode ser completa, em órbita alta ou falhar e virar sobrevoo. A dispersão aumenta sem TCM ou com sensor degradado.
 - [x] Anomalias de cruzeiro e de ciência com respostas do jogador e efeitos persistentes.
 - [x] Checkpoints científicos com fatores explicados: instrumento, latitude, altitude, apontamento, iluminação, saúde, energia, enlace e tempo.
@@ -43,7 +55,26 @@
 - [x] `docker-compose.yml` (PostgreSQL 16, API e frontend), Dockerfiles, `.env.example`.
 - [x] `vercel.json` (frontend estático e função Python `api/index.py`), `requirements.txt` na raiz para a função.
 
-## Testes executados (2026-10-24, contêiner de desenvolvimento)
+## Testes executados
+
+### 2026-10-24, revisão de animações, texturas e câmeras (contêiner de desenvolvimento)
+
+| Suíte | Comando | Resultado |
+|---|---|---|
+| Typecheck | `npm run typecheck` | sem erros |
+| Lint | `npm run lint` | sem erros |
+| Unitários | `npm test` (Vitest) | **54/54** (inclui 3 novos de orientação da textura da Terra) |
+| Build de produção | `npm run build` | ok |
+| Backend, SQLite | `pytest` | **39/39** (backend não mudou) |
+| E2E LEO, sem backend | `npm run test:e2e` | ok, órbita, classificação **sucesso** (ciência 100) |
+| E2E Júpiter, sem backend | `E2E_MISSION=jupiter-system npm run test:e2e` | ok, **sucesso** (ciência 88) |
+| E2E de câmeras, Falcon 9 | `npm run test:e2e:cameras` | ok: as 5 câmeras têm posições distintas, o zoom persiste (botões e roda do mouse), a câmera externa acompanha a subida, órbita atingida; capturas em `frontend/e2e/artifacts/cameras-*.png` |
+| E2E de câmeras, Falcon Heavy | `E2E_MISSION=jupiter-system npm run test:e2e:cameras` | ok, mesmas verificações |
+| Aborto e terminação de voo | script temporário (não versionado) | conferidos por captura: queda balística após corte de motores; explosão com destroços na terminação |
+
+Os E2E com API + PostgreSQL não foram repetidos nesta revisão (o backend não mudou). As texturas foram conferidas visualmente na tela inicial, na visualização orbital e numa página de teste com os três planetas.
+
+### 2026-10-24, versão inicial
 
 | Suíte | Comando | Resultado |
 |---|---|---|
@@ -62,12 +93,15 @@ O E2E roda no Chromium com renderização por software (SwiftShader), a cerca de
 
 ## Não executado / pendências
 
-- **Deploy na Vercel não foi feito** (a sessão não tem acesso à Vercel nem ao Neon). A configuração está pronta, mas não foi validada em produção. Ver `docs/deployment.md`.
+- Deploy na Vercel com Neon feito pelo Kali e confirmado funcionando (2026-10-24). Esta sessão não tem acesso à Vercel, então a revisão de animações/texturas/câmeras só vai para produção depois do merge e do novo deploy automático. Ver `docs/deployment.md`.
 - **Docker Compose não foi testado**, porque o daemon Docker não está disponível no contêiner. Os mesmos serviços foram validados manualmente: PostgreSQL 16 local, `alembic upgrade head`, uvicorn e Vite.
 - Fontes marcadas como "conferência pendente" em `docs/scientific-sources.md` precisam de leitura do documento primário: capacidades Falcon 9/Heavy via Wikipedia, New Glenn, constantes do JPL e US76.
 - Capacidades **pendentes** (bloqueiam o uso): Starship e New Glenn em todos os perfis; Falcon 9 e Soyuz para Júpiter; SLS em LEO polar e Júpiter; Falcon Heavy na trajetória direta para Júpiter.
 - O Δv **necessário** é calculado só no cliente (modelo orbital completo). O servidor usa esse valor informado pelo cliente.
 - O bundle do Babylon.js tem cerca de 5 MB (1,1 MB gzip), porque é importado pelo pacote raiz `@babylonjs/core`. Imports profundos reduziriam o tamanho.
 - Sem testes de componentes React isolados; a interface é coberta pelo E2E.
+- Escala visual do lançamento: 1:1 até 3 km de altitude e comprimida (×0,08) acima disso; a Terra da cena tem raio visual reduzido, então a curvatura em órbita parece um pouco mais acentuada que a real.
+- A pluma e a fumaça são efeitos visuais calibrados a olho a partir de fotos e vídeos de lançamentos, não uma simulação de escoamento.
+- No SwiftShader (renderização por software usada nos testes) a cena de lançamento roda a cerca de 2–5 FPS; em GPU real não foi medido nesta sessão.
 - Ascensão 2D sem vento, sem azimute 3D e sem dispersões de motor. Janela de Júpiter em modelo circular coplanar (ver `docs/physics-model.md`).
 - Acessibilidade parcial: rótulos ARIA nos controles principais e navegação por teclado na seleção de missão, sem revisão completa.

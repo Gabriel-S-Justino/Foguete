@@ -95,7 +95,7 @@ export function App() {
         <main className="workspace">
           {notice && <div className="panel notice" role="alert"><span>{notice}</span><button className="btn small" onClick={dismiss}>OK</button></div>}
           <Screen />
-          {status.degraded && <div className="panel small" style={{ position: 'absolute', right: 14, bottom: 80, padding: '4px 8px' }}>Qualidade gráfica reduzida para manter a taxa de quadros ({Math.round(status.fps)} FPS)</div>}
+          {status.degraded && <div className="panel small" style={{ position: 'absolute', right: 14, bottom: 80, padding: '4px 8px', pointerEvents: 'none' }}>Qualidade gráfica reduzida para manter a taxa de quadros ({Math.round(status.fps)} FPS)</div>}
         </main>
       </div>
       {!status.webgl2 && (
