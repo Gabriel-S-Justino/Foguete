@@ -228,8 +228,17 @@ try {
         const at = await orbit();
         if (/^(loi|joi)$/.test(id) && at.attitude !== 'retrograde') throw new Error(`${id}: atitude ${at.attitude}, esperada retrógrada`);
         console.log(`  ${id}: relógio parado em t = ${(at.t / 86400).toFixed(2)} dias, trecho "${at.segmentLabel}", altitude ${(at.altitudeM / 1000).toFixed(0)} km sobre ${at.centerName}, atitude ${at.attitude}`);
+        // Δv cobrado = o calculado pela trajetória (o orçado é só referência)
+        const dvText = await page.getByTestId(`dv-calc-${id}`).textContent().catch(() => null);
+        const calc = dvText ? Number(/trajetória: ([\d.]+)/.exec(dvText)?.[1]) : NaN;
         await b.click();
         await page.waitForTimeout(1000);
+        if (Number.isFinite(calc)) {
+          const log = await page.getByTestId('ops-log').innerText();
+          const exec = [...log.matchAll(/Δv ([\d.]+) m\/s com/g)].map((x) => Number(x[1])).pop();
+          console.log(`    Δv executado ${exec} m/s, calculado pela trajetória ${calc} m/s`);
+          if (exec === undefined || Math.abs(exec - calc) > Math.max(1, calc * 0.05)) throw new Error(`${id}: Δv executado ${exec} ≠ calculado ${calc}`);
+        }
         await shot(`09-manobra-${++n}-${id}`);
       }
       await answer();

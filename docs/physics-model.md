@@ -69,7 +69,7 @@ Uma peça solta começa **exatamente** no estado do veículo no instante da sepa
 - A Lua segue órbita circular desenhada para a janela, não a efeméride real.
 - As TCMs entram como orçamento de Δv; a trajetória desenhada já é a corrigida.
 - Sem precessão J2 da órbita de estacionamento nem perturbações de terceiro corpo dentro de cada trecho (cônicas ajustadas).
-- A geometria da DSM calculada na ΔV-EGA (~0,9 km/s) é maior que o orçamento de 750 m/s do perfil da missão; o orçamento do jogo continua o do documento de missão; a nota do planejamento mostra o Δv da DSM calculado para a data.
+- A geometria da DSM calculada na ΔV-EGA (~0,9 km/s) é maior que o orçamento de 750 m/s do perfil da missão; desde a rodada 5 o jogo cobra o Δv calculado pela trajetória em cada manobra (o orçamento do planejamento fica como referência e decide a aprovação do briefing).
 
 ## Sonda — `engine/entities/spacecraft.ts`
 

@@ -9,7 +9,7 @@ import { computeBudget } from '../rules/budget';
 import { computeMissionProfile, defaultPlan } from '../rules/mission-profile';
 import { referenceConfig, REFERENCE_ARCHITECTURES } from '../rules/presets';
 import { validateMission, vehicleCompatibility } from '../rules/validation';
-import { buildReport, classify, evaluateCheckpoint, executeManeuver, plannedManeuvers } from '../science/operations';
+import { buildReport, chargedManeuver, classify, evaluateCheckpoint, executeManeuver, plannedManeuvers } from '../science/operations';
 import { jupiterWindow } from '../orbital-mechanics/orbits';
 
 function planFor(id: MissionId) {
@@ -195,6 +195,23 @@ describe('ciência, chegada e relatório', () => {
     const out = executeManeuver(loi, s, 50, 1, 0);
     expect(out.insertionState).toBe('flyby');
     expect(out.propellantRemainingKg).toBeCloseTo(0, 6);
+  });
+  it('a manobra cobra o Δv calculado pela trajetória; o orçado é só referência', () => {
+    const { mission, plan } = planFor('jupiter-system');
+    const cfg = referenceConfig('jupiter-system');
+    const s = analyzeSpacecraft(cfg, mission, plan);
+    const joi = plannedManeuvers(computeMissionProfile(mission, plan, 'iniciante', true)).find((m) => m.id === 'joi')!;
+    const charged = chargedManeuver(joi, joi.dvMS + 110);
+    expect(charged.dvMS).toBeCloseTo(joi.dvMS + 110, 9);
+    expect(chargedManeuver(joi, undefined).dvMS).toBe(joi.dvMS);
+    const byBudget = executeManeuver(joi, s, cfg.propellantKg, 1, 0);
+    const byTrajectory = executeManeuver(charged, s, cfg.propellantKg, 1, 0);
+    expect(byTrajectory.record.executedDvMS).toBeCloseTo(joi.dvMS + 110, 6);
+    expect(byTrajectory.record.propellantUsedKg).toBeGreaterThan(byBudget.record.propellantUsedKg);
+    // Propelente que cobre o orçado mas não o calculado: a captura fica incompleta
+    const tight = s.dryMassKg * (Math.exp(joi.dvMS / (s.mainPropulsion!.ispS * 9.80665)) - 1) * 1.01;
+    expect(executeManeuver(joi, s, tight, 1, 0).insertionState).toBe('captured');
+    expect(executeManeuver(charged, s, tight, 1, 0).insertionState).not.toBe('captured');
   });
   it('classificação segue critérios objetivos', () => {
     expect(classify('pad-abort', 'none', 0, false)).toBe('abortada');

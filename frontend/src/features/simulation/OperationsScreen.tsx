@@ -9,7 +9,7 @@ import { rollPhase, type FailureProbability } from '../../engine/failures/failur
 import { validateMission } from '../../engine/rules/validation';
 import { createOrbitScene, type OrbitInfo } from '../../engine/scenes/otherScenes';
 import type { MissionTimeline } from '../../engine/orbital-mechanics/missionTrajectory';
-import { evaluateCheckpoint, executeManeuver, plannedManeuvers, type PlannedManeuver } from '../../engine/science/operations';
+import { evaluateCheckpoint, chargedManeuver, executeManeuver, plannedManeuvers, type PlannedManeuver } from '../../engine/science/operations';
 import { useCampaign } from '../../store/campaignStore';
 import type { FlightEventRecord } from '../../types/campaign';
 import { missionTimeline } from '../mission-planning/orbitView';
@@ -164,8 +164,10 @@ export function OperationsScreen() {
     return f;
   };
 
+  // Δv cobrado: o da trajetória calculada (o orçado no planejamento fica como referência)
+  const charged = (m: PlannedManeuver) => chargedManeuver(m, m.executable ? milestoneOf(m.id)?.dvMS : undefined);
   const runManeuver = (m: PlannedManeuver) => {
-    const out = executeManeuver(m, summary, propellant, dispersion(m), tNow());
+    const out = executeManeuver(charged(m), summary, propellant, dispersion(m), tNow());
     recordManeuver(out.record, out.event, out.propellantRemainingKg, out.insertionState);
   };
 
@@ -241,15 +243,15 @@ export function OperationsScreen() {
           {phase === 'cruise' ? (
             <>
               <table className="checks">
-                <thead><tr><th>Manobra</th><th>Δv</th><th /></tr></thead>
+                <thead><tr><th>Manobra</th><th title="Δv calculado pela trajetória (o orçado no planejamento aparece como referência)">Δv cobrado</th><th /></tr></thead>
                 <tbody>
                   {maneuvers.map((m) => {
                     const rec = campaign.maneuvers.find((r) => r.id === m.id);
                     const ms = m.executable ? milestoneOf(m.id) : undefined;
                     return (
                       <tr key={m.id}>
-                        <td>{m.label}{m.critical && <span className="chip warn" style={{ marginLeft: 4 }}>crítica</span>}<div className="small muted">{m.executable ? m.explanation : 'Reserva de propelente (consumo contínuo ao longo da missão).'}</div>{ms && ms.dvMS !== undefined && <div className="small muted">Trajetória calculada: Δv {ms.dvMS.toFixed(ms.dvMS < 10 ? 1 : 0)} m/s{plan.kind !== 'earth-orbit' && info && !rec ? (info.t < ms.t ? ` · em ${fmtCountdown(ms.t - info.t)}` : ' · agora') : ''}</div>}{rec && <div className="small" style={{ color: rec.success ? 'var(--green)' : 'var(--red)' }}>{rec.note}</div>}</td>
-                        <td className="mono">{fmtMs(m.dvMS * (m.executable ? dispersion(m) : 1))}</td>
+                        <td>{m.label}{m.critical && <span className="chip warn" style={{ marginLeft: 4 }}>crítica</span>}<div className="small muted">{m.executable ? m.explanation : 'Reserva de propelente (consumo contínuo ao longo da missão).'}</div>{ms && ms.dvMS !== undefined && <div className="small muted" data-testid={`dv-calc-${m.id}`}>Δv cobrado = calculado pela trajetória: {ms.dvMS.toFixed(ms.dvMS < 10 ? 1 : 0)} m/s · orçado no planejamento: {m.dvMS.toFixed(0)} m/s (referência){plan.kind !== 'earth-orbit' && info && !rec ? (info.t < ms.t ? ` · em ${fmtCountdown(ms.t - info.t)}` : ' · agora') : ''}</div>}{rec && <div className="small" style={{ color: rec.success ? 'var(--green)' : 'var(--red)' }}>{rec.note}</div>}</td>
+                        <td className="mono">{fmtMs(m.executable ? charged(m).dvMS * dispersion(m) : m.dvMS)}</td>
                         <td>{m.executable && !rec && <button className="btn small primary" disabled={!maneuverReady(m.id) || Boolean(pendingEvent) || failedCapture || power.blocked} onClick={() => runManeuver(m)} data-testid={`mnv-${m.id}`}>Executar</button>}</td>
                       </tr>
                     );
