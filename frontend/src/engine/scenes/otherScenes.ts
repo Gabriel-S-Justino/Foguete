@@ -10,9 +10,13 @@ import type { InstalledComponent } from '../../types/campaign';
 import type { SceneController } from '../core/SceneManager';
 import { loadNasaModel } from '../entities/nasaModels';
 import { ProbeModel } from '../entities/probeModel';
+import { CrewKit, createWorker, type Worker } from '../entities/humans';
 import { buildRocket, type RocketModel } from '../entities/rocketModel';
 import { referenceConfig } from '../rules/presets';
-import { buildHangar, buildStarfield, createBaseScene, createPlanet } from './environment';
+import { buildHangar, createBaseScene, createPlanet } from './environment';
+import { Members } from './integrationHall';
+import { lattice, stairs } from './padStructures';
+import { createStarfield } from './starfield';
 
 /* ───────────────────────── Tela inicial ───────────────────────── */
 export function createStartScene(engine: Engine): SceneController {
@@ -21,7 +25,8 @@ export function createStartScene(engine: Engine): SceneController {
   camera.inputs.clear();
   sun.direction = new Vector3(-1, -0.15, 0.4);
   sun.intensity = 3;
-  buildStarfield(scene, 4000, 2000);
+  // Exposição de uma câmera com a Terra iluminada no quadro: só as estrelas mais brilhantes aparecem
+  createStarfield(scene, { limitMag: 5.2 });
   const earth = createPlanet(scene, 'earth', 30);
   earth.position = new Vector3(6, -22, 18);
   const probe = new ProbeModel(scene, mats);
@@ -71,18 +76,36 @@ export function createRocketHangarScene(engine: Engine, maxHeightM: number): Roc
   buildHangar(base, { width: 120, depth: 140, height: H, bays: 7, withCrane: true, doorSide: 'back' });
   camera.lowerRadiusLimit = 20;
   camera.upperRadiusLimit = H * 2.2;
-  // Plataforma de transporte e torre de serviço
+  // Transportador (berço com rodados) e torre de integração treliçada com plataformas de trabalho em balanço,
+  // escada, guarda-corpos e umbilicais: o veículo fica na vertical ao lado da torre, como num prédio de
+  // integração vertical (referência: VAB / prédios de integração de lançadores, docs/visual-references.md)
   const transporter = MeshBuilder.CreateBox('transporter', { width: 22, depth: 18, height: 2 }, scene);
   transporter.position.y = 1;
   transporter.material = mats.get('darkSteel');
-  const tower = MeshBuilder.CreateBox('serviceTower', { width: 5, depth: 5, height: H * 0.85 }, scene);
-  tower.position = new Vector3(-16, H * 0.425, 6);
-  tower.material = mats.get('steel');
-  for (let k = 1; k < 8; k++) {
-    const deck = MeshBuilder.CreateBox(`towerDeck${k}`, { width: 9, depth: 2.4, height: 0.25 }, scene);
-    deck.position = new Vector3(-12, (k / 8) * H * 0.8, 6);
-    deck.material = mats.get('yellowSafety');
+  const mem = new Members(scene, mats);
+  for (const x of [-9, -3, 3, 9]) for (const z of [-7.5, 7.5]) mem.bar(new Vector3(x, 0.55, z - 1), new Vector3(x, 0.55, z + 1), 1.1, 1.1, 'rubber', 'cyl');
+  const towerH = H * 0.85;
+  lattice(mem, new Vector3(-17, 0, 6), 6, 6, towerH, { panel: 5, col: 0.45, brace: 0.18, mat: 'padGrey', deckEvery: 2 });
+  stairs(mem, new Vector3(-17, 0, 9.6), towerH - 4);
+  // Plataformas de trabalho em balanço a cada ~10 m (grade, guarda-corpo amarelo, rodapé)
+  for (let y = 10; y < towerH - 2; y += 10) {
+    mem.block(new Vector3(-11.2, y, 6), new Vector3(5.6, 0.18, 3), 'grating');
+    for (const z of [4.55, 7.45]) mem.bar(new Vector3(-14, y + 1.1, z), new Vector3(-8.4, y + 1.1, z), 0.06, 0.06, 'yellowSafety', 'cyl');
+    mem.bar(new Vector3(-8.4, y + 1.1, 4.5), new Vector3(-8.4, y + 1.1, 7.5), 0.06, 0.06, 'yellowSafety', 'cyl');
+    for (const z of [4.55, 7.45]) mem.bar(new Vector3(-14, y - 0.1, z), new Vector3(-14, y - 1.6, z), 0.2, 0.2, 'padGrey');
   }
+  // Umbilicais e bandejas de cabos descendo pela torre
+  mem.bar(new Vector3(-13.8, 0, 3.2), new Vector3(-13.8, towerH * 0.9, 3.2), 0.35, 0.35, 'rubber', 'cyl');
+  mem.bar(new Vector3(-13.6, 0, 3.6), new Vector3(-13.6, towerH * 0.9, 3.6), 0.25, 0.25, 'galvanized', 'cyl');
+  // Equipe em escala humana (macacão, capacete) junto ao transportador: referência de 1,75 m
+  const crew = new CrewKit(scene);
+  const workers: Worker[] = [
+    createWorker(scene, crew, { outfit: 'coverall', helmet: 'white', position: new Vector3(12.5, 0, -4), yaw: -1.9, activity: 'clipboard', prop: 'clipboard', height: 1.76, seed: 71, lookAt: new Vector3(0, 6, 0) }),
+    createWorker(scene, crew, { outfit: 'coverall', helmet: 'yellow', position: new Vector3(11.4, 0, -5.4), yaw: -1.6, activity: 'point', height: 1.7, seed: 73, lookAt: new Vector3(0, 14, 0) }),
+    createWorker(scene, crew, { outfit: 'coverall', helmet: 'yellow', position: new Vector3(-9.5, 10.1, 6.2), yaw: Math.PI / 2, activity: 'inspect', prop: 'flashlight', height: 1.8, seed: 79, lookAt: new Vector3(-3, 11, 5) }),
+    createWorker(scene, crew, { outfit: 'coverall', helmet: 'blue', position: new Vector3(-10, 0, -10), activity: 'walk', path: [new Vector3(-10, 0, -10), new Vector3(10, 0, -10), new Vector3(10, 0, -11), new Vector3(-10, 0, -11)], height: 1.74, seed: 83 }),
+  ];
+  for (const m of mem.all()) { m.receiveShadows = true; shadows?.addShadowCaster(m); }
   let rocket: RocketModel | null = null;
   let targetY = 30;
   let targetR = 140;
@@ -93,6 +116,7 @@ export function createRocketHangarScene(engine: Engine, maxHeightM: number): Roc
     scene,
     setQuality: base.setQuality,
     update(dt) {
+      for (const w of workers) w.update(dt);
       if (!framing) return;
       const k = Math.min(1, dt * 2.5);
       camera.target.y += (targetY - camera.target.y) * k;

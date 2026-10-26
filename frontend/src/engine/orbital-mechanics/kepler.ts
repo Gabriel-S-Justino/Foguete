@@ -55,14 +55,37 @@ export function propagate(mu: number, s: State, dt: number): State {
     x = sign * Math.sqrt(-a) * Math.log((-2 * mu * alpha * dt) / (dot(s.r, s.v) + sign * Math.sqrt(-mu * a) * (1 - r0 * alpha)));
     if (!Number.isFinite(x)) x = sqmu * dt / r0;
   }
-  for (let i = 0; i < 60; i++) {
-    const z = alpha * x * x;
+  // F(x) é crescente (dF/dx = r > 0): Newton protegido por intervalo. Sem a proteção, o Newton puro divergia
+  // em hipérboles e elipses muito excêntricas para alguns dt (ex.: sobrevoo da Terra, aproximação e órbita de
+  // 53 dias em Júpiter) e devolvia posições absurdas nesses instantes. Onde o Newton convergia, o resultado é o mesmo.
+  const evalF = (xx: number) => {
+    const z = alpha * xx * xx;
     const C = stumpffC(z), S = stumpffS(z);
-    const F = ((r0 * vr0) / sqmu) * x * x * C + (1 - alpha * r0) * x * x * x * S + r0 * x - sqmu * dt;
-    const dF = ((r0 * vr0) / sqmu) * x * (1 - alpha * x * x * S) + (1 - alpha * r0) * x * x * C + r0;
-    const step = F / dF;
-    x -= step;
-    if (Math.abs(step) < 1e-9 * Math.max(1, Math.abs(x))) break;
+    return {
+      F: ((r0 * vr0) / sqmu) * xx * xx * C + (1 - alpha * r0) * xx * xx * xx * S + r0 * xx - sqmu * dt,
+      dF: ((r0 * vr0) / sqmu) * xx * (1 - alpha * xx * xx * S) + (1 - alpha * r0) * xx * xx * C + r0,
+    };
+  };
+  const sgn = dt >= 0 ? 1 : -1;
+  // Intervalo [lo, hi] com F(lo) ≤ 0 ≤ F(hi); numa elipse |x| ≤ 2π·√a cobre uma volta inteira
+  let lo = sgn > 0 ? 0 : -Infinity, hi = sgn > 0 ? Infinity : 0;
+  if (alpha > 1e-12) {
+    const xMax = (2 * Math.PI) / Math.sqrt(alpha);
+    if (sgn > 0) hi = xMax; else lo = -xMax;
+  } else {
+    let X = Math.max(1, Math.abs(Number.isFinite(x) ? x : 0) * 2);
+    for (let k = 0; k < 200 && evalF(sgn * X).F * sgn < 0; k++) X *= 2;
+    if (sgn > 0) hi = X; else lo = -X;
+  }
+  if (!Number.isFinite(x) || x <= lo || x >= hi) x = (lo + hi) / 2;
+  for (let i = 0; i < 200; i++) {
+    const { F, dF } = evalF(x);
+    if (F < 0) lo = x; else hi = x;
+    let nx = x - F / dF;
+    if (!Number.isFinite(nx) || nx <= lo || nx >= hi) nx = (lo + hi) / 2;
+    const step = nx - x;
+    x = nx;
+    if (Math.abs(step) < 1e-10 * Math.max(1, Math.abs(x)) || hi - lo < 1e-12 * Math.max(1, Math.abs(x))) break;
   }
   const z = alpha * x * x;
   const C = stumpffC(z), S = stumpffS(z);

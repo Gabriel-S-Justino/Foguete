@@ -17,7 +17,7 @@
  * A sonda não tem esfera marcadora: longe dela, um rótulo HTML indica a posição; perto, aparece o modelo 3D.
  */
 import {
-  Color3, Color4, Constants, DynamicTexture, type LinesMesh, Matrix, type Mesh, MeshBuilder, Quaternion, StandardMaterial,
+  Color3, Color4, Constants, DynamicTexture, Matrix, type Mesh, MeshBuilder, Quaternion, StandardMaterial,
   Texture, TransformNode, Vector3, type Engine,
 } from '@babylonjs/core';
 import type { InstalledComponent } from '../../types/campaign';
@@ -26,12 +26,15 @@ import type { SceneController } from '../core/SceneManager';
 import { ProbeModel } from '../entities/probeModel';
 import { buildRocket, type RocketModel } from '../entities/rocketModel';
 import { attitudeBasis, type AttitudeMode, type Basis } from '../orbital-mechanics/attitude';
-import { OBLIQUITY, PLANETS, SOLAR_SYSTEM, planetOrbitPoints, planetPosition, type PlanetId } from '../orbital-mechanics/ephemeris';
-import { cross, norm, propagate, rotate, scale, sub, sweptAngle, unit, type V3 } from '../orbital-mechanics/kepler';
+import { OBLIQUITY, PLANETS, SOLAR_SYSTEM, equatorialToEcliptic, greenwichSiderealAngle, planetPosition, type PlanetId } from '../orbital-mechanics/ephemeris';
+import { cross, elementsOf, norm, propagate, rotate, scale, sub, sweptAngle, unit, type V3 } from '../orbital-mechanics/kepler';
+import { anchoredLoop, conicSamples } from '../orbital-mechanics/sampling';
 import {
   MU, RADIUS, meanMoonOrbit, moonState, segmentPoints, stateAt, type CenterId, type MissionTimeline, type Segment,
 } from '../orbital-mechanics/missionTrajectory';
-import { buildStarfield, createBaseScene } from './environment';
+import { createBaseScene } from './environment';
+import { createPolyline, type Polyline } from './polyline';
+import { createStarfield } from './starfield';
 import { createPlanet, createSaturnRings, type PlanetKind } from './planets';
 
 export type OrbitFocus = 'system' | 'trajectory' | 'destination' | 'probe';
@@ -171,11 +174,7 @@ function createSun(scene: import('@babylonjs/core').Scene): Mesh {
   return sun;
 }
 
-/** Ângulo sideral de Greenwich (rad) na data. */
-function gmst(date: Date): number {
-  const jd = date.getTime() / 86400000 + 2440587.5;
-  return ((280.46061837 + 360.98564736629 * (jd - 2451545)) % 360) * DEG;
-}
+const gmst = greenwichSiderealAngle;
 
 const SEGMENT_COLORS: Record<Segment['phase'], Color3> = {
   'earth-orbit': new Color3(0.36, 0.89, 0.54),
@@ -200,11 +199,8 @@ export function createOrbitScene(engine: Engine): OrbitSceneController {
   if (hemi) hemi.intensity = 0.06;
   if (pipeline) { pipeline.bloomThreshold = 0.97; pipeline.bloomWeight = 0.12; }
 
-  // Estrelas no infinito (seguem a câmera)
-  const stars = buildStarfield(scene, 1e14, 5000, 0.0016);
-  (stars.material as StandardMaterial).emissiveColor = new Color3(0.75, 0.75, 0.78);
-  stars.infiniteDistance = true;
-  stars.renderingGroupId = 0;
+  // Estrelas do catálogo BSC5 no infinito, na orientação real (equador J2000 → eclíptica → cena)
+  createStarfield(scene, { toScene: (v) => swapV(equatorialToEcliptic(v)), limitMag: 6.2, renderingGroupId: 0 });
 
   // Projeções por grupo: a seleção de malhas usa o intervalo inteiro; cada grupo desenha com o seu
   let farMinZ = 1e3;
@@ -251,33 +247,37 @@ export function createOrbitScene(engine: Engine): OrbitSceneController {
   }
   addBody('moon', createPlanet(scene, 'moon', 2, { segments: 64 }), RADIUS.moon);
 
-  // Órbitas dos planetas (cinza) e da Lua, desenhadas em relação ao Sol / à Terra
-  let orbitLines: { mesh: LinesMesh; center: BodyId }[] = [];
-  const buildPlanetOrbits = (date: Date, moonPts: V3[]) => {
-    orbitLines.forEach((l) => l.mesh.dispose());
-    orbitLines = [];
-    for (const id of PLANETS) {
-      const pts = planetOrbitPoints(id, date, 360).map((p) => new Vector3(p[0], p[2], p[1]));
-      const l = MeshBuilder.CreateLines(`orbit-${id}`, { points: pts }, scene);
-      l.color = new Color3(0.32, 0.38, 0.46);
-      l.alpha = 0.7;
-      l.renderingGroupId = 1;
-      l.isPickable = false;
-      orbitLines.push({ mesh: l, center: 'sun' });
-    }
-    const ml = MeshBuilder.CreateLines('orbit-moon', { points: moonPts.map((p) => new Vector3(p[0], p[2], p[1])) }, scene);
-    ml.color = new Color3(0.32, 0.38, 0.46);
-    ml.renderingGroupId = 1;
-    ml.isPickable = false;
-    orbitLines.push({ mesh: ml, center: 'earth' });
+  // Órbitas dos planetas (cinza, finas) e da Lua. Cada laço começa exatamente na posição atual do corpo (o
+  // corpo fica sobre a linha mesmo com zoom) e os vértices são relativos a esse ponto (precisão em float32)
+  const ORBIT_GREY = new Color3(0.42, 0.48, 0.56);
+  interface OrbitLoop { line: Polyline; body: BodyId; anchorT: number; anchor: V3; period: number; radius: number }
+  const orbitLoops: OrbitLoop[] = [];
+  const loopStyle = { color: ORBIT_GREY, widthDone: 1.2, alphaDone: 0.42 };
+  for (const id of PLANETS) {
+    const el = SOLAR_SYSTEM.planets[id].elementsJ2000;
+    orbitLoops.push({ line: createPolyline(scene, `orbit-${id}`, loopStyle), body: id, anchorT: NaN, anchor: [0, 0, 0], period: 365.25 * 86400 * el.aAU ** 1.5, radius: el.aAU * AU });
+  }
+  orbitLoops.push({ line: createPolyline(scene, 'orbit-moon', loopStyle), body: 'moon', anchorT: NaN, anchor: [0, 0, 0], period: 0, radius: 0 });
+  for (const l of orbitLoops) l.line.mesh.renderingGroupId = 1;
+  /** Posição (heliocêntrica para planetas; relativa à Terra para a Lua) de um corpo no instante t da missão. */
+  const loopPos = (l: OrbitLoop, tt: number): V3 => (l.body === 'moon' ? moonState(moonOrbit, tt).r : planetPosition(l.body as PlanetId, new Date(epochMs + tt * 1000)));
+  const rebuildLoop = (l: OrbitLoop) => {
+    if (l.body === 'moon') { l.period = 2 * Math.PI / moonOrbit.rate; l.radius = moonOrbit.radius; }
+    const pts = anchoredLoop((tt) => loopPos(l, tt), t, l.period, l.body === 'moon' ? 360 : 720);
+    const a = pts[0]!;
+    l.anchor = a;
+    l.anchorT = t;
+    l.line.setPoints(pts.map((p) => swapV(sub(p, a))));
   };
+  const invalidateLoops = () => { for (const l of orbitLoops) l.anchorT = NaN; };
 
   // Missão
   let mission: OrbitMission | null = null;
   let tl: MissionTimeline | null = null;
   let epochMs = Date.parse('2027-06-15T12:00:00Z');
   let moonOrbit = meanMoonOrbit(epochMs);
-  let trajLines: { mesh: LinesMesh; seg: Segment }[] = [];
+  /** closedUntil: trecho fechado, todo percorrido depois de uma volta. */
+  let trajLines: { line: Polyline; seg: Segment; closedUntil: number | null }[] = [];
   const clock: ClockControl = { running: false, warp: 'auto', holdAt: null };
   let t = 0;
   let warpNow = 0;
@@ -286,22 +286,22 @@ export function createOrbitScene(engine: Engine): OrbitSceneController {
   let sweptPrev: V3 | null = null;
   let sweptT = 0;
 
-  const moonPoints = () => Array.from({ length: 181 }, (_, i) => moonState(moonOrbit, (i / 180) * (2 * Math.PI / moonOrbit.rate)).r);
-
   const buildTrajectory = () => {
-    trajLines.forEach((l) => l.mesh.dispose());
+    trajLines.forEach((l) => l.line.dispose());
     trajLines = [];
     if (!tl) return;
     for (const seg of tl.segments) {
-      const closed = !Number.isFinite(seg.t1) || seg.id === 'parking';
-      const n = seg.center === 'sun' ? 1024 : closed ? 720 : 512;
-      const span = seg.id === 'flyby' ? 40 * 86400 : undefined;
-      const pts = (seg.id === 'parking' ? segmentPoints({ ...seg, t1: Infinity }, n) : segmentPoints(seg, n, span)).map((p) => new Vector3(p[0], p[2], p[1]));
-      const l = MeshBuilder.CreateLines(`traj-${seg.id}`, { points: pts }, scene);
-      l.color = SEGMENT_COLORS[seg.phase];
-      l.renderingGroupId = 1;
-      l.isPickable = false;
-      trajLines.push({ mesh: l, seg });
+      const mu = MU[seg.center];
+      const period = elementsOf(mu, seg.s0).period;
+      const closed = (!Number.isFinite(seg.t1) || seg.id === 'parking') && Number.isFinite(period);
+      // Trechos fechados: uma volta inteira; sobrevoo sem fim: 40 dias; demais: do início ao fim do trecho
+      const t1 = closed ? seg.t0 + period : Number.isFinite(seg.t1) ? seg.t1 : seg.t0 + (seg.id === 'flyby' ? 40 : 30) * 86400;
+      const samples = conicSamples(mu, seg.s0, seg.t0, t1);
+      const color = SEGMENT_COLORS[seg.phase];
+      const line = createPolyline(scene, `traj-${seg.id}`, { color, widthDone: 2.4, widthPlan: 1.6, alphaDone: 0.95, alphaPlan: 0.5 });
+      line.setPoints(samples.map((p) => swapV(p.r)), samples.map((p) => p.t));
+      line.mesh.renderingGroupId = 1;
+      trajLines.push({ line, seg, closedUntil: closed ? t1 : null });
     }
   };
 
@@ -316,7 +316,9 @@ export function createOrbitScene(engine: Engine): OrbitSceneController {
   let stackQInit = false;
   const probeLabel = makeLabel('Sonda', 'probe');
   probeLabel.setAttribute('data-testid', 'probe-label');
-  const trail: { mesh: LinesMesh | null } = { mesh: null };
+  const trail = createPolyline(scene, 'probe-trail', { color: SEGMENT_COLORS['earth-orbit'], widthDone: 2.4, widthPlan: 1.4, alphaDone: 0.95, alphaPlan: 0.45 });
+  trail.mesh.renderingGroupId = 2;
+  trail.mesh.setEnabled(false);
 
   const setNearGroup = (node: TransformNode) => {
     for (const m of node.getChildMeshes()) { m.renderingGroupId = 2; m.isPickable = false; }
@@ -538,19 +540,21 @@ export function createOrbitScene(engine: Engine): OrbitSceneController {
   };
 
   const updateTrail = () => {
-    if (!tl || focus !== 'probe') { trail.mesh?.setEnabled(false); return; }
+    if (!tl || focus !== 'probe') { trail.mesh.setEnabled(false); return; }
     const s = stateAt(tl, t);
     const speed = Math.max(1, norm(s.v));
     const span = NEAR_TRAIL_M / speed;
-    const pts: Vector3[] = [];
-    for (let i = -40; i <= 40; i++) {
-      const p = stateAt(tl, Math.max(0, t + (span * i) / 40)).helio;
-      pts.push(toScene(p, origin, new Vector3()));
+    const pts: V3[] = [], times: number[] = [];
+    const v = new Vector3();
+    for (let i = -60; i <= 60; i++) {
+      const ti = Math.max(0, t + (span * i) / 60);
+      toScene(stateAt(tl, ti).helio, origin, v);
+      pts.push([v.x, v.y, v.z]);
+      times.push(ti);
     }
-    trail.mesh = MeshBuilder.CreateLines('probe-trail', { points: pts, updatable: true, instance: trail.mesh ?? undefined }, scene);
-    trail.mesh.color = SEGMENT_COLORS[s.segment.phase];
-    trail.mesh.renderingGroupId = 2;
-    trail.mesh.setEnabled(true);
+    trail.setPoints(pts, times);
+    trail.setTime(t);
+    trail.setStyle({ color: SEGMENT_COLORS[s.segment.phase] });
   };
 
   const project = (p: Vector3): { x: number; y: number; visible: boolean } => {
@@ -632,14 +636,24 @@ export function createOrbitScene(engine: Engine): OrbitSceneController {
     scene.metadata = { sunPosition: toScene([0, 0, 0], origin, new Vector3()) };
     const ph = probeHelio();
     light.direction = toScene(ph, [0, 0, 0], new Vector3()).normalize();
-    // Linhas: órbitas dos planetas e trajetória (cada uma em relação ao seu centro)
-    for (const l of orbitLines) toScene(bodies.get(l.center)!.pos, origin, l.mesh.position);
+    // Linhas: órbitas dos planetas (laço reancorado quando o corpo se afasta do vértice mais que ~0,3 px na
+    // tela) e trajetória (cada trecho em relação ao seu corpo central; trecho percorrido destacado)
+    const pxAngle = camera.fov / Math.max(1, engine.getRenderHeight());
+    for (const l of orbitLoops) {
+      const center = l.body === 'moon' ? bodies.get('earth')!.pos : [0, 0, 0] as V3;
+      const bodyScene = bodies.get(l.body)!.mesh.position;
+      const camDist = Math.max(1, Vector3.Distance(camPos, bodyScene));
+      const moved = Number.isFinite(l.anchorT) ? (Math.abs(t - l.anchorT) / l.period) * 2 * Math.PI * l.radius : Infinity;
+      if (moved / (camDist * pxAngle) > 0.3) rebuildLoop(l);
+      toScene([center[0] + l.anchor[0], center[1] + l.anchor[1], center[2] + l.anchor[2]], origin, l.line.mesh.position);
+    }
     for (const l of trajLines) {
       const c = l.seg.center;
       const cp = c === 'sun' ? [0, 0, 0] as V3 : bodies.get(c)!.pos;
-      toScene(cp, origin, l.mesh.position);
-      // Na vista da sonda, as linhas heliocêntricas (amostradas a cada dias) ficam escondidas: o rastro local é exato
-      l.mesh.setEnabled(!(focus === 'probe' && c === 'sun'));
+      toScene(cp, origin, l.line.mesh.position);
+      l.line.setTime(l.closedUntil !== null && t >= l.closedUntil ? 1e30 : t);
+      // Na vista da sonda, as linhas heliocêntricas ficam escondidas: o rastro local é exato
+      l.line.mesh.setEnabled(!(focus === 'probe' && c === 'sun'));
     }
     placeProbe();
     updateStageDrift();
@@ -671,7 +685,7 @@ export function createOrbitScene(engine: Engine): OrbitSceneController {
         epochMs = tl.epochMs;
         moonOrbit = tl.moon;
       }
-      if (!orbitLines.length || prevEpoch !== epochMs) buildPlanetOrbits(new Date(epochMs), moonPoints());
+      if (prevEpoch !== epochMs) invalidateLoops();
       buildTrajectory();
       buildStage();
       updateBodies();
@@ -737,6 +751,5 @@ export function createOrbitScene(engine: Engine): OrbitSceneController {
     dispose() { probe?.dispose(); rocket?.dispose(); overlay.remove(); scene.dispose(); },
   };
   updateBodies();
-  buildPlanetOrbits(new Date(epochMs), moonPoints());
   return controller;
 }

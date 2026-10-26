@@ -1,6 +1,6 @@
 # Estado da implementação
 
-Última atualização: 2026-10-25 (rodada 4: física, escala, órbita de estacionamento e vista do Sistema Solar) · branch `claude/fisica-escala-orbita`
+Última atualização: 2026-10-25 (rodada 5: realismo visual) · branch `claude/realismo-visual`
 
 ## Funcionalidades implementadas
 
@@ -79,8 +79,25 @@ Cada item abaixo teve a causa encontrada antes da correção. Detalhes da físic
 - [x] **Manobras no instante calculado.** O relógio para no instante de cada manobra da trajetória, e só então o botão é liberado, mostrando o Δv calculado. A ordem segue a trajetória: no ΔV-EGA a DSM vem antes da TCM. Antes, a ordem da tabela travava a missão.
 - [x] **Texturas e modelos.** Marte e Vênus usam texturas do NASA-3D-Resources, e Mercúrio, Saturno (com anéis), Urano, Netuno e o Sol usam a Solar System Scope (CC BY 4.0). A cena orbital não usa modelos da NASA, porque a sonda é a do jogador. Detalhes em `docs/model-sources.md` e `docs/texture-sources.md`.
 
-### Rodada 5 (2026-10-25)
-- [x] **Δv cobrado = Δv calculado pela trajetória** (decisão do Kali). Cada manobra com cálculo na linha do tempo física (TCM de Júpiter, DSM, JOI, LOI) cobra o Δv calculado; o orçado no planejamento aparece ao lado como referência. Sem cálculo (TCM lunar, ajuste em LEO), vale o orçamento. Teste unitário novo e verificação no E2E (Δv executado = calculado). Testado: unitários 109/109, typecheck, lint, build; E2E Júpiter (DSM 936, TCM 97, JOI 654 m/s executados, sucesso, ciência 88) e Lua (LOI 823 m/s, sucesso, ciência 95).
+ claude/realismo-visual
+### Rodada 5: realismo visual (2026-10-25)
+Referências, dimensões e licenças em `docs/visual-references.md`. Cada item teve a causa encontrada antes da correção.
+
+- [x] **Estrelas estouradas.** Causa: o campo antigo (`buildStarfield`) eram 1.500 esferas brancas emissivas com tamanho angular fixo, em posições aleatórias; a cor 1,0 passava do limiar do bloom e cada esfera virava um disco com halo. Agora: catálogo real BSC5 (9.096 estrelas, J2000) em pontos com PSF gaussiana de ~0,6 px, brilho pela magnitude V, cor pela temperatura (saturação contida), pico limitado a 0,8 (abaixo do bloom em 0,9), sem cintilação, na direção real do céu (eclíptica na cena orbital, céu local por hora sideral na plataforma). Bloom: limiar 0,9, peso 0,15.
+- [x] **Órbitas serrilhadas.** Três causas: (1) o pós-processamento renderiza numa textura sem multiamostragem, então o MSAA do canvas não valia (agora `pipeline.samples = 4` em WebGL 2, FXAA só quando há menos amostras); (2) as linhas eram `LinesMesh` (GL_LINES de 1 px, sem suavização); agora são faixas voltadas para a tela com largura constante em pixels, junções em meia-esquadria e borda suavizada no shader (`polyline.ts`), com largura mínima de 1,3 px quando a resolução cai; (3) amostragem uniforme no tempo deixava o perijove entre dois pontos; agora a amostragem é adaptativa pelo ângulo entre cordas (≤ 0,35°), com cada vértice na posição exata da cônica (`sampling.ts`). Órbitas dos planetas em cinza fino, trajetória percorrida mais espessa e opaca, planejada mais fina e translúcida, rastro da sonda à parte. Os laços dos planetas ficam ancorados no corpo e só são refeitos quando ele anda mais de 0,3 px na tela; a trajetória não é reconstruída a cada quadro (só um uniforme de tempo muda).
+- [x] **Linha verde gigante atravessando Júpiter.** Causa: o Newton do solver universal de Kepler divergia em parte das amostras da órbita de captura (posições de 1e38 m e NaN). Agora o Newton tem salvaguarda por bissecção num intervalo que contém a raiz. Onde o solver antigo convergia o resultado é idêntico: instantes dos marcos e Δv das manobras iguais aos de antes (ex.: ΔV-EGA: JOI 653,912 m/s, DSM 931,998 m/s, TCM 94,599 m/s; LOI lunar 822,475 m/s; JOI direta 535,881 m/s). A regra de cobrança de Δv não foi alterada.
+- [x] **Sonda.** Componentes com lógica de engenharia: adaptador com anel tipo Marman, tubo de empuxo e COPV com cintas no barramento de tanque grande, linhas e painel de válvulas, 4 módulos de RCS com 3 bocais cada, motor principal com montagem, válvulas, câmara e tubeira, HGA com refletor parabólico, nervuras, montagem em cone de titânio, subrefletor e corneta, painéis com substrato de colmeia de carbono, células, dobradiças, garfo e acionador (SADA), radiadores com venezianas, rastreador estelar com para-sol. Metais menos cromados (rugosidade 0,4–0,46). Detalhes pequenos somem a mais de 80 m (LOD).
+- [x] **Braços robóticos.** Geometria refeita com a mesma cinemática: base aparafusada, juntas J1–J6 com carcaças, motores e flanges, elos fundidos, pacote de punho, garra paralela cujos dedos abrem pela pega, mangueiras com braçadeiras. A luz pontual decorativa virou lâmpada de estado (verde parado, âmbar trabalhando).
+- [x] **Hangar de integração da sonda.** Sala limpa de 40 × 50 × 18 m: painéis de sala limpa, parede de filtros HEPA, grelhas de retorno, pilares H, treliças Pratt, luminárias de LED, ponte rolante com guarda-chuva no gancho, portão de painéis, mezanino com escada, antecâmara com chuveiro de ar, bandejas de cabos, marcações de piso (corredor, zonas dos robôs, área de integração, EGSE, inspeção de painéis, aterramento ESD). Equipamentos: racks de EGSE com telas, bancada de controle, mesa de inspeção de painéis solares, carrinho de purga de N₂, carrinhos de ferramentas, plataforma elevatória e escada móvel. A câmera não sai mais do prédio (antes um raio de 30 m mostrava o lado de fora da parede).
+- [x] **Técnicos em escala humana.** 11 personagens no hangar da sonda (1,63–1,84 m) com macacão de sala limpa, capuz, máscara e óculos, em atividades coerentes (inspeção na plataforma elevatória, prancheta, consoles de EGSE, inspeção de painéis, agachado, apontando, caminhando pelo corredor) com movimento discreto. 4 no hangar de lançadores com macacão e capacete. Malhas compartilhadas por instâncias.
+- [x] **Plataforma de lançamento por família** (`padStructures.ts`): Falcon 9/Heavy com FSS, braço da tripulação, strongback e trincheira; SLS com plataforma móvel (medidas da ficha da NASA); Starship com mesa orbital, torre de 146 m e chopsticks; New Glenn com transportador-eretor largo; Soyuz com poço de chamas, braços "tulipa" que abrem na decolagem e meios-pórticos que tombam. Comuns: aterro com trincheira e defletor, marcações e drenagem, linhas de propelente em cavaletes, esferas/tanques, caixa d'água, para-raios com catenária.
+- [x] **Hangar de lançadores.** Torre de integração treliçada com escada, plataformas de trabalho em balanço com guarda-corpo e umbilicais (antes uma caixa sólida).
+- [x] **Iluminação por ambiente.** Perfis distintos para hangar, plataforma e espaço (tabela em `docs/visual-references.md`).
+#### Física e validação das trajetórias
+
+- [x] **Δv cobrado = Δv calculado pela trajetória** (decisão do Kali). Cada manobra com cálculo na linha do tempo física (TCM de Júpiter, DSM, JOI, LOI) cobra o Δv calculado; o orçado no planejamento aparece ao lado como referência. Sem cálculo (TCM lunar, ajuste em LEO), vale o orçamento. Teste unitário novo e verificação no E2E (Δv executado = calculado).
+
+**Resultados registrados na versão da Main:** unitários 109/109, typecheck, lint, build; E2E Júpiter (DSM 936, TCM 97, JOI 654 m/s executados, sucesso, ciência 88) e Lua (LOI 823 m/s, sucesso, ciência 95).
 
 ### Backend (FastAPI)
 - [x] Rotas versionadas em `/api/v1`: health, sessões, campanhas com revisão, validação, eventos, finalização e relatórios.
@@ -94,6 +111,23 @@ Cada item abaixo teve a causa encontrada antes da correção. Detalhes da físic
 - [x] `vercel.json` (frontend estático e função Python `api/index.py`), `requirements.txt` na raiz para a função.
 
 ## Testes executados
+
+### 2026-10-25/26, rodada 5: realismo visual (contêiner de desenvolvimento)
+
+| Suíte | Comando | Resultado |
+|---|---|---|
+| Typecheck | `npm run typecheck` | sem erros |
+| Lint | `npm run lint` | sem erros |
+| Unitários | `npm test` (Vitest) | **130/130**. Novos: solver de Kepler (energia e momento angular conservados em 2.001 pontos de uma órbita de captura em Júpiter muito excêntrica, retorno após um período, hipérbole com passos longos), amostragem adaptativa (vértices exatos da cônica, perijove sem "bico", amostragem uniforme com os mesmos pontos falha), estrelas (pico abaixo do bloom, catálogo de 9.096 estrelas), altura dos personagens medida no mundo (1,63/1,75/1,84 m, dois tipos de roupa) e 12 de plataformas (6 famílias) |
+| Δv e marcos | script temporário, antes × depois do solver | idênticos onde o solver antigo convergia (JOI ΔV-EGA 653,912 m/s, DSM 931,998, TCM 94,599, LOI 822,475, JOI direta 535,881) |
+| Build de produção | `npm run build` | ok |
+| E2E LEO, sem backend | `npm run test:e2e` | ok, **sucesso** (ciência 100) |
+| E2E Lua, sem backend | `E2E_MISSION=lunar-he3 npm run test:e2e` | ok nas duas execuções: 1ª **parcial** (ciência 71), 2ª **sucesso** (ciência 95). As anomalias são sorteadas com uma semente aleatória por campanha (`campaignStore.ts`), e os fatores de ciência não usam o solver nem a geometria 3D |
+| E2E Júpiter, sem backend | `E2E_MISSION=jupiter-system npm run test:e2e` | ok: DSM 346,8 dias, TCM 809,0 dias, JOI 2.048,1 dias a 4.200 km, **sucesso** (ciência 88) |
+| E2E de câmeras, Falcon 9 | `npm run test:e2e:cameras` | ok: câmeras distintas, zoom persiste, separação contínua (11 → 15 m), órbita atingida |
+| Capturas visuais | `node e2e/visual-capture.mjs` e `node e2e/pad-capture.mjs` | tela inicial, hangar da sonda (6 ângulos), hangar de lançadores, planejamento (4 vistas) e plataforma das 6 famílias (3 ângulos cada), sem erros no console |
+
+Tudo no SwiftShader (renderização por software, 1–9 FPS). **Não houve teste em GPU real**, então a meta de ~60 FPS não foi medida; nesta rodada não foi feita medição de memória.
 
 ### 2026-10-25, rodada 4 (contêiner de desenvolvimento)
 

@@ -112,11 +112,15 @@ export function createBaseScene(engine: Engine, opts: { clear: Color4; target: V
   let pipeline: DefaultRenderingPipeline | null = null;
   try {
     pipeline = new DefaultRenderingPipeline('pipeline', true, scene, [camera]);
-    pipeline.fxaaEnabled = true;
+    // MSAA na textura do pós-processamento: sem isso o antisserrilhamento pedido ao Engine se perde, porque a
+    // cena é desenhada numa textura intermediária sem multiamostragem (bordas e linhas ficavam serrilhadas)
+    pipeline.samples = engine.webGLVersion >= 2 ? 4 : 1;
+    pipeline.fxaaEnabled = pipeline.samples < 4;
+    // Bloom só para fontes realmente intensas (luminárias, Sol, pluma); estrelas e superfícies ficam abaixo
     pipeline.bloomEnabled = true;
-    pipeline.bloomThreshold = 0.85;
-    pipeline.bloomWeight = 0.25;
-    pipeline.bloomKernel = 48;
+    pipeline.bloomThreshold = 0.9;
+    pipeline.bloomWeight = 0.15;
+    pipeline.bloomKernel = 32;
   } catch {
     pipeline = null;
   }
@@ -129,7 +133,11 @@ export function createBaseScene(engine: Engine, opts: { clear: Color4; target: V
         shadows.mapSize = level === 2 ? 2048 : 1024;
         shadows.usePercentageCloserFiltering = level > 0;
       }
-      if (pipeline) { pipeline.bloomEnabled = level > 0; pipeline.fxaaEnabled = level > 0; }
+      if (pipeline) {
+        pipeline.bloomEnabled = level > 0;
+        pipeline.samples = engine.webGLVersion >= 2 ? (level === 2 ? 4 : level === 1 ? 2 : 1) : 1;
+        pipeline.fxaaEnabled = pipeline.samples < 4;
+      }
       engine.setHardwareScalingLevel(level === 0 ? 1.5 : 1);
     },
   };
@@ -294,24 +302,6 @@ export function buildIntegrationEquipment(base: BaseScene, center: Vector3, spre
     const t = MeshBuilder.CreateTube(`cable${k}`, { path: path.map((p) => p.add(new Vector3(0, 0, k * 0.15))), radius: 0.04 }, scene);
     t.material = mats.get('rubber');
   }
-}
-
-/** Estrelas como pontos numa esfera; starSize é o diâmetro angular (rad) de cada uma. */
-export function buildStarfield(scene: Scene, radius: number, count = 1500, starSize = 0.003): Mesh {
-  const stars = MeshBuilder.CreateSphere('starTemplate', { diameter: radius * starSize, segments: 3 }, scene);
-  const mat = new StandardMaterial('starMat', scene);
-  mat.emissiveColor = new Color3(1, 1, 1);
-  mat.disableLighting = true;
-  stars.material = mat;
-  let seed = 7;
-  const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
-  for (let i = 0; i < count; i++) {
-    const u = rnd() * 2 - 1, th = rnd() * Math.PI * 2, r = Math.sqrt(1 - u * u);
-    const s = 0.5 + rnd() * 1.5;
-    stars.thinInstanceAdd(Matrix.Scaling(s, s, s).multiply(Matrix.Translation(r * Math.cos(th) * radius, u * radius, r * Math.sin(th) * radius)));
-  }
-  stars.isPickable = false;
-  return stars;
 }
 
 export { createPlanet, planetMaterial, siteOrientation, type PlanetKind } from './planets';
