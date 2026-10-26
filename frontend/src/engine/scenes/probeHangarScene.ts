@@ -53,8 +53,10 @@ export function createProbeHangarScene(engine: Engine): ProbeHangarController {
   const equipment = buildHallEquipment(scene, mats, hall.members);
   camera.lowerRadiusLimit = 4;
   camera.upperRadiusLimit = 18;
+  // Abaixo do horizonte a câmera atravessaria o piso
+  camera.upperBetaLimit = Math.PI / 2 - 0.02;
   // A câmera fica dentro do prédio: alvo (inclusive com pan) limitado à área útil e raio encurtado quando a
-  // posição sairia pelas paredes ou pelo teto (antes um raio de 30 m mostrava o lado de fora da parede)
+  // posição sairia pelas paredes, pelo teto ou pelo piso (antes um raio de 30 m mostrava o lado de fora da parede)
   const inner = { x: HALL.width / 2 - 1, z: HALL.depth / 2 - 1, y: HALL.height - 1 };
   scene.onBeforeRenderObservable.add(() => {
     const t = camera.target;
@@ -67,6 +69,7 @@ export function createProbeHangarScene(engine: Engine): ProbeHangarController {
     if (dx) r = Math.min(r, ((dx > 0 ? inner.x : -inner.x) - t.x) / dx);
     if (dz) r = Math.min(r, ((dz > 0 ? inner.z : -inner.z) - t.z) / dz);
     if (dy > 0) r = Math.min(r, (inner.y - t.y) / dy);
+    else if (dy < 0) r = Math.min(r, (t.y - 0.3) / -dy);
     if (r < camera.radius) camera.radius = Math.max(camera.lowerRadiusLimit ?? 1, r);
   });
 
