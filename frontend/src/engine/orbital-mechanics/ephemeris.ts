@@ -91,6 +91,13 @@ export function planetOrbitPoints(id: PlanetId, date: Date, n = 256): V3[] {
   return out;
 }
 
+/** Ângulo sideral de Greenwich (rad, 0–2π) na data (fórmula do IAU 1982 em dias desde J2000). */
+export function greenwichSiderealAngle(date: Date): number {
+  const jd = date.getTime() / 86400000 + 2440587.5;
+  const deg = (280.46061837 + 360.98564736629 * (jd - 2451545)) % 360;
+  return ((deg + 360) % 360) * DEG;
+}
+
 /** Converte um vetor do equador J2000 (ECI) para a eclíptica J2000. */
 export const equatorialToEcliptic = (v: V3): V3 => rotate(v, [1, 0, 0], -OBLIQUITY);
 /** Converte um vetor da eclíptica J2000 para o equador J2000 (ECI). */

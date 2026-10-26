@@ -165,3 +165,5 @@ class SceneManagerImpl {
 }
 
 export const sceneManager = new SceneManagerImpl();
+// Acesso para os scripts de captura e de teste ponta a ponta (câmera, cena ativa)
+(globalThis as { __sceneManager?: SceneManagerImpl }).__sceneManager = sceneManager;

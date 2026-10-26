@@ -13,7 +13,8 @@ export type MaterialKey =
   | 'steel' | 'darkSteel' | 'paintedWhite' | 'concrete' | 'floorTile' | 'mliGold' | 'mliSilver' | 'solarCell'
   | 'blackAnodized' | 'aluminum' | 'titanium' | 'orangePaint' | 'yellowSafety' | 'rubber' | 'glass' | 'carbon'
   | 'rocketWhite' | 'rocketBlack' | 'rocketGrey' | 'sootBlack' | 'copper' | 'lampEmissive' | 'radiatorWhite' | 'blueWall'
-  | 'asphalt' | 'grating' | 'galvanized' | 'robotOrange' | 'wallPanel';
+  | 'asphalt' | 'grating' | 'galvanized' | 'robotOrange' | 'wallPanel' | 'cleanroomPanel' | 'hepaFilter' | 'doorPanel' | 'rackGrey'
+  | 'padGrey' | 'padGreen' | 'padRed';
 
 function pbr(scene: Scene, name: string, color: Color3, metallic: number, roughness: number): PBRMaterial {
   const m = new PBRMaterial(name, scene);
@@ -169,6 +170,21 @@ function wallPanelTextures(scene: Scene) {
   return { albedo, normal };
 }
 
+/** Face de módulo de filtro HEPA: tela perfurada com moldura. */
+function hepaTextures(scene: Scene) {
+  const size = 128;
+  const albedo = pixelTexture(scene, 'hepaAlbedo', size, (d) => {
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      const i = y * size + x;
+      const frame = x < 6 || y < 6 || x >= size - 6 || y >= size - 6;
+      const hole = !frame && (x % 4 < 2) && (y % 4 < 2);
+      const v = frame ? 205 : hole ? 150 : 225;
+      d[i * 4] = v; d[i * 4 + 1] = v + 2; d[i * 4 + 2] = v + 4; d[i * 4 + 3] = 255;
+    }
+  });
+  return { albedo };
+}
+
 function carbonTextures(scene: Scene) {
   const size = 256;
   const albedo = pixelTexture(scene, 'carbonAlbedo', size, (d) => {
@@ -215,11 +231,13 @@ export class MaterialLibrary {
       return mat;
     };
     switch (key) {
-      case 'steel': m = withTex(pbr(s, key, white, 0.9, 0.36), brushed(s, key, [150, 154, 158], 40)); break;
+      // Metais com rugosidade de peça usinada/laminada (0,4–0,5): os valores anteriores (0,28–0,36) davam
+      // aparência cromada sob o cubo de ambiente
+      case 'steel': m = withTex(pbr(s, key, white, 0.85, 0.46), brushed(s, key, [150, 154, 158], 40)); break;
       case 'darkSteel': m = withTex(pbr(s, key, white, 0.8, 0.5), brushed(s, key, [52, 55, 60], 30)); break;
       case 'galvanized': m = withTex(pbr(s, key, white, 0.85, 0.48), brushed(s, key, [140, 144, 146], 55)); break;
-      case 'aluminum': m = withTex(pbr(s, key, white, 0.95, 0.28), brushed(s, key, [200, 202, 205], 30)); break;
-      case 'titanium': m = withTex(pbr(s, key, white, 0.9, 0.4), brushed(s, key, [142, 136, 128], 30)); break;
+      case 'aluminum': m = withTex(pbr(s, key, white, 0.9, 0.4), brushed(s, key, [196, 198, 201], 30)); break;
+      case 'titanium': m = withTex(pbr(s, key, white, 0.85, 0.45), brushed(s, key, [142, 136, 128], 30)); break;
       case 'paintedWhite': m = withTex(pbr(s, key, white, 0.0, 0.55), paintTextures(s, key, [218, 220, 222], 4, 0.4)); break;
       case 'radiatorWhite': m = withTex(pbr(s, key, white, 0.0, 0.3), paintTextures(s, key, [236, 238, 240], 8, 0.1)); break;
       case 'concrete': {
@@ -234,12 +252,18 @@ export class MaterialLibrary {
       }
       case 'floorTile': m = withTex(pbr(s, key, white, 0.0, 0.32), floorTextures(s)); break;
       case 'grating': m = withTex(pbr(s, key, white, 0.7, 0.55), gratingTextures(s)); break;
-      case 'mliGold': m = withTex(pbr(s, key, white, 1, 0.22), mliTextures(s, true)); break;
-      case 'mliSilver': m = withTex(pbr(s, key, white, 1, 0.2), mliTextures(s, false)); break;
+      // MLI: Kapton aluminizado é especular, mas a manta amassada espalha o reflexo (rugosidade média)
+      case 'mliGold': m = withTex(pbr(s, key, white, 0.9, 0.3), mliTextures(s, true)); break;
+      case 'mliSilver': m = withTex(pbr(s, key, white, 0.9, 0.28), mliTextures(s, false)); break;
       case 'solarCell': m = withTex(pbr(s, key, white, 0.25, 0.16), solarCellTextures(s)); break;
       case 'blackAnodized': m = pbr(s, key, new Color3(0.05, 0.05, 0.06), 0.6, 0.45); break;
       case 'orangePaint': m = withTex(pbr(s, key, white, 0.05, 0.55), paintTextures(s, key, [205, 98, 30], 0, 0.5)); break;
       case 'robotOrange': m = withTex(pbr(s, key, white, 0.1, 0.4), paintTextures(s, key, [230, 120, 24], 0, 0.2)); break;
+      // Aço estrutural pintado das torres (cinza claro das torres da Flórida, verde-acinzentado de Baikonur,
+      // vermelho-óxido dos para-raios e mastros); tinta industrial fosca, não metal exposto
+      case 'padGrey': m = withTex(pbr(s, key, white, 0.1, 0.62), paintTextures(s, key, [168, 171, 172], 10, 0.6)); break;
+      case 'padGreen': m = withTex(pbr(s, key, white, 0.1, 0.66), paintTextures(s, key, [112, 128, 112], 12, 0.6)); break;
+      case 'padRed': m = withTex(pbr(s, key, white, 0.1, 0.6), paintTextures(s, key, [150, 58, 40], 10, 0.5)); break;
       case 'yellowSafety': m = withTex(pbr(s, key, white, 0.05, 0.55), paintTextures(s, key, [222, 176, 32], 0, 0.6)); break;
       case 'rubber': m = pbr(s, key, new Color3(0.04, 0.04, 0.04), 0, 0.9); break;
       case 'glass': m = pbr(s, key, new Color3(0.2, 0.25, 0.3), 0.1, 0.05); m.alpha = 0.6; break;
@@ -251,6 +275,11 @@ export class MaterialLibrary {
       case 'copper': m = withTex(pbr(s, key, white, 1, 0.35), brushed(s, key, [184, 115, 60], 30)); break;
       case 'wallPanel': m = withTex(pbr(s, key, white, 0.35, 0.55), wallPanelTextures(s)); break;
       case 'blueWall': m = withTex(pbr(s, key, white, 0.2, 0.6), paintTextures(s, key, [56, 84, 124], 3, 0.3)); break;
+      // Painel sanduíche de sala limpa: aço pintado branco, juntas a cada 1,2 m
+      case 'cleanroomPanel': m = withTex(pbr(s, key, white, 0.05, 0.42), paintTextures(s, key, [228, 230, 232], 2, 0.1)); break;
+      case 'hepaFilter': m = withTex(pbr(s, key, white, 0.3, 0.6), hepaTextures(s)); break;
+      case 'doorPanel': m = withTex(pbr(s, key, white, 0.3, 0.5), paintTextures(s, key, [176, 182, 188], 1, 0.3)); break;
+      case 'rackGrey': m = withTex(pbr(s, key, white, 0.2, 0.55), paintTextures(s, key, [92, 96, 102], 0, 0.15)); break;
       case 'lampEmissive': {
         m = pbr(s, key, new Color3(1, 1, 1), 0, 1);
         m.emissiveColor = new Color3(1, 0.97, 0.9);

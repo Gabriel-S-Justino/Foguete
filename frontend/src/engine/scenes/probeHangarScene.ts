@@ -1,8 +1,14 @@
 /**
- * Hangar de integração da sonda (referência visual: imagem do Amazônia-1 fornecida pelo usuário).
- * Mantém o modelo 3D sincronizado com a configuração lógica e anima os braços robóticos a cada montagem.
+ * Hangar de integração da sonda: sala limpa de grande vão (integrationHall.ts) com a célula robotizada no
+ * centro, equipes em escala humana (humans.ts) e áreas de teste. Referências: High Bay 1 do JPL e a imagem do
+ * Amazônia-1 fornecida pelo usuário. Mantém o modelo 3D sincronizado com a configuração lógica e anima os
+ * braços robóticos a cada montagem.
+ *
+ * Os painéis solares ficam recolhidos durante a integração (como numa sala limpa real: a abertura é um teste
+ * à parte, com dispositivos de compensação da gravidade); a abertura aparece no briefing e em órbita.
  */
 import { Color3, Color4, type Engine, HighlightLayer, type Mesh, MeshBuilder, PointerEventTypes, type TransformNode, Vector3 } from '@babylonjs/core';
+import { CrewKit, createWorker, type Worker } from '../entities/humans';
 import type { MissionId } from '../../types/catalog';
 import type { InstalledComponent } from '../../types/campaign';
 import type { SceneController } from '../core/SceneManager';
@@ -10,7 +16,8 @@ import { getComponent } from '../catalog';
 import { loadNasaModel, REFERENCE_SPACECRAFT, type NasaModelId } from '../entities/nasaModels';
 import { ProbeModel } from '../entities/probeModel';
 import { RobotArm } from '../entities/robotArm';
-import { buildHangar, buildIntegrationEquipment, createBaseScene } from './environment';
+import { createBaseScene } from './environment';
+import { HALL, buildHallEquipment, buildIntegrationHall } from './integrationHall';
 
 export interface ProbeHangarController extends SceneController {
   sync(installed: InstalledComponent[]): void;
@@ -32,14 +39,39 @@ const REF_POS = new Vector3(-14, 0, -6);
 const REF_H = 1.1;
 
 export function createProbeHangarScene(engine: Engine): ProbeHangarController {
-  const base = createBaseScene(engine, { clear: new Color4(0.06, 0.07, 0.08, 1), target: new Vector3(0, 2.6, 0), radius: 15, alpha: -Math.PI / 2.6, beta: 1.2, exposure: 1.1, environment: 'hangar', environmentIntensity: 0.8 });
-  const { scene, mats, camera, shadows } = base;
-  buildHangar(base, { width: 46, depth: 60, height: 20, bays: 6, withCrane: true, doorSide: 'back' });
-  buildIntegrationEquipment(base, new Vector3(0, 0, 0), 5.5);
+  const base = createBaseScene(engine, { clear: new Color4(0.06, 0.07, 0.08, 1), target: new Vector3(0, 2.6, 0), radius: 15, alpha: -Math.PI / 2.6, beta: 1.2, exposure: 1.0, environment: 'hangar', environmentIntensity: 0.7 });
+  const { scene, mats, camera, shadows, sun } = base;
+  // Iluminação de high bay: luminárias no teto (luz principal quase vertical, com sombras curtas) e luz
+  // difusa refletida pelas paredes brancas e pelo piso claro (hemisférica + cubo de ambiente)
+  sun.direction = new Vector3(0.18, -1, 0.12);
+  sun.intensity = 2.1;
+  const hemi = scene.lights.find((l) => l.name === 'hemi');
+  if (hemi) hemi.intensity = 0.45;
+  if (base.pipeline) { base.pipeline.bloomThreshold = 0.92; base.pipeline.bloomWeight = 0.12; }
+  const leftArmPos = new Vector3(-5.2, 0, 1.2), rightArmPos = new Vector3(5.2, 0, -1.2);
+  const hall = buildIntegrationHall(scene, mats, [leftArmPos, rightArmPos], 5.3);
+  const equipment = buildHallEquipment(scene, mats, hall.members);
   camera.lowerRadiusLimit = 4;
-  camera.upperRadiusLimit = 32;
+  camera.upperRadiusLimit = 18;
+  // A câmera fica dentro do prédio: alvo (inclusive com pan) limitado à área útil e raio encurtado quando a
+  // posição sairia pelas paredes ou pelo teto (antes um raio de 30 m mostrava o lado de fora da parede)
+  const inner = { x: HALL.width / 2 - 1, z: HALL.depth / 2 - 1, y: HALL.height - 1 };
+  scene.onBeforeRenderObservable.add(() => {
+    const t = camera.target;
+    t.x = Math.max(-inner.x + 4, Math.min(inner.x - 4, t.x));
+    t.z = Math.max(-inner.z + 4, Math.min(inner.z - 4, t.z));
+    t.y = Math.max(0.5, Math.min(8, t.y));
+    const sb = Math.sin(camera.beta);
+    const dx = Math.cos(camera.alpha) * sb, dz = Math.sin(camera.alpha) * sb, dy = Math.cos(camera.beta);
+    let r = camera.radius;
+    if (dx) r = Math.min(r, ((dx > 0 ? inner.x : -inner.x) - t.x) / dx);
+    if (dz) r = Math.min(r, ((dz > 0 ? inner.z : -inner.z) - t.z) / dz);
+    if (dy > 0) r = Math.min(r, (inner.y - t.y) / dy);
+    if (r < camera.radius) camera.radius = Math.max(camera.lowerRadiusLimit ?? 1, r);
+  });
 
-  // Plataforma central de montagem (dolly laranja como na referência) e suporte da sonda
+  // Dolly de integração (laranja, como na referência do Amazônia-1) com rodízios travados, sapatas de
+  // nivelamento e o suporte cônico que recebe o anel de interface da sonda
   const dolly = MeshBuilder.CreateBox('dolly', { width: 4.6, depth: 3.8, height: 0.45 }, scene);
   dolly.position.y = 0.45;
   dolly.material = mats.get('orangePaint');
@@ -48,24 +80,60 @@ export function createProbeHangarScene(engine: Engine): ProbeHangarController {
     w.rotation.z = Math.PI / 2;
     w.position = new Vector3(x, 0.22, z);
     w.material = mats.get('rubber');
+    const jack = MeshBuilder.CreateCylinder(`dollyJack${x}${z}`, { diameter: 0.16, height: 0.24 }, scene);
+    jack.position = new Vector3(x * 1.12, 0.12, z * 1.12);
+    jack.material = mats.get('steel');
   }
   const stand = MeshBuilder.CreateCylinder('stand', { diameterTop: 1.2, diameterBottom: 1.8, height: STAND_H - 0.67 }, scene);
   stand.position.y = 0.67 + (STAND_H - 0.67) / 2;
   stand.material = mats.get('darkSteel');
-  const platformRing = MeshBuilder.CreateTorus('platformRing', { diameter: 8, thickness: 0.06, tessellation: 64 }, scene);
-  platformRing.position.y = 0.02;
-  platformRing.material = mats.get('yellowSafety');
+  const standRing = MeshBuilder.CreateCylinder('standRing', { diameter: 1.42, height: 0.06, tessellation: 48 }, scene);
+  standRing.position.y = STAND_H - 0.03;
+  standRing.material = mats.get('aluminum');
+  // Cordoalha de aterramento (ESD) do dolly ao ponto de terra do piso
+  const strap = MeshBuilder.CreateTube('esdStrap', { path: [new Vector3(2.2, 0.5, 1.8), new Vector3(2.5, 0.05, 2.2), new Vector3(2.8, 0.02, 2.6)], radius: 0.012 }, scene);
+  strap.material = mats.get('copper');
+
+  // Equipes: posições e tarefas coerentes com cada área (sem atravessar equipamentos nem a célula do robô)
+  const crew = new CrewKit(scene);
+  const probeTop = new Vector3(0, 3.6, 0);
+  const workers: Worker[] = [
+    // Plataforma elevatória: inspeciona a face −Z da sonda a menos de 1 m dela
+    createWorker(scene, crew, { position: new Vector3(-1.2, 2.44, -2.6), yaw: 0.15, activity: 'inspect', lookAt: new Vector3(-0.7, 3.3, -1.5), height: 1.78, prop: 'flashlight', seed: 11 }),
+    // Responsável pela integração acompanha com a prancheta, fora da zona dos robôs
+    createWorker(scene, crew, { position: new Vector3(2.6, 0, 6.6), yaw: -2.75, activity: 'clipboard', lookAt: probeTop, height: 1.66, prop: 'clipboard', seed: 23 }),
+    // EGSE: um opera a bancada, outro acompanha os racks
+    createWorker(scene, crew, { position: new Vector3(12.6, 0, -4.55), yaw: Math.PI, activity: 'console', height: 1.72, seed: 31 }),
+    createWorker(scene, crew, { position: new Vector3(13.7, 0, -4.35), yaw: Math.PI + 0.35, activity: 'stand', lookAt: new Vector3(13.4, 1.1, -5.45), height: 1.84, seed: 37 }),
+    createWorker(scene, crew, { position: new Vector3(15.1, 0, -8.0), yaw: Math.PI / 2, activity: 'inspect', lookAt: new Vector3(15.8, 1.2, -8.0), height: 1.7, seed: 41 }),
+    // Inspeção de painel solar sob a luminária
+    createWorker(scene, crew, { position: new Vector3(12.2, 0, 5.25), yaw: 0, activity: 'inspect', lookAt: new Vector3(12.4, 1.0, 6.4), height: 1.63, prop: 'flashlight', seed: 43 }),
+    createWorker(scene, crew, { position: new Vector3(9.5, 0, 4.75), yaw: 0.1, activity: 'crouch', height: 1.76, seed: 47 }),
+    // Exposição da nave de referência: um engenheiro explica, outro observa
+    createWorker(scene, crew, { position: new Vector3(-11.4, 0, -3.1), yaw: -2.4, activity: 'point', lookAt: new Vector3(-14, 3, -6), height: 1.8, seed: 53 }),
+    createWorker(scene, crew, { position: new Vector3(-10.5, 0, -2.2), yaw: -2.5, activity: 'stand', lookAt: new Vector3(-14, 2.5, -6), height: 1.68, prop: 'tablet', seed: 59 }),
+    // Bancada de preparação
+    createWorker(scene, crew, { position: new Vector3(-9.6, 0, 5.55), yaw: 0, activity: 'console', height: 1.74, seed: 61 }),
+    // Circulação pelo corredor junto ao portão
+    createWorker(scene, crew, { position: new Vector3(-15, 0, 11), activity: 'walk', path: [new Vector3(-15, 0, 11.2), new Vector3(15, 0, 11.2), new Vector3(15, 0, 12), new Vector3(-15, 0, 12)], height: 1.77, seed: 67 }),
+  ];
+  for (const m of [...crew.meshes, ...equipment, ...hall.members.all().filter((x) => /rackGrey|orangePaint|robotOrange|darkSteel|grating|paintedWhite|aluminum/.test(x.name))]) shadows?.addShadowCaster(m);
 
   const probe = new ProbeModel(scene, mats);
   probe.root.position.y = STAND_H;
-  const leftArm = new RobotArm(scene, mats, 'armL', new Vector3(-5.2, 0, 1.2), Math.PI / 2);
-  const rightArm = new RobotArm(scene, mats, 'armR', new Vector3(5.2, 0, -1.2), -Math.PI / 2);
+  const leftArm = new RobotArm(scene, mats, 'armL', leftArmPos, Math.PI / 2);
+  const rightArm = new RobotArm(scene, mats, 'armR', rightArmPos, -Math.PI / 2);
+  for (const arm of [leftArm, rightArm]) arm.root.getChildMeshes().forEach((m) => shadows?.addShadowCaster(m));
   const pickupL = new Vector3(-6.5, 1.3, 4.2);
   const pickupR = new Vector3(6.5, 1.3, -4.2);
   for (const p of [pickupL, pickupR]) {
     const table = MeshBuilder.CreateBox(`staging${p.x}`, { width: 1.4, depth: 1.4, height: 1 }, scene);
     table.position = new Vector3(p.x, 0.5, p.z);
     table.material = mats.get('darkSteel');
+    // Bandeja antiestática sobre a mesa de preparação
+    const tray = MeshBuilder.CreateBox(`stagingTray${p.x}`, { width: 1.2, depth: 1.2, height: 0.04 }, scene);
+    tray.position = new Vector3(p.x, 1.02, p.z);
+    tray.material = mats.get('blueWall');
   }
   shadows?.addShadowCaster(dolly);
 
@@ -177,6 +245,7 @@ export function createProbeHangarScene(engine: Engine): ProbeHangarController {
     update(dt) {
       leftArm.update(dt);
       rightArm.update(dt);
+      for (const w of workers) w.update(dt);
     },
     setQuality: base.setQuality,
     sync(installed) {
@@ -187,6 +256,7 @@ export function createProbeHangarScene(engine: Engine): ProbeHangarController {
       if (first) {
         // Restauração de campanha: monta tudo sem animação
         probe.rebuild(installed);
+        probe.setDeployment(0);
       } else {
         for (const id of prevIds) if (!nextIds.has(id)) animateRemoval(id);
         const added = installed.filter((i) => !prevIds.has(i.instanceId));
@@ -195,6 +265,7 @@ export function createProbeHangarScene(engine: Engine): ProbeHangarController {
         for (const inst of added) animateInstall(inst);
         probe.relayout(installed, inTransit);
         probe.updateSkin(installed);
+        probe.setDeployment(0);
       }
       for (const p of probe.partNodes) p.node.getChildMeshes().forEach((m) => shadows?.addShadowCaster(m));
       frame();

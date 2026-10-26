@@ -1,8 +1,14 @@
 /**
  * Modelo 3D modular da sonda, gerado proceduralmente a partir dos componentes instalados.
  * Cada componente vira um nó com metadados (instanceId, componentId) e é posicionado em um ponto de montagem.
+ *
+ * Referências de engenharia (ver docs/visual-references.md): kit de imprensa da Juno (JPL: corpo de 3,5 m,
+ * 3 asas com 11 painéis, cofre de titânio de ~1 m de aresta e 1 cm de parede, motor Leros-1b de 645 N e
+ * 12 propulsores em 4 módulos), LRO e Landsat 8 do NASA 3D Resources (exposição no hangar). Dimensões de
+ * cada componente vêm do catálogo do jogo; detalhes sem cota pública (nervuras, suportes, abraçadeiras,
+ * perfil da tubeira) são aproximações visuais.
  */
-import { Color3, Mesh, MeshBuilder, type Scene, TransformNode, Vector3 } from '@babylonjs/core';
+import { Color3, Mesh, MeshBuilder, Quaternion, type Scene, TransformNode, Vector3 } from '@babylonjs/core';
 import type { ComponentSpec } from '../../types/catalog';
 import type { InstalledComponent } from '../../types/campaign';
 import { getComponent } from '../catalog';
@@ -145,6 +151,26 @@ export class ProbeModel {
       const c = add(MeshBuilder.CreateCylinder(`${instanceId}-${name}`, { diameterBottom: dia, diameterTop: diaTop ?? dia, height: h, tessellation: 24 }, s));
       c.material = m.get(mat); c.position = pos; c.rotation.x = rotX; return c;
     };
+    /** Sólido de revolução em torno de Y a partir de um perfil (x = raio, y = altura). */
+    const lathe = (name: string, profile: [number, number][], mat: Parameters<MaterialLibrary['get']>[0], pos = Vector3.Zero(), tess = 32) => {
+      const l = add(MeshBuilder.CreateLathe(`${instanceId}-${name}`, { shape: profile.map(([x, y]) => new Vector3(x, y, 0)), tessellation: tess, sideOrientation: Mesh.DOUBLESIDE }, s));
+      l.material = m.get(mat); l.position = pos; return l;
+    };
+    /** Peça pequena: some além de 80 m (nível de detalhe), onde teria menos de um pixel. */
+    const detail = <T extends Mesh>(mesh: T): T => { mesh.addLODLevel(80, null); return mesh; };
+    /** Barra entre dois pontos (suportes, treliças, linhas de propelente retas). */
+    const strut = (name: string, a: Vector3, b: Vector3, dia: number, mat: Parameters<MaterialLibrary['get']>[0]) => {
+      const d = b.subtract(a);
+      const c = cyl(name, dia, d.length(), mat, a.add(b).scale(0.5));
+      const axis = d.normalize();
+      // Alinha o eixo Y do cilindro à direção a→b
+      const up = new Vector3(0, 1, 0);
+      const ang = Math.acos(Math.max(-1, Math.min(1, Vector3.Dot(up, axis))));
+      const ax = Vector3.Cross(up, axis);
+      if (ax.length() > 1e-6) c.rotationQuaternion = Quaternion.RotationAxis(ax.normalize(), ang);
+      else if (axis.y < 0) c.rotation.x = Math.PI;
+      return c;
+    };
     switch (spec.id) {
       case 'bus-aluminum': case 'bus-large-tank': {
         this.buildBus(spec, instanceId, node);
@@ -171,7 +197,16 @@ export class ProbeModel {
         box('frame', 0.12, dz + 0.08, dx + 0.08, 'darkSteel', new Vector3(0.04, 0, 0));
         break;
       }
-      case 'radiators': box('panel', 0.05, 1.0, 1.0, 'radiatorWhite', new Vector3(0.05, 0, 0)); break;
+      case 'radiators': {
+        // Radiador com persianas térmicas (lâminas que abrem com a temperatura) sobre o painel branco
+        box('panel', 0.05, 1.0, 1.0, 'radiatorWhite', new Vector3(0.05, 0, 0));
+        box('louverFrame', 0.04, 0.5, 0.9, 'aluminum', new Vector3(0.1, -0.2, 0));
+        for (let k = 0; k < 8; k++) {
+          const blade = detail(box(`louver${k}`, 0.012, 0.05, 0.86, 'aluminum', new Vector3(0.13, -0.42 + k * 0.06, 0)));
+          blade.rotation.z = 0.5;
+        }
+        break;
+      }
       case 'solar-gaas': case 'solar-articulated': case 'solar-giant': {
         // Asas em sanfona: braço (yoke) + painéis ligados por dobradiças. Recolhidas, as asas ficam dobradas
         // contra a lateral do barramento (cabem na coifa); estendidas, abrem em linha reta para fora.
@@ -189,27 +224,39 @@ export class ProbeModel {
           const root = new TransformNode(`${instanceId}-hinge${side}-0`, s);
           root.parent = wing;
           hinges.push(root);
-          const yoke = cyl(`yoke${side}`, 0.06, yokeLen, 'aluminum', new Vector3(side * yokeLen / 2, 0, 0), 0);
-          yoke.rotation.z = Math.PI / 2;
-          yoke.parent = root;
-          if (spec.id === 'solar-articulated') {
-            const drive = cyl(`drive${side}`, 0.22, 0.2, 'darkSteel', new Vector3(side * 0.1, 0, 0));
-            drive.rotation.z = Math.PI / 2;
-            drive.parent = wing;
+          // Braço em V (yoke) de tubos de carbono, da articulação de raiz até os dois cantos internos do painel
+          for (const dz of [-1, 1]) {
+            const y = strut(`yoke${side}${dz}`, new Vector3(side * 0.12, 0, 0), new Vector3(side * yokeLen, 0, dz * width * 0.42), 0.05, 'carbon');
+            y.parent = root;
           }
+          const yokeBar = cyl(`yokeBar${side}`, 0.05, width * 0.84, 'carbon', new Vector3(side * yokeLen, 0, 0), Math.PI / 2);
+          yokeBar.parent = root;
+          // Acionamento do painel (SADA) na lateral do corpo: carcaça e flange
+          const drive = cyl(`drive${side}`, spec.id === 'solar-articulated' ? 0.26 : 0.2, 0.18, 'darkSteel', new Vector3(side * 0.06, 0, 0));
+          drive.rotation.z = Math.PI / 2;
+          drive.parent = wing;
           let prev = root, prevLen = yokeLen;
           for (let p = 0; p < panels; p++) {
             const hinge = new TransformNode(`${instanceId}-hinge${side}-${p + 1}`, s);
             hinge.parent = prev;
             hinge.position.x = side * prevLen;
-            const panel = add(MeshBuilder.CreateBox(`${instanceId}-p${side}${p}`, { width: pw - 0.05, height: 0.04, depth: width }, s));
-            panel.material = m.get('solarCell');
-            panel.parent = hinge;
-            panel.position = new Vector3(side * pw / 2, 0, 0);
-            const frame = add(MeshBuilder.CreateBox(`${instanceId}-f${side}${p}`, { width: pw, height: 0.03, depth: width + 0.04 }, s));
+            // Substrato em colmeia de alumínio com faces de carbono (2,5 cm) e células só na face ativa
+            const frame = add(MeshBuilder.CreateBox(`${instanceId}-f${side}${p}`, { width: pw - 0.02, height: 0.025, depth: width + 0.03 }, s));
             frame.material = m.get('carbon');
             frame.parent = hinge;
-            frame.position = new Vector3(side * pw / 2, -0.025, 0);
+            frame.position = new Vector3(side * pw / 2, -0.0125, 0);
+            const panel = add(MeshBuilder.CreateBox(`${instanceId}-p${side}${p}`, { width: pw - 0.07, height: 0.006, depth: width - 0.03 }, s));
+            panel.material = m.get('solarCell');
+            panel.parent = hinge;
+            panel.position = new Vector3(side * pw / 2, 0.003, 0);
+            // Dobradiças com mola entre painéis (duas por linha de dobra)
+            for (const dz of [-0.36, 0.36]) {
+              const pin = detail(add(MeshBuilder.CreateCylinder(`${instanceId}-hp${side}${p}${dz}`, { diameter: 0.045, height: 0.14, tessellation: 10 }, s)));
+              pin.material = m.get('titanium');
+              pin.parent = hinge;
+              pin.rotation.x = Math.PI / 2;
+              pin.position = new Vector3(0, -0.01, dz * width);
+            }
             hinges.push(hinge);
             prev = hinge;
             prevLen = pw;
@@ -236,8 +283,11 @@ export class ProbeModel {
         break;
       }
       case 'star-tracker': {
-        box('head', 0.18, 0.18, 0.18, 'blackAnodized', new Vector3(0, 0.09, 0));
-        cyl('baffle', 0.14, 0.3, 'blackAnodized', new Vector3(0, 0.33, 0), 0, 0.26);
+        // Cabeça óptica num suporte inclinado e defletor (baffle) cônico contra a luz do Sol
+        box('bracket', 0.24, 0.04, 0.24, 'titanium', new Vector3(0, 0.02, 0));
+        box('head', 0.18, 0.18, 0.18, 'blackAnodized', new Vector3(0, 0.13, 0));
+        cyl('baffle', 0.14, 0.3, 'blackAnodized', new Vector3(0, 0.37, 0), 0, 0.26);
+        detail(cyl('baffleRing', 0.27, 0.015, 'aluminum', new Vector3(0, 0.52, 0)));
         break;
       }
       case 'reaction-wheels': {
@@ -261,12 +311,23 @@ export class ProbeModel {
         break;
       }
       case 'hydrazine-thrusters': case 'rcs-control-thrusters': {
+        // Quatro módulos nos cantos inferiores, cada um com 3 tubeiras em direções diferentes (para baixo e
+        // tangenciais), como os 4 módulos de 3 propulsores da Juno; tanque de hidrazina e linhas até os módulos
         const [w, , d] = this.bus;
         for (let k = 0; k < 4; k++) {
           const sx = k % 2 ? 1 : -1, sz = k > 1 ? 1 : -1;
-          cyl(`n${k}`, 0.1, 0.18, 'darkSteel', new Vector3(sx * w * 0.42, 0.05, sz * d * 0.42), 0, 0.04);
+          const c = new Vector3(sx * (w / 2 + 0.02), 0.12, sz * (d / 2 + 0.02));
+          box(`rem${k}`, 0.16, 0.14, 0.16, 'mliSilver', c);
+          // Bocais: um para baixo e dois tangenciais (±x / ±z), com a saída para fora do corpo
+          const down = cyl(`nd${k}`, 0.035, 0.1, 'darkSteel', c.add(new Vector3(0, -0.11, 0)), 0, 0.012);
+          down.rotation.x = Math.PI;
+          const nx = cyl(`nx${k}`, 0.035, 0.1, 'darkSteel', c.add(new Vector3(sx * 0.12, 0, 0)), 0, 0.012);
+          nx.rotation.z = sx * Math.PI / 2;
+          const nz = cyl(`nz${k}`, 0.035, 0.1, 'darkSteel', c.add(new Vector3(0, 0, sz * 0.12)), 0, 0.012);
+          nz.rotation.x = -sz * Math.PI / 2;
+          detail(strut(`line${k}`, new Vector3(0, 0.12, 0), c.add(new Vector3(-sx * 0.08, 0, -sz * 0.08)), 0.018, 'titanium'));
         }
-        cyl('tank', 0.35, 0.35, 'titanium', new Vector3(0, 0.25, 0));
+        lathe('tank', Array.from({ length: 13 }, (_, i) => { const a = -Math.PI / 2 + (i / 12) * Math.PI; return [Math.cos(a) * 0.19 + 1e-4, 0.25 + Math.sin(a) * 0.19 + (a > 0 ? 0.06 : 0)] as [number, number]; }), 'titanium', Vector3.Zero(), 24);
         break;
       }
       case 'electric-thruster-small': {
@@ -279,24 +340,63 @@ export class ProbeModel {
         break;
       }
       case 'biprop-main': case 'main-engine-large': {
+        // Motor bipropelente: placa de montagem, válvulas, câmara e tubeira em sino (perfil parabólico de
+        // Rao, razão de áreas ~150 como nos motores de apogeu da classe Leros); tubeira em nióbio escurecido
         const k = spec.id === 'main-engine-large' ? 1.25 : 1;
-        cyl('chamber', 0.18 * k, 0.3 * k, 'darkSteel', new Vector3(0, -0.15 * k, 0));
-        cyl('bell', 0.55 * k, 0.6 * k, 'sootBlack', new Vector3(0, -0.6 * k, 0), 0, 0.2 * k);
-        cyl('mount', 0.5 * k, 0.12, 'aluminum', new Vector3(0, -0.02, 0));
+        cyl('mount', 0.5 * k, 0.06, 'aluminum', new Vector3(0, -0.03, 0));
+        for (let i = 0; i < 3; i++) {
+          const a = (i / 3) * Math.PI * 2;
+          detail(strut(`leg${i}`, new Vector3(Math.cos(a) * 0.2 * k, -0.06, Math.sin(a) * 0.2 * k), new Vector3(Math.cos(a) * 0.07 * k, -0.2 * k, Math.sin(a) * 0.07 * k), 0.025, 'titanium'));
+        }
+        box('valves', 0.16 * k, 0.08 * k, 0.1 * k, 'aluminum', new Vector3(0.1 * k, -0.12 * k, 0));
+        cyl('chamber', 0.12 * k, 0.14 * k, 'titanium', new Vector3(0, -0.22 * k, 0));
+        const throatY = -0.3 * k, exitY = -0.85 * k, rExit = 0.27 * k, rThroat = 0.035 * k;
+        const bell: [number, number][] = [[0.06 * k, -0.27 * k], [rThroat, throatY]];
+        for (let i = 1; i <= 10; i++) { const u = i / 10; bell.push([rThroat + (rExit - rThroat) * Math.sqrt(u), throatY + (exitY - throatY) * u]); }
+        lathe('bell', bell, 'sootBlack', Vector3.Zero(), 32);
+        lathe('bellLip', [[rExit, exitY], [rExit + 0.012 * k, exitY], [rExit + 0.012 * k, exitY + 0.025 * k], [rExit - 0.002, exitY + 0.03 * k]], 'titanium', Vector3.Zero(), 32);
         break;
       }
       case 'xband-tx': cyl('helix', 0.1, 0.3, 'aluminum', new Vector3(0, 0, 0.15), Math.PI / 2); box('amp', 0.2, 0.15, 0.08, 'darkSteel', new Vector3(0, -0.15, 0.04)); break;
       case 'sband-ttc': cyl('whip', 0.03, 0.6, 'aluminum', new Vector3(0, 0.3, 0)); cyl('base', 0.12, 0.05, 'darkSteel', new Vector3(0, 0.03, 0)); break;
       case 'gnss-receiver': cyl('patch', 0.18, 0.04, 'paintedWhite', new Vector3(0, 0.02, 0)); break;
       case 'hga-sx': case 'hga-large': {
-        const dia = dx;
-        cyl('mast', 0.12, 0.35, 'aluminum', new Vector3(0, 0.17, 0));
-        const dish = add(MeshBuilder.CreateSphere(`${instanceId}-dish`, { diameter: dia * 1.6, slice: 0.22, sideOrientation: Mesh.DOUBLESIDE, segments: 32 }, s));
-        dish.material = m.get('paintedWhite');
-        dish.rotation.x = Math.PI;
-        dish.position.y = 0.35 + dia * 0.8;
-        cyl('feed', 0.04, dia * 0.45, 'aluminum', new Vector3(0, 0.35 + dia * 0.38, 0));
-        cyl('horn', 0.12, 0.12, 'copper', new Vector3(0, 0.35 + dia * 0.6, 0), 0, 0.05);
+        // Refletor parabólico (f/D = 0,35) em compósito com pintura branca térmica, borda reforçada, nervuras
+        // radiais no verso, subrefletor Cassegrain em tripé e corneta de alimentação no centro. Montado no
+        // deck por uma estrutura cônica de 6 barras (antena fixa, apontada pela atitude da sonda, como na Juno)
+        const dia = dx, R = dia / 2, f = 0.35 * dia;
+        const base = 0.4; // altura do vértice do refletor sobre o deck
+        const depth = (R * R) / (4 * f);
+        const prof: [number, number][] = [];
+        for (let i = 0; i <= 16; i++) { const r = (i / 16) * R; prof.push([r + 1e-4, base + (r * r) / (4 * f)]); }
+        lathe('dish', prof, 'radiatorWhite', Vector3.Zero(), 48);
+        // Verso (casca de carbono 2 cm abaixo) e borda
+        lathe('dishBack', prof.map(([r, y]) => [r, y - 0.02] as [number, number]), 'carbon', Vector3.Zero(), 48);
+        const rim = add(MeshBuilder.CreateTorus(`${instanceId}-rim`, { diameter: dia, thickness: 0.035, tessellation: 64 }, s));
+        rim.material = m.get('carbon'); rim.position.y = base + depth - 0.01;
+        for (let i = 0; i < 8; i++) {
+          const a = (i / 8) * Math.PI * 2;
+          const rib: [number, number][] = [];
+          for (let j = 0; j <= 6; j++) { const r = 0.1 + (j / 6) * (R - 0.12); rib.push([r, base + (r * r) / (4 * f) - 0.05]); }
+          for (let j = 0; j + 1 < rib.length; j++) {
+            const a0 = rib[j]!, a1 = rib[j + 1]!;
+            detail(strut(`rib${i}-${j}`, new Vector3(Math.cos(a) * a0[0], a0[1], Math.sin(a) * a0[0]), new Vector3(Math.cos(a) * a1[0], a1[1], Math.sin(a) * a1[0]), 0.03, 'carbon'));
+          }
+        }
+        // Suporte cônico: 6 barras de titânio do deck ao anel de montagem no verso do refletor
+        for (let i = 0; i < 6; i++) {
+          const a = (i / 6) * Math.PI * 2, a2 = a + Math.PI / 6;
+          strut(`mount${i}`, new Vector3(Math.cos(a) * 0.5, 0.02, Math.sin(a) * 0.5), new Vector3(Math.cos(a2) * 0.18, base - 0.03, Math.sin(a2) * 0.18), 0.04, 'titanium');
+        }
+        cyl('mountRing', 0.42, 0.05, 'titanium', new Vector3(0, base - 0.03, 0));
+        // Subrefletor no tripé (a ~0,8·f do vértice) e corneta de alimentação
+        const subY = base + 0.82 * f;
+        cyl('subreflector', dia * 0.12, 0.03, 'aluminum', new Vector3(0, subY, 0), 0, dia * 0.09);
+        for (let i = 0; i < 3; i++) {
+          const a = (i / 3) * Math.PI * 2 + 0.3;
+          strut(`tripod${i}`, new Vector3(Math.cos(a) * R * 0.92, base + depth - 0.01, Math.sin(a) * R * 0.92), new Vector3(Math.cos(a) * dia * 0.05, subY, Math.sin(a) * dia * 0.05), 0.025, 'carbon');
+        }
+        cyl('horn', 0.1, 0.22, 'aluminum', new Vector3(0, base + 0.11, 0), 0, 0.2);
         break;
       }
       case 'magnetometer-boom': {
@@ -360,18 +460,52 @@ export class ProbeModel {
       edge.material = this.mats.get('darkSteel');
       tag(edge, instanceId, spec.id).parent = node;
     }
-    const ring = MeshBuilder.CreateTorus(`${instanceId}-adapter`, { diameter: Math.min(w, d) * 0.7, thickness: 0.08, tessellation: 40 }, s);
-    ring.position.y = -0.02;
-    ring.material = this.mats.get('steel');
+    // Interface com o lançador: anel de separação com cinta de fixação (tipo Marman) sob o deck inferior
+    const ringDia = Math.min(w, d) * 0.7;
+    const ring = MeshBuilder.CreateCylinder(`${instanceId}-adapter`, { diameterTop: ringDia, diameterBottom: ringDia * 1.04, height: 0.08, tessellation: 48 }, s);
+    ring.position.y = -0.04;
+    ring.material = this.mats.get('aluminum');
     tag(ring, instanceId, spec.id).parent = node;
+    const band = MeshBuilder.CreateTorus(`${instanceId}-clampBand`, { diameter: ringDia * 1.05, thickness: 0.03, tessellation: 48 }, s);
+    band.position.y = -0.06;
+    band.material = this.mats.get('steel');
+    tag(band, instanceId, spec.id).parent = node;
+    // Canaletas de chicote elétrico nas arestas verticais das faces ±X (ligam os painéis eletrônicos)
+    for (const sx of [-1, 1]) {
+      const tray = MeshBuilder.CreateBox(`${instanceId}-tray${sx}`, { width: 0.05, depth: 0.08, height: h * 0.8 }, s);
+      tray.position = new Vector3(sx * (w / 2 + 0.03), h / 2, -d / 2 + 0.12);
+      tray.material = this.mats.get('darkSteel');
+      tray.addLODLevel(80, null);
+      tag(tray, instanceId, spec.id).parent = node;
+    }
     if (spec.id === 'bus-large-tank') {
+      // Tanques de propelente dentro do cilindro central (não visíveis); por fora ficam o tubo de empuxo sob o
+      // deck inferior e o painel de propulsão na face −Z: dois tanques de pressurização (hélio), linhas e válvulas
+      const tube = MeshBuilder.CreateCylinder(`${instanceId}-thrustTube`, { diameter: Math.min(w, d) * 0.5, height: 0.12, tessellation: 40 }, s);
+      tube.position.y = -0.02;
+      tube.material = this.mats.get('carbon');
+      tag(tube, instanceId, spec.id).parent = node;
       for (const sx of [-1, 1]) {
-        const tank = MeshBuilder.CreateSphere(`${instanceId}-tank${sx}`, { diameter: 0.9, segments: 20 }, s);
-        tank.position = new Vector3(sx * 0.45, h * 0.35, -d / 2 - 0.05);
-        tank.scaling.z = 0.3;
-        tank.material = this.mats.get('titanium');
-        tag(tank, instanceId, spec.id).parent = node;
+        const copv = MeshBuilder.CreateCapsule(`${instanceId}-copv${sx}`, { radius: 0.2, height: 0.75, tessellation: 20 }, s);
+        copv.position = new Vector3(sx * 0.42, h * 0.32, -d / 2 - 0.24);
+        copv.material = this.mats.get('carbon');
+        tag(copv, instanceId, spec.id).parent = node;
+        for (const y of [-0.22, 0.22]) {
+          const strap = MeshBuilder.CreateTorus(`${instanceId}-strap${sx}${y}`, { diameter: 0.42, thickness: 0.025, tessellation: 24 }, s);
+          strap.position = copv.position.add(new Vector3(0, y, 0));
+          strap.material = this.mats.get('titanium');
+          strap.addLODLevel(80, null);
+          tag(strap, instanceId, spec.id).parent = node;
+        }
+        const pipe = MeshBuilder.CreateTube(`${instanceId}-feed${sx}`, { path: [copv.position.add(new Vector3(0, 0.38, 0)), new Vector3(sx * 0.42, h * 0.62, -d / 2 - 0.1), new Vector3(0, h * 0.62, -d / 2 - 0.06)], radius: 0.014, tessellation: 8 }, s);
+        pipe.material = this.mats.get('titanium');
+        pipe.addLODLevel(80, null);
+        tag(pipe, instanceId, spec.id).parent = node;
       }
+      const valves = MeshBuilder.CreateBox(`${instanceId}-valvePanel`, { width: 0.5, height: 0.3, depth: 0.08 }, s);
+      valves.position = new Vector3(0, h * 0.62, -d / 2 - 0.05);
+      valves.material = this.mats.get('aluminum');
+      tag(valves, instanceId, spec.id).parent = node;
     }
     this.busNode = node;
   }

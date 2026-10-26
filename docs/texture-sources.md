@@ -24,3 +24,11 @@ Créditos exigidos pela CC BY 4.0: "Textures © Solar System Scope (https://www.
 (https://creativecommons.org/licenses/by/4.0/)". O crédito também aparece na tela inicial do jogo.
 
 Imagens da NASA não têm direitos autorais nos EUA; a NASA pede que seja citada como fonte e que o uso não sugira endosso.
+
+## Catálogo de estrelas (rodada 5)
+
+| Arquivo | Conteúdo | Fonte | Licença |
+|---|---|---|---|
+| `frontend/public/data/stars/bsc5.bin` | 9.096 estrelas do Yale Bright Star Catalogue, 5ª ed.: direção J2000, magnitude V e temperatura de cor estimada por B–V (gerado por `frontend/scripts/build-starfield.mjs`) | Hoffleit & Warren (1991), Yale University Observatory, distribuído pelo CDS e pela NASA HEASARC; conversão para JSON de Bretton Wade (`brettonw/YaleBrightStarCatalog`, `bsc5-short.json`) | Catálogo: dados científicos públicos. Conversão JSON: MIT (© Bretton Wade) |
+
+Mais referências visuais da rodada 5 em `docs/visual-references.md`.

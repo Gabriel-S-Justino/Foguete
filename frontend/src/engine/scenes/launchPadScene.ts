@@ -1,6 +1,7 @@
 /**
- * Plataforma de lançamento (ambiente distinto do hangar): torre de serviço, braços de acesso, linhas de
- * abastecimento, trincheira de chamas, torre d'água, para-raios e área de segurança. A posição e a atitude
+ * Plataforma de lançamento (ambiente distinto do hangar). As estruturas de solo dependem da família do veículo
+ * (padStructures.ts): torre de serviço, braços de acesso, linhas de abastecimento, trincheira de chamas,
+ * torre d'água, para-raios e área de segurança. A posição e a atitude
  * do foguete, a pluma e as separações acompanham o estado calculado pelo LaunchController.
  *
  * Escala real: a Terra tem o raio verdadeiro e o foguete é colocado na posição (alcance, altitude) da
@@ -28,10 +29,14 @@ import { createExplosion } from '../effects/explosion';
 import { createSmokeTrail } from '../effects/smokeTrail';
 import { ProbeModel } from '../entities/probeModel';
 import { buildRocket, fitPayload } from '../entities/rocketModel';
+import { greenwichSiderealAngle } from '../orbital-mechanics/ephemeris';
+import type { V3 } from '../orbital-mechanics/kepler';
 import { BODIES } from '../orbital-mechanics/orbits';
 import { type DetachedBody, type PadFrame, separate, stepDetached } from '../physics/debris';
 import type { LaunchController } from '../simulation/launchController';
-import { buildStarfield, createBaseScene } from './environment';
+import { createBaseScene } from './environment';
+import { buildPadComplex, applyMover } from './padStructures';
+import { createStarfield } from './starfield';
 import { createPlanet, launchAzimuthDeg, siteOrientation } from './planets';
 import { createGroupAssigner } from './renderGroups';
 import { terrainTextures } from './terrain';
@@ -118,12 +123,22 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
     // Casca da atmosfera: a oclusão pelo planeta é feita no shader (ver planets.ts)
     if (m.material) m.material.depthFunction = Constants.ALWAYS;
   }
-  const stars = buildStarfield(scene, 600000, 2600, 0.0011);
-  stars.scaling.setAll(0.45);
-  groups.reserve(stars, G_SKY);
-  stars.alwaysSelectAsActiveMesh = true;
-  const starMat = stars.material as StandardMaterial;
-  starMat.disableDepthWrite = true;
+  // Estrelas do catálogo BSC5 orientadas para o céu local da base (hora sideral no instante da cena). Só
+  // aparecem quando a câmera sai da atmosfera; com o Sol e a Terra iluminada no quadro, a exposição limita a V ≈ 5
+  const lst = greenwichSiderealAngle(new Date());
+  const skyFor = (lat: number, lon: number, az: number) => {
+    const m = siteOrientation(lat, lon, az).asArray();
+    return (v: V3): V3 => {
+      // Equador inercial → fixo na Terra (giro pela hora sideral) → convenção do corpo (y = polo) → cena
+      const xe = v[0] * Math.cos(lst) + v[1] * Math.sin(lst), ye = -v[0] * Math.sin(lst) + v[1] * Math.cos(lst);
+      const b: V3 = [xe, v[2], ye];
+      const row = (r: number) => b[0] * m[r * 4]! + b[1] * m[r * 4 + 1]! + b[2] * m[r * 4 + 2]!;
+      return [row(0), row(1), row(2)];
+    };
+  };
+  const stars = createStarfield(scene, { limitMag: 5.0, toScene: skyFor(CAPE.lat, CAPE.lon, 90) });
+  groups.reserve(stars.mesh, G_SKY);
+  stars.setVisibility(0);
 
   // Terreno (vegetação de restinga), oceano a jusante e área de segurança
   const terrain = terrainTextures(scene);
@@ -152,90 +167,23 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
   apronMat.zOffsetUnits = -4;
   apron.material = apronMat;
   apron.receiveShadows = true;
-  const padBase = MeshBuilder.CreateCylinder('padBase', { diameter: 120, height: PAD_H, tessellation: 8 }, scene);
-  padBase.position.y = PAD_H / 2;
-  padBase.material = mats.get('concrete');
-  padBase.receiveShadows = true;
-  const trench = MeshBuilder.CreateBox('flameTrench', { width: 14, depth: 70, height: 1 }, scene);
-  trench.position = new Vector3(0, PAD_H - 0.4, 30);
-  const trenchMat = mats.variant('sootBlack', 'trenchMat');
-  trenchMat.zOffset = -1;
-  trenchMat.zOffsetUnits = -2;
-  trench.material = trenchMat;
-  const mount = MeshBuilder.CreateBox('launchMount', { width: 26, depth: 26, height: 6 }, scene);
-  mount.position.y = PAD_H + 3;
-  mount.material = mats.get('darkSteel');
-  const trenchExit = new TransformNode('trench-exit', scene);
-  trenchExit.position = new Vector3(0, PAD_H + 1, 14);
-  // Garras de sustentação
-  const clampNodes: TransformNode[] = [];
-  for (let k = 0; k < 4; k++) {
-    const a = (k / 4) * Math.PI * 2 + Math.PI / 4;
-    const n = new TransformNode(`clamp${k}`, scene);
-    n.position = new Vector3(Math.cos(a) * 5, PAD_H + 6, Math.sin(a) * 5);
-    const c = MeshBuilder.CreateBox(`clampMesh${k}`, { width: 1.2, depth: 1.2, height: 3 }, scene);
-    c.parent = n;
-    c.position.y = 1.5;
-    c.material = mats.get('yellowSafety');
-    clampNodes.push(n);
-  }
   const fence = MeshBuilder.CreateTorus('perimeter', { diameter: 700, thickness: 1.2, tessellation: 96 }, scene);
   fence.position.y = 1;
   fence.material = mats.get('yellowSafety');
 
-  // Torre de serviço treliçada
+  // Complexo de lançamento da família do veículo (torre, mesa, trincheira, propelente, água, para-raios)
   const rocket = buildRocket(scene, mats, vehicle);
-  const towerH = rocket.height + 20;
-  const towerX = -(rocket.diameter / 2 + 14);
-  const leg = MeshBuilder.CreateBox('towerLeg', { width: 0.8, depth: 0.8, height: towerH }, scene);
-  leg.material = mats.get('galvanized');
-  for (const [dx, dz] of [[-4, -4], [4, -4], [-4, 4], [4, 4]] as const) leg.thinInstanceAdd(Matrix.Translation(towerX + dx, PAD_H + towerH / 2, dz));
-  const brace = MeshBuilder.CreateBox('towerBrace', { width: 0.35, depth: 0.35, height: 11.3 }, scene);
-  brace.material = mats.get('galvanized');
-  for (let y = PAD_H + 6; y < PAD_H + towerH; y += 8) {
-    for (const z of [-4, 4]) brace.thinInstanceAdd(Matrix.RotationZ(0.78).multiply(Matrix.Translation(towerX, y, z)));
-    for (const x of [-4, 4]) brace.thinInstanceAdd(Matrix.RotationX(0.78).multiply(Matrix.Translation(towerX + x, y, 0)));
-  }
-  const deck = MeshBuilder.CreateBox('towerDeck', { width: 9.5, depth: 9.5, height: 0.3 }, scene);
-  deck.material = mats.get('grating');
-  for (let y = PAD_H + 10; y < PAD_H + towerH; y += 10) deck.thinInstanceAdd(Matrix.Translation(towerX, y, 0));
-  // Braços de acesso (recolhem antes da ignição)
-  const arms: TransformNode[] = [];
-  for (const frac of [0.35, 0.8]) {
-    const pivot = new TransformNode(`accessArm${frac}`, scene);
-    pivot.position = new Vector3(towerX + 4, PAD_H + rocket.height * frac, 0);
-    const arm = MeshBuilder.CreateBox(`accessArmMesh${frac}`, { width: Math.abs(towerX) - rocket.diameter / 2 - 3, depth: 2.4, height: 2.4 }, scene);
-    arm.position.x = (Math.abs(towerX) - rocket.diameter / 2 - 3) / 2;
-    arm.material = mats.get('paintedWhite');
-    arm.parent = pivot;
-    arms.push(pivot);
-  }
-  // Linhas de abastecimento, tanques de solo, torre d'água e para-raios
-  const line = (from: Vector3, to: Vector3, name: string, mat: 'steel' | 'paintedWhite') => {
-    const t = MeshBuilder.CreateTube(name, { path: [from, from.add(to.subtract(from).scale(0.5)).add(new Vector3(0, -2, 0)), to], radius: 0.5, tessellation: 12 }, scene);
-    t.material = mats.get(mat);
-  };
-  for (const [i, x] of [[0, -90], [1, -110]] as const) {
-    const sph = MeshBuilder.CreateSphere(`groundTank${i}`, { diameter: 18, segments: 24 }, scene);
-    sph.position = new Vector3(x, 9, -60);
-    sph.material = mats.get('paintedWhite');
-    line(new Vector3(x, 2, -52), new Vector3(towerX, PAD_H + 1, -3), `fuelLine${i}`, 'steel');
-  }
-  const water = MeshBuilder.CreateCylinder('waterTower', { diameter: 14, height: 30, tessellation: 24 }, scene);
-  water.position = new Vector3(110, 15, 60);
-  water.material = mats.get('paintedWhite');
-  const mast = MeshBuilder.CreateCylinder('lightningMast', { diameterBottom: 1.4, diameterTop: 0.2, height: towerH + 30 }, scene);
-  mast.material = mats.get('steel');
-  for (const [x, z] of [[-60, -40], [60, -40], [0, 70]] as const) mast.thinInstanceAdd(Matrix.Translation(x, (towerH + 30) / 2, z));
+  const pad = buildPadComplex(scene, mats, vehicle.id, rocket, PAD_H);
+  const { arms, clamps: clampNodes, trenchExit, towerH } = pad;
 
   // Todo o cenário fixo (inclusive a Terra) passa a ficar sob a raiz do mundo (origem flutuante)
-  for (const m of scene.meshes) if (!m.parent && m !== stars) m.parent = worldRoot;
+  for (const m of scene.meshes) if (!m.parent && m !== stars.mesh) m.parent = worldRoot;
   for (const t of scene.transformNodes) if (!t.parent && t !== worldRoot && t !== rocket.root) t.parent = worldRoot;
 
   // Foguete e carga útil (dentro da coifa). O nó de voo fica perto do centro de massa, para a
   // inclinação girar o veículo em torno dele.
   const pivotH = rocket.height * 0.4;
-  const restY = PAD_H + 6 + pivotH;
+  const restY = pad.deckY + pivotH;
   const flightNode = new TransformNode('flight', scene);
   flightNode.position.set(0, restY, 0);
   rocket.root.parent = flightNode;
@@ -405,6 +353,7 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
       const o = siteOrientation(site.lat, site.lon, launchAzimuthDeg(incl, site.lat));
       earthMat.setMatrix('orient', o);
       earthMat.setMatrix('orientInv', o.clone().transpose());
+      stars.setOrientation(skyFor(site.lat, site.lon, launchAzimuthDeg(incl, site.lat)));
       frame.rate = OMEGA_EARTH * Math.cos((incl * Math.PI) / 180);
     },
     setCamera(m) {
@@ -517,7 +466,7 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
 
       // Preparação: braços recolhem e garras liberam somente no lançamento
       if (['countdown', 'ignition', 'flight', 'orbit'].includes(snap.state)) armsRetract = Math.min(1, armsRetract + dt * 0.4);
-      arms.forEach((a) => (a.rotation.y = armsRetract * 1.4));
+      arms.forEach((a) => applyMover(a, armsRetract));
       if (tel.phase === 'liftoff' || alt > 1) clampsOpen = Math.min(1, clampsOpen + dt * 2);
       clampNodes.forEach((c) => (c.rotation.x = clampsOpen * 0.8));
 
@@ -636,9 +585,7 @@ export function createLaunchPadScene(engine: Engine, vehicle: LaunchVehicle, ins
       const k = Math.min(1, atmosphere(viewAlt).densityKgM3 / 1.225) ** 0.35;
       scene.clearColor.set(0.45 * k ** 1.3, 0.62 * k ** 1.1, 0.85 * k + 0.004, 1);
       scene.fogDensity = 0.0001 * k;
-      starMat.alpha = Math.max(0, 1 - k * 3);
-      stars.setEnabled(starMat.alpha > 0.01);
-      stars.position.copyFrom(activeCam.globalPosition);
+      stars.setVisibility(Math.max(0, 1 - k * 3));
       const groundFade = Math.max(0, Math.min(1, 1 - (viewAlt - 4000) / 6000));
       gm.alpha = groundFade;
       om.alpha = groundFade;
